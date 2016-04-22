@@ -1,0 +1,25 @@
+Package: rprev
+Type: Package
+Title: Functions for Estimating Prevalence
+Version: 0.1
+Date: 2015-11-17
+Authors@R: c(person("Simon", "Crouch",
+                    role="aut"),
+             person("Stephanie", "Lax",
+                    email="stephanie.lax@york.ac.uk",
+                    role=c("cre", "ctb")),
+             person("Stuart", "Lacy",
+                    role="ctb"))
+Description: This code was used to calculate the estimated portion of the 10-
+    year prevalence data presented on the HMRN website: \url{https://www.hmrn.org/
+    statistics/prevalence}
+License: GPL-2
+Imports:
+    abind (>= 1.4-3),
+    dplyr (>= 0.4.3),
+    rms (>= 4.4-0),
+    survival (>= 2.37-7)
+RoxygenNote: 5.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
