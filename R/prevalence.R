@@ -201,12 +201,11 @@ prevalence_dev <- function(data, registry_years, N_years,
   time_since_diag <- year * 365 + runif(num_diag, 0, 365)
 
   is_alive <- as.logical(rbinom(num_diag, 1,
-                                1 - prob_event(time_since_diag, boot_age_dist, sex = sex,
+                                1 - prob_death(time_since_diag, boot_age_dist, sex = sex,
                                                curetime, boot = coefs_bs, daily_survival = daily_surv)))
-
-  num_alive <- sum(is_alive)
-  if(num_alive > 0)
-    post_age_dist[1:num_alive] <- time_since_diag[is_alive]/365 + boot_age_dist[is_alive]
+  num_dead <- sum(!is_alive)
+  if(num_dead > 0)
+    post_age_dist[1:num_dead] <- time_since_diag[!is_alive]/365 + boot_age_dist[!is_alive]
   pred_cases <- num_diag - sum(is_alive)
   return(list(cases=pred_cases, post=post_age_dist))
 }
@@ -258,10 +257,10 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
         diag_time <- year_no * 365 + runif(no_diag, 0, 365)
 
         if(mean(data$sex) == 0){
-          d_or_a <- rbinom(no_diag, 1, 1 - prob_event(diag_time, boot_age_dist, sex = 0,
+          d_or_a <- rbinom(no_diag, 1, 1 - prob_death(diag_time, boot_age_dist, sex = 0,
                                                    cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
         }else{
-          d_or_a <- rbinom(no_diag, 1, 1 - prob_event(diag_time, boot_age_dist, sex = 1,
+          d_or_a <- rbinom(no_diag, 1, 1 - prob_death(diag_time, boot_age_dist, sex = 1,
                                                      cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
         }
 
@@ -311,10 +310,10 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
         diag_time_male <- year_no * 365 + runif(no_diag_male, 0, 365)
         diag_time_female <- year_no * 365 + runif(no_diag_female, 0, 365)
         d_or_a_male <- rbinom(no_diag_male, 1,
-                              1 - prob_event(diag_time_male, boot_age_dist_male, sex = 0,
+                              1 - prob_death(diag_time_male, boot_age_dist_male, sex = 0,
                                           cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
         d_or_a_female <- rbinom(no_diag_female, 1,
-                                1 - prob_event(diag_time_female, boot_age_dist_female, sex = 1,
+                                1 - prob_death(diag_time_female, boot_age_dist_female, sex = 1,
                                               cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
         K_ages_m <- length(diag_time_male[d_or_a_male == 0])
         K_ages_f <- length(diag_time_female[d_or_a_female == 0])
@@ -354,7 +353,38 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
 #' n_year_estimates(N_years = 3, registry_start_year = year1, registry_end_year = lastyear,
 #'                  the_samples = by_year_male_samples,
 #'                  by_year = by_year_male, population_size = 1700000)
-n_year_estimates <- function(N_years, registry_start_year, registry_end_year,
+n_year_estimates_dev <- function(N_years, num_reg_years, 
+                                 the_samples, by_year, population_size,
+                                 level=0.95, precision=2){
+  if (N_years > length(by_year)) stop("error: too many years for the data.")
+    
+  z_level <- qnorm((1+level)/2)
+
+  the_samples <- the_samples[(num_reg_years + 1):N_years, , drop=F]
+  by_sample_estimate <- colSums(the_samples)
+
+  the_estimate <- sum(by_year[1:N_years])
+  raw_proportion <- the_estimate / population_size
+  the_proportion <- 100000 * raw_proportion
+
+  if (N_years <= num_reg_years) {
+    se <- (raw_proportion * (1 - raw_proportion)) / population_size
+  } else {
+    the_estimate_n <- sum(by_year[1:num_reg_years])
+    raw_proportion_n <- the_estimate_n / population_size
+    std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
+    std_err_2 <- sd(by_sample_estimate)/population_size
+    se <- std_err_1^1 + std_err_2^2
+  }
+  
+  CI <- z_level * sqrt(se) * 100000
+  object <- list(raw=the_estimate, per100K=the_proportion,
+                 per100K.lower=the_proportion - CI,
+                 per100K.upper=the_proportion + CI)
+  lapply(object, round, precision)
+}
+
+n_year_estimates_current <- function(N_years, registry_start_year, registry_end_year,
                              the_samples, by_year, population_size){
   if (N_years > length(by_year)) stop("error: too many years for the data.")
 
@@ -394,7 +424,36 @@ n_year_estimates <- function(N_years, registry_start_year, registry_end_year,
 #' @examples
 #' result <- prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
 #'                  N_years = N_years)
-prevalence_by_age <- function(dist, registry_end_year, N_years){
+prevalence_by_age_dev <- function(dist, registry_end_year, N_years){
+    
+  #############################
+  # TODO REMOVE WHEN FINISHED
+  #dist <- prev_obj$post
+  #registry_end_year = 9
+  #N_years = 10
+  #############################
+
+  the_dist <- dist[, , registry_end_year:N_years]
+  the_dist <- the_dist[!is.na(the_dist)]
+
+  aL <- length(the_dist)
+
+  # TODO Loop this and return a list
+  a_0_9 <- sum(the_dist > 0 & the_dist < 10)/aL
+  a_10_19 <- sum(the_dist >= 10 & the_dist < 20)/aL
+  a_20_29 <- sum(the_dist >= 20 & the_dist < 30)/aL
+  a_30_39 <- sum(the_dist >= 30 & the_dist < 40)/aL
+  a_40_49 <- sum(the_dist >= 40 & the_dist < 50)/aL
+  a_50_59 <- sum(the_dist >= 50 & the_dist < 60)/aL
+  a_60_69 <- sum(the_dist >= 60 & the_dist < 70)/aL
+  a_70_79 <- sum(the_dist >= 70 & the_dist < 80)/aL
+  a_80_plus <- sum(the_dist >= 80)/aL
+
+  total <- c(a_0_9,  a_10_19, a_20_29, a_30_39, a_40_49, a_50_59,
+             a_60_69, a_70_79, a_80_plus)
+}
+
+prevalence_by_age_current <- function(dist, registry_end_year, N_years){
 
   the_dist <- dist[registry_end_year:N_years, , ]
   the_dist <- unlist(the_dist)

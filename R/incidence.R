@@ -117,9 +117,21 @@ incidence_current <- function(data, registry_years, registry_start_year, registr
 #' @examples
 #' incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year = 1,
 #' registry_end_year = 4, population_size = 3500000)
-meanIR <- function(data, registry_years, registry_start_year, registry_end_year, population_size, precision = 2){
+meanIR_dev <- function(entry, registry_years, population_size, precision = 2, level=0.95){
 
-  per_year <- incidence(data, registry_years, registry_start_year, registry_end_year)
+  mean_rate <- mean(incidence_dev(entry, registry_years))
+  z_conf <- qnorm((1+level)/2)
+  
+  CI <- 100000 * (z_conf * sqrt(mean_rate) / length(registry_years)) / population_size
+  est <- 100000 * mean_rate / population_size
+
+  object <- list(absolute=mean_rate, per100K=est, per100K.lower=est-CI, per100K.upper=est+CI)
+  lapply(object, round, precision)
+}
+
+meanIR_current <- function(data, registry_years, registry_start_year, registry_end_year, population_size, precision = 2){
+
+  per_year <- incidence_current(data, registry_years, registry_start_year, registry_end_year)
   mean_rate <- mean(per_year)
   CI <- 100000 * (1.96 * sqrt(mean_rate) / (registry_end_year - registry_start_year + 1)) / population_size
   est <- 100000 * mean_rate / population_size

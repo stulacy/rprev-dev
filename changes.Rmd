@@ -52,6 +52,8 @@ test_output <- function(old_func, new_func) {
 
 # `incidence.R`
 
+## `incidence`
+
 Changes here include:
 
   + Don't need to pass in the whole vector of `registry_years` which aren't used, instead just pass in the ones of interest to this function, thereby removing the need to pass in starting / finishing indices
@@ -61,17 +63,14 @@ Changes here include:
   + Changed the for loop into an sapply implementation for readability and encapsulation
   + Removed the storing of the total incident cases in a variable as it's only used once
 
-## `incidence` test
-
 ```{r, echo=T}
 inc_test_current <- function () {
   registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
                       "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
   registry_start_year <- 2
   registry_end_year <- 9
-  correct_inc <- incidence_current(load_data(registry_data), registry_years, registry_start_year, 
-                                   registry_end_year)
-  correct_inc
+  incidence_current(load_data(registry_data), registry_years, registry_start_year, 
+                    registry_end_year)
 }
 ```
 
@@ -87,6 +86,46 @@ test_output(inc_test_current, inc_test_new)
 ```
 
 As can be seen, the same values for incidence rates are calculated.
+
+## `meanIR`
+
+Changes:
+  
+  + As with `incidence`, removed `registry_year` indices by instead requiring user pass in years of interest in `registry_year` vector. 
+  + As with `incidence`, the whole registry data frame isn't required to calculate this output, only the entry dates are so the first argument has been changed to a vector
+  + A keyword argument has been added to allow the user to select the level of confidence intervals, rather than being hardcoded at 95%
+  + Changed the output from a dataframe to a list, since each of the 4 values are not observations of the same variables and are completely independent, therefore a list is a more appropriate data structure. Lists index names are more useful than row names of a data frame too, as the later are generally ignored, while the former lets you index with the familiar *$* syntax.
+  + Also have changed the index names for readability (100K vs 100000) and behavioural reasons (having a *-* in a list index is problematic).
+
+
+```{r}
+meanIR_test_curr <- function() {
+  registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
+                      "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
+  registry_start_year <- 2
+  registry_end_year <- 9
+  meanIR_current(load_data(registry_data), registry_years, registry_start_year, 
+                 registry_end_year, population_size=3500000)
+}
+```
+
+```{r}
+meanIR_test_dev <- function() {
+  meanIR_dev(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)),
+             population_size=3500000)
+}
+```
+
+```{r}
+test_output(meanIR_test_curr, meanIR_test_dev)
+```
+
+The test now fails as the returned objects are no longer comparable due to the dev function returning a list, but if we manually inspect the outputs we can see they are the same, aside from a precision difference in `per100K.lower`. This presumably arises from manually calculating the required z value for the confidence intervals, which is actually `r qnorm(0.975)`, rather than 1.96 as was previously hardcoded.
+
+```{r}
+meanIR_test_curr()
+meanIR_test_dev()
+```
 
 # `survival.R`
 
@@ -259,6 +298,7 @@ prev_current_output <- function() {
                       "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
   registry_start_year <- 2
   registry_end_year <- 9
+  N_years = 10
   
   prevalence_total <- prevalence_current(load_data(registry_data), registry_years, registry_start_year, 
                                          registry_end_year, N_years = N_years, 
@@ -272,6 +312,7 @@ prev_current_output <- function() {
 ```{r}
 prev_dev <- function() {
   set.seed(17)
+  N_years = 10
   registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
   prevalence_total <- prevalence_dev(load_data(registry_data), registry_years, 
                                      N_years = N_years, 
@@ -290,16 +331,18 @@ test_output(function() prev_current_output()[[1]],
 
 This indicates that while the exact same average predicted prevalence rates aren't being calculated, but they are similar enough. 
 
+#### Prevalence distribution
+
 And can also look at their distributions (each year is in a separate frame):
 
 ```{r}
-f_cur <- prev_current_output()[[3]]
-f_dev <- prev_dev()$cases_total
-cases_curr <- data.frame(lapply(setNames(seq(dim(f_cur)[1]), seq(dim(f_cur)[1])), 
-                                function(x) f_cur[x, ]),
+f_cur <- prev_current_output()
+f_dev <- prev_dev()
+cases_curr <- data.frame(lapply(setNames(seq(dim(f_cur[[3]])[1]), seq(dim(f_cur[[3]])[1])), 
+                                function(x) f_cur[[3]][x, ]),
                          method='current')
-cases_dev <- data.frame(lapply(setNames(seq(dim(f_dev)[1]), seq(dim(f_dev)[1])), 
-                               function(x) f_dev[x, ]),
+cases_dev <- data.frame(lapply(setNames(seq(dim(f_dev$cases_total)[1]), seq(dim(f_dev$cases_total)[1])), 
+                               function(x) f_dev$cases_total[x, ]),
                         method='new')
 cases_comb <- rbind(cases_curr, cases_dev)
 
@@ -314,8 +357,8 @@ cases_comb %>%
 
 ```{r}
 year_names = names(dplyr::select(cases_curr, -method))
-comp.t <- lapply(setNames(year_names, year_names), function(x) t.test(cases_curr[, x], cases_dev[, x])$p.value)
-comp.ks <- lapply(setNames(year_names, year_names), function(x) ks.test(cases_curr[, x], cases_dev[, x])$p.value)
+lapply(setNames(year_names, year_names), function(x) t.test(cases_curr[, x], cases_dev[, x])$p.value)
+lapply(setNames(year_names, year_names), function(x) ks.test(cases_curr[, x], cases_dev[, x])$p.value)
 ```
 
 **NB: I'm not trying to show the pattern of the predicted prevalence over time, but rather show that the values estimated by the refactored version of the `prevalence` function is consistent with the previous results.**
@@ -324,8 +367,22 @@ It is surprising how similar the distributions here, even down to both having no
 
 There are a few low p-values from the t-test here, particularly at years 1 (p < 0.05) and also 5 and 6. Looking at the distribution of these years, the distributions look to be very similar with little observable difference in the shape or spread (no obvious outliers). If anything I'd expect a difference in p-values in years 3 and 4 as the distribution around the median looks slightly different here.
 
-The K-S tests show no significant difference in the distributions.
+The K-S tests show no significant difference in the distributions of the prevalent cases.
 
+#### Posterior age distribution
+
+Another diagnostic is looking at the posterior age distributions of the people alive (is this what $post returns?).
+
+The plot below indicates they are extremely similar, and so it doesn't seem worthwhile running a significance test on it.
+
+```{r, message=F, warning=F}
+post_cmp <- data.frame(age=c(as.vector(f_cur[[2]]), as.vector(f_dev$post)),
+                       method=rep(c('current', 'dev'), c(length(f_cur[[2]]), length(f_dev$post))))
+ggplot(post_cmp, aes(age, fill=method)) +
+    geom_histogram(position='identity', alpha=0.7) +
+    scale_fill_discrete("prevalence version") +
+    labs(x="Age", y="Count")
+```
 
 ## `counted_prevalence`
 
@@ -362,6 +419,89 @@ countprev_dev <- function() {
 test_output(countprev_current_output, countprev_dev)
 ```
 
+## `N_year_estimates`
+
+Changes:
+
+  + Removed both `registry_start_year` and `registry_end_year` in place of a single integer representing the number of years used in the registry
+  + Added an argument for the user to specify the confidence interval level (it's currently hardcoded at 1.96)
+  + Changed the output format to a list with 4 objects with the raw estimate, and the proportion per 100K with lower and upper bounds, to be consistent with `meanIR` output. Also outputting the values as `numeric` rather than `strings` is much more user friendly, allowing them to be plotted or stored.
+  + Likewise added a keyword argument for the user to specify the level of precision, as with `meanIR`
+  + Refactored the duplicated code calculating the SE, so that the condition on num_reg_years < N_year now only calculates the differing standard errors, as this is more precisely the behaviour defined by the condition
+  + Removed the use of the *<<-* operator, as I can't see the benefits of looking for a variable with this name in a higher scope
+
+```{r}
+nyear_test_curr <- function() {
+  prevalence_curr <- prev_current_output()
+  by_year_samples_total <- prevalence_curr[[3]]
+  by_year_total <- prevalence_curr[[1]]
+  
+  n_year_estimates_current(N_years = 3, registry_start_year = registry_start_year, 
+                           registry_end_year = registry_end_year, 
+                           the_samples = by_year_samples_total, by_year = by_year_total,
+                           population_size = 3500000)
+    
+}
+```
+
+```{r}
+nyear_test_dev <- function() {
+  prevalence_d <- prev_dev()
+  n_year_estimates_dev(N_years = 3, num_reg_years=length(registry_years)-1,
+                       the_samples = prevalence_d$cases_total, 
+                       by_year = prevalence_d$cases_avg,
+                       population_size = 3500000)
+}
+```
+
+As expected the test fails as the outputs are lists.
+
+```{r}
+test_output(nyear_test_curr, nyear_test_dev)
+```
+
+However manual inspection demonstrates that they are calculating the same values (given the minor variation in the prevalence calculations).
+
+```{r}
+nyear_test_curr()
+nyear_test_dev()
+```
+
+## `prevalence_by_age`
+
+Changes:
+
+  - Changed the indexing the of the 3D posterior distribution array, since the dimensions have changed order from the latest version of `prev`.
+  - Removed a redundant `unlist()` command
+
+```{r}
+prevage_test_curr <- function() {
+    prev_obj <- prev_current_output()
+    post_age_dist_total <- prev_obj[[2]]
+    registry_end_year = 9
+    N_years = 10
+    prevalence_by_age_current(dist = post_age_dist_total, registry_end_year, N_years)
+}
+prevage_test_curr()
+```
+
+```{r}
+prevage_test_dev <- function() {
+    prev_obj <- prev_dev()
+    post_age_dist_total <- prev_obj$post
+    registry_end_year = 9
+    N_years = 10
+    prevalence_by_age_dev(dist = post_age_dist_total, registry_end_year, N_years)
+}
+prevage_test_dev()
+```
+
+```{r}
+test_output(prevage_test_curr, prevage_test_dev)
+```
+
+As expected, the values are no longer identical but they are close enough to demonstrate the function is calculating the same thing as before.
+
 # Further Work
 
 There are still several areas that can be improved:
@@ -373,12 +513,6 @@ There are still several areas that can be improved:
     + `indicator`
     + `date_initial`
   + Have the population data loaded into the namespace with the `data()` function so it can be accessed by `prevalence()` rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with `data(<name>)`
-  + A few of the smaller diagnostic functions haven't been refactored yet:
-    + `mean_IR`
-    + `n_year_estimates`
-  + How does the weibull model work? I thought the values obtained from `survreg()` are the 3 coefficients (int + 2 covariates) and the *scale*. Also note what is the difference between `survreg$scale` and the scale found in `survreg$icoef`, the latter is apparently of the baseline model? Is this the one we want?
-  + Furthermore, when calculating the survival probability using `pweibull`, why is scale now *exp(beta X)* and shape as the scale returned from the coefficients earlier?
   + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++.
   + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
   + I haven't looked at the functions in `diagnostics.R` yet
-  + Run more thorough diagnostics to confirm that the new `prevalence` implementation produces expected outputs; I've currently only compared the average bootstrapped prevalence rates

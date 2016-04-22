@@ -156,7 +156,7 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-prob_event <- function(time, age, sex, cure_time, boot, daily_survival){
+prob_death <- function(time, age, sex, cure_time, boot, daily_survival){
   ifelse(age*365 + time > 36500,
          0,
          ifelse(time < cure_time,
