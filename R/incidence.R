@@ -49,27 +49,27 @@ load_data <- function(data,
                       sex = "Both",
                       age_division = "None",
                       age_cut = 20){
-
-  if(!sex %in% c('Both', 'Males', 'Females')) stop("error: incorrect sex.")
-  if(sex == "Males") data = filter(data, sex == 0)
-  if( sex == "Females") data = filter(data, sex == 1)
-
-  if(!age_division %in% c('None', 'Adult', 'Paediatric')) stop("error: incorrect age_division.")
-  if(age_division == "Adult") data = filter(data, age >= age_cut)
-  if(age_division == "Paediatric") data = filter(data, age < age_cut)
-
-  myCols <- c(age_initial, "sex", date_initial, indicator, survival_time, date_event, indicator_censored_at_index)
-  data <- data %>%
-    select(match(myCols, names(.)))
-
-  names(data) <- c("age_initial",
-                   "sex",
-                   "date_initial",
-                   "indicator",
-                   "survival_time",
-                   "date_event",
-                   "indicator_censored_at_index")
-  return(data)
+    
+    if(!sex %in% c('Both', 'Males', 'Females')) stop("error: incorrect sex.")
+    if(sex == "Males") data = filter(data, sex == 0)
+    if( sex == "Females") data = filter(data, sex == 1)
+    
+    if(!age_division %in% c('None', 'Adult', 'Paediatric')) stop("error: incorrect age_division.")
+    if(age_division == "Adult") data = filter(data, age >= age_cut)
+    if(age_division == "Paediatric") data = filter(data, age < age_cut)
+    
+    myCols <- c(age_initial, "sex", date_initial, indicator, survival_time, date_event, indicator_censored_at_index)
+    data <- data %>%
+        select(match(myCols, names(.)))
+    
+    names(data) <- c("age_initial",
+                     "sex",
+                     "date_initial",
+                     "indicator",
+                     "survival_time",
+                     "date_event",
+                     "indicator_censored_at_index")
+    return(data)
 }
 
 #' Calculate absolute incidence from registry data.
@@ -82,26 +82,26 @@ load_data <- function(data,
 #' @examples
 #' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
 #' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
-incidence_dev <- function(entry, registry_years) {
-  per_year <- vapply(seq(length(registry_years)-1),
-                     function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
-                     integer(1))
-
-  if(sum(per_year) < 30) warning("warning: low number of incident cases.")
-  return(per_year)
+incidence <- function(entry, registry_years) {
+    per_year <- vapply(seq(length(registry_years)-1),
+                       function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
+                       integer(1))
+    
+    if(sum(per_year) < 30) warning("warning: low number of incident cases.")
+    return(per_year)
 }
 
 incidence_current <- function(data, registry_years, registry_start_year, registry_end_year){
-  years_estimated <- registry_end_year - registry_start_year + 1
-  per_year <- rep(NA, years_estimated)
-
-  for (i in registry_start_year:registry_end_year){
-    per_year[i - registry_start_year + 1] <-
-      length(data$date_initial[data$date_initial >= registry_years[i] & data$date_initial < registry_years[i + 1]])
-  }
-  total <- sum(per_year)
-  if(total < 30) warning("warning: low number of incident cases.")
-  return(per_year)
+    years_estimated <- registry_end_year - registry_start_year + 1
+    per_year <- rep(NA, years_estimated)
+    
+    for (i in registry_start_year:registry_end_year){
+        per_year[i - registry_start_year + 1] <-
+            length(data$date_initial[data$date_initial >= registry_years[i] & data$date_initial < registry_years[i + 1]])
+    }
+    total <- sum(per_year)
+    if(total < 30) warning("warning: low number of incident cases.")
+    return(per_year)
 }
 
 #' Convert absolute incidence values to per 100,000 population values.
@@ -117,28 +117,28 @@ incidence_current <- function(data, registry_years, registry_start_year, registr
 #' @examples
 #' incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year = 1,
 #' registry_end_year = 4, population_size = 3500000)
-meanIR_dev <- function(entry, registry_years, population_size, precision = 2, level=0.95){
-
-  mean_rate <- mean(incidence_dev(entry, registry_years))
-  z_conf <- qnorm((1+level)/2)
-  
-  CI <- 100000 * (z_conf * sqrt(mean_rate) / length(registry_years)) / population_size
-  est <- 100000 * mean_rate / population_size
-
-  object <- list(absolute=mean_rate, per100K=est, per100K.lower=est-CI, per100K.upper=est+CI)
-  lapply(object, round, precision)
+meanIR <- function(entry, registry_years, population_size, precision = 2, level=0.95){
+    
+    mean_rate <- mean(incidence(entry, registry_years))
+    z_conf <- qnorm((1+level)/2)
+    
+    CI <- 100000 * (z_conf * sqrt(mean_rate) / length(registry_years)) / population_size
+    est <- 100000 * mean_rate / population_size
+    
+    object <- list(absolute=mean_rate, per100K=est, per100K.lower=est-CI, per100K.upper=est+CI)
+    lapply(object, round, precision)
 }
 
 meanIR_current <- function(data, registry_years, registry_start_year, registry_end_year, population_size, precision = 2){
-
-  per_year <- incidence_current(data, registry_years, registry_start_year, registry_end_year)
-  mean_rate <- mean(per_year)
-  CI <- 100000 * (1.96 * sqrt(mean_rate) / (registry_end_year - registry_start_year + 1)) / population_size
-  est <- 100000 * mean_rate / population_size
-
-  result <- data.frame(round(c(mean_rate, est - CI, est, est + CI),
+    
+    per_year <- incidence_current(data, registry_years, registry_start_year, registry_end_year)
+    mean_rate <- mean(per_year)
+    CI <- 100000 * (1.96 * sqrt(mean_rate) / (registry_end_year - registry_start_year + 1)) / population_size
+    est <- 100000 * mean_rate / population_size
+    
+    result <- data.frame(round(c(mean_rate, est - CI, est, est + CI),
                                precision))
-  rownames(result) <- c("absolute", "per100000-CI", "per100000", "per100000+CI")
-  return(result)
-
+    rownames(result) <- c("absolute", "per100000-CI", "per100000", "per100000+CI")
+    return(result)
+    
 }

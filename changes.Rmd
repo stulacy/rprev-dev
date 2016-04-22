@@ -77,7 +77,7 @@ inc_test_current <- function () {
 And for the development version...
 ```{r, echo=T}
 inc_test_new <- function() {
-  incidence_dev(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)))
+  incidence(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)))
 }
 ```
 
@@ -111,7 +111,7 @@ meanIR_test_curr <- function() {
 
 ```{r}
 meanIR_test_dev <- function() {
-  meanIR_dev(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)),
+  meanIR(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)),
              population_size=3500000)
 }
 ```
@@ -157,7 +157,7 @@ current_survival_rates <- function(x) {
 ```{r}
 new_survival_rates <- function(x) {
   pop_data_mx <- readRDS('data/population_data_mx_df.rds')
-  daily_survival_males <- population_survival_rate_dev(rate ~ age, subset(pop_data_mx, sex==0))
+  daily_survival_males <- population_survival_rate(rate ~ age, subset(pop_data_mx, sex==0))
 }
 ```
 
@@ -197,7 +197,7 @@ test_bootstrap <- function(bootstrap_function) {
   if (bootstrap_function == 'current') {
     coefs = registry_survival_bootstrapped_current(data, 1000)
   } else {
-    coefs = registry_survival_bootstrapped_dev(form, data, 1000)
+    coefs = registry_survival_bootstrapped(form, data, 1000)
   }
   coefs
 }
@@ -253,7 +253,7 @@ runtime_comparison <- function() {
   data$sex <- as.factor(data$sex)
   data_r <- data[data$date_initial >= min(registry_years), ]
   form = Surv(survival_time, indicator) ~ age_initial + sex
-  microbenchmark(registry_survival_bootstrapped_dev(form, data, 1000),
+  microbenchmark(registry_survival_bootstrapped(form, data, 1000),
                  registry_survival_bootstrapped_current(data, 1000),
                  times=5)
 }
@@ -314,9 +314,11 @@ prev_dev <- function() {
   set.seed(17)
   N_years = 10
   registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
-  prevalence_total <- prevalence_dev(load_data(registry_data), registry_years, 
-                                     N_years = N_years, 
-                                     cure_time = cure*365)
+  names = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
+  
+  prevalence_total <- prevalence(load_data(registry_data), registry_years, 
+                                 N_years = N_years, colnames=names,
+                                 cure_time = cure*365)
 }
 ```
 
@@ -411,7 +413,8 @@ countprev_current_output <- function() {
 countprev_dev <- function() {
   set.seed(17)
   registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
-  counted_prevalence_dev(load_data(registry_data), registry_years)
+  colnames = list(entry_date='DateOfDiag', event_date='EventDate', status_at_index='status2')
+  counted_prevalence(registry_data, registry_years, colnames=colnames)
 }
 ```
 
@@ -447,7 +450,7 @@ nyear_test_curr <- function() {
 ```{r}
 nyear_test_dev <- function() {
   prevalence_d <- prev_dev()
-  n_year_estimates_dev(N_years = 3, num_reg_years=length(registry_years)-1,
+  n_year_estimates(N_years = 3, num_reg_years=length(registry_years)-1,
                        the_samples = prevalence_d$cases_total, 
                        by_year = prevalence_d$cases_avg,
                        population_size = 3500000)
@@ -472,6 +475,7 @@ nyear_test_dev()
 Changes:
 
   - Changed the indexing the of the 3D posterior distribution array, since the dimensions have changed order from the latest version of `prev`.
+  - Changed the hardcoded age binning into a parameter, which by default is by decade, although the user can specify whatever interval they want
   - Removed a redundant `unlist()` command
 
 ```{r}
@@ -482,7 +486,6 @@ prevage_test_curr <- function() {
     N_years = 10
     prevalence_by_age_current(dist = post_age_dist_total, registry_end_year, N_years)
 }
-prevage_test_curr()
 ```
 
 ```{r}
@@ -491,9 +494,8 @@ prevage_test_dev <- function() {
     post_age_dist_total <- prev_obj$post
     registry_end_year = 9
     N_years = 10
-    prevalence_by_age_dev(dist = post_age_dist_total, registry_end_year, N_years)
+    prevalence_by_age(dist = post_age_dist_total, registry_end_year, N_years)
 }
-prevage_test_dev()
 ```
 
 ```{r}
@@ -501,6 +503,13 @@ test_output(prevage_test_curr, prevage_test_dev)
 ```
 
 As expected, the values are no longer identical but they are close enough to demonstrate the function is calculating the same thing as before.
+
+Note the new behaviour of the function, the user can specify the age bins with the provided parameter. Here the user is interested in segmenting the distribution into 4, 0-18, 18-50, 50-80, and >80.
+
+```{r}
+prev_obj <- prev_dev()
+prevalence_by_age(dist = prev_obj$post, registry_end_year=9, N_years=10, age_intervals=c(18, 50, 80))
+```
 
 # Further Work
 
