@@ -50,13 +50,13 @@ load_data <- function(data,
                       age_division = "None",
                       age_cut = 20){
 
-  if(sex != "Both" & sex != "Males" & sex != "Females") stop("error: incorrect sex.")
-  if(sex != "Both" & sex == "Males") data = filter(data, sex == 0)
-  if(sex != "Both" & sex == "Females") data = filter(data, sex == 1)
+  if(!sex %in% c('Both', 'Males', 'Females')) stop("error: incorrect sex.")
+  if(sex == "Males") data = filter(data, sex == 0)
+  if( sex == "Females") data = filter(data, sex == 1)
 
-  if(age_division != "None" & age_division != "Adult" & age_division != "Paediatric") stop("error: incorrect age_division.")
-  if(age_division != "None" & age_division == "Adult") data = filter(data, age >= age_cut)
-  if(age_division != "None" & age_division == "Paediatric") data = filter(data, age < age_cut)
+  if(!age_division %in% c('None', 'Adult', 'Paediatric')) stop("error: incorrect age_division.")
+  if(age_division == "Adult") data = filter(data, age >= age_cut)
+  if(age_division == "Paediatric") data = filter(data, age < age_cut)
 
   myCols <- c(age_initial, "sex", date_initial, indicator, survival_time, date_event, indicator_censored_at_index)
   data <- data %>%
@@ -82,8 +82,16 @@ load_data <- function(data,
 #' @examples
 #' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
 #' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
-incidence <- function(data, registry_years, registry_start_year, registry_end_year){
+incidence_dev <- function(entry, registry_years) {
+  per_year <- vapply(seq(length(registry_years)-1),
+                     function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
+                     integer(1))
 
+  if(sum(per_year) < 30) warning("warning: low number of incident cases.")
+  return(per_year)
+}
+
+incidence_current <- function(data, registry_years, registry_start_year, registry_end_year){
   years_estimated <- registry_end_year - registry_start_year + 1
   per_year <- rep(NA, years_estimated)
 
@@ -94,7 +102,6 @@ incidence <- function(data, registry_years, registry_start_year, registry_end_ye
   total <- sum(per_year)
   if(total < 30) warning("warning: low number of incident cases.")
   return(per_year)
-
 }
 
 #' Convert absolute incidence values to per 100,000 population values.

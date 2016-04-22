@@ -7,7 +7,17 @@
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
 #' counted_prevalence(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
-counted_prevalence<-function(data, registry_years, registry_start_year, registry_end_year){
+counted_prevalence_dev <- function(data, registry_years){
+  data <- data[!(is.na(data$date_event)), ]
+  per_year <- incidence_dev(data$date_initial, registry_years)
+  # TODO Clean up
+  num_cens <- vapply(seq(length(registry_years)-1), function(i)
+                     sum(data$indicator_censored_at_index[data$date_initial >= registry_years[i] & data$date_initial < registry_years[i + 1]]),
+                     numeric(1))
+  counted_prevalence <- per_year - num_cens
+}
+
+counted_prevalence_current <- function(data, registry_years, registry_start_year, registry_end_year){
 
   data <- data[!(is.na(data$date_event)), ]
   events <- sum(data$indicator)
@@ -58,8 +68,151 @@ counted_prevalence<-function(data, registry_years, registry_start_year, registry
 #'                            registry_end_year, daily_survival_males = daily_survival_males,
 #'                            daily_survival_females = daily_survival_females, cure_time = cure*365,
 #'                            N_years = 10)
-prevalence <- function(data, registry_years, registry_start_year, registry_end_year, N_years,
-                       daily_survival_males, daily_survival_females, cure_time,
+prevalence_dev <- function(data, registry_years, N_years,
+                           cure_time=NULL,
+                           N_boot=1000, max_yearly_incidence=500,
+                           pop_vers=1){
+
+  ############################################
+  #
+  # TODO Remove when finished debugging
+  #set.seed(17)
+  #data = load_data(registry_data)
+  #registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+  #N_years = N_years
+  #cure_time = cure*365
+  #N_boot = 1000
+  #max_yearly_incidence = 500
+  #pop_vers = 1
+  ############################################
+
+  data$sex <- as.factor(data$sex)
+
+  # TODO Is this logic correct, should this be the maximum or should it be based on survival time?
+  if (is.null(cure_time))
+    cure_time <- N_years + 1
+
+  if (! pop_vers %in% c(1, 2))
+    stop("Error: 'pop_vers' must take on a value of either 1 or 2.")
+
+  if (length(levels(data$sex)) > 2)
+    stop("Error: function can't currently function with more than two patient sex.")
+
+
+  ##################################################
+  #       Calculate population survival rates
+  ##################################################
+  # TODO Have this correctly done from within the package!
+  # Load population data
+  if (pop_vers == 1) {
+    pop_df <- readRDS('data/population_data_mx_df.rds')
+  } else {
+    stop("Error: Need to implement second population data choice.")
+  }
+
+  # Calculate population survival rates for each sex in dataset
+  surv_functions <- lapply(setNames(levels(data$sex), levels(data$sex)), function(x)
+                           population_survival_rate_dev(rate ~ age, data=subset(pop_df, sex==x)))
+  ##################################################
+
+
+  data_r <- data[data$date_initial >= min(registry_years), ]
+
+  # TODO Fix this so don't need to have variable names correct
+  if(cure_time > 0){
+    wb_boot <- registry_survival_bootstrapped_dev(Surv(survival_time, indicator) ~ age_initial + sex,
+                                                  data_r, N_boot)
+  } else {
+    # Hack for some data with low cure time
+    wb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data=data_r)
+    wb_boot = t(replicate(N_boot, c(wb$coe, wb$scale)))
+  }
+  wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
+
+  # Run the prevalence estimator for each subgroup
+  results <- lapply(levels(data_r$sex), function(x) {
+    .prevalence_subgroup(subset(data_r, sex==x), registry_years, wb_boot, length(registry_years)-1,
+                         surv_functions[[x]], cure_time, as.numeric(x), max_yearly_incidence, N_years)
+  })
+
+  # Combine results if have more than 1 sex subgroup
+  if (length(results) > 1) {
+    # This is ugly but will work provided there aren't more than 2 sexs specified for, which is guarded
+    # against anyway
+    by_year_samples <- results[[1]]$cases + results[[2]]$cases
+    post_age_dist <- abind(results[[1]]$post, results[[2]]$post, along=1)
+    fix_rate <- rev(results[[1]]$fix + results[[2]]$fix)
+  } else {
+    by_year_samples <- results[[1]]$cases
+    post_age_dist <- results[[1]]$post
+    fix_rate <- results[[1]]$fix
+  }
+  by_year_avg <- rowMeans(by_year_samples)
+
+  prev_out <- list(cases_avg=by_year_avg, post=post_age_dist, cases_total=by_year_samples, known_inc_rate=fix_rate,
+                   popsurv=surv_functions)
+  attr(prev_out, 'class') <- 'prevalence'
+  prev_out
+}
+
+
+.prevalence_subgroup <- function(data, reg_years, wboot, estyears, survfunc,
+                                 cure, sex, max_year_inc, num_years) {
+  fix_rate_rev <- rev(incidence_dev(data$date_initial, reg_years))
+  mean_rate <- mean(fix_rate_rev)
+  prior_age_d = data$age_initial
+
+  #  This is the new implementation of calculating the yearly predicted prevalence
+  yearly_rates = lapply(1:num_years, .yearly_prevalence, wboot, mean_rate, estyears, fix_rate_rev,
+                        prior_age_d, survfunc, cure, sex, max_year_inc)
+  # Unflatten by_year samples
+  by_year_samples = do.call(rbind, lapply(yearly_rates, function(x) x$cases))
+  post_age_dist = abind(lapply(yearly_rates, function(x) x$post), along=3)
+  return(list(cases=by_year_samples, post=post_age_dist, fix=fix_rate_rev))
+}
+
+
+.yearly_prevalence <- function(year, bootwb, meanrate, estyears, fixrate, prior, dailysurv, cure, sex, max_inc) {
+
+  # Run the bootstrapping to obtain posterior distributions and # cases for this year
+  post_results = apply(bootwb, 1, .post_age_bs, meanrate, estyears, year-1, fixrate[year], prior, dailysurv,
+                       cure, sex, max_inc, inreg=year<=estyears)
+
+  # Post_age_bs returns a list with 'cases' and 'post' values for the number of cases and posterior age distribution
+  # Need to flatten this into single array for boot_out and 2D array for post_age_dist
+  bs_cases <- vapply(post_results, function(x) x$cases, integer(1))
+  bs_post <- do.call(rbind, lapply(post_results, function(x) x$post))
+  return(list(cases=bs_cases, post=bs_post))
+}
+
+
+.post_age_bs <- function(coefs_bs, meanrate, estyears, year, fixrate, prior, daily_surv, curetime,
+                         sex, maxyearinc, inreg=TRUE) {
+
+  post_age_dist <- rep(NA, maxyearinc)
+  if(inreg){
+    rate <- fixrate
+  } else{
+    rate <- max(0, rnorm(1, meanrate, sqrt(meanrate)/estyears))
+  }
+
+  num_diag <- rpois(1, rate)
+  boot_age_dist <- sample(prior, num_diag, replace=T)
+  time_since_diag <- year * 365 + runif(num_diag, 0, 365)
+
+  is_alive <- as.logical(rbinom(num_diag, 1,
+                                1 - prob_event(time_since_diag, boot_age_dist, sex = sex,
+                                               curetime, boot = coefs_bs, daily_survival = daily_surv)))
+
+  num_alive <- sum(is_alive)
+  if(num_alive > 0)
+    post_age_dist[1:num_alive] <- time_since_diag[is_alive]/365 + boot_age_dist[is_alive]
+  pred_cases <- num_diag - sum(is_alive)
+  return(list(cases=pred_cases, post=post_age_dist))
+}
+
+prevalence_current <- function(data, registry_years, registry_start_year, registry_end_year, N_years,
+                               daily_survival_males, daily_survival_females, cure_time,
                        N_boot = 1000, Max_Yearly_Incidence = 500){
 
   if(mean(data$sex) == 0 | mean(data$sex) == 1) type = "single"
@@ -68,9 +221,10 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
   data_r <- data[data$date_initial >= registry_years[registry_start_year], ]
   est_years <- registry_end_year - registry_start_year + 1
 
+
   if(cure_time > 0){
-    wb_boot <- registry_survival_bootstrapped(data = data[data$date_initial >= registry_years[registry_start_year], ], N_boot)
-  }else{
+    wb_boot <- registry_survival_bootstrapped_current(data = data[data$date_initial >= registry_years[registry_start_year], ], N_boot)
+  } else{
     wb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data=data)
     wb_boot <- t(vapply(1:N_boot, function(x) c(wb$coe, wb$scale), FUN.VALUE = numeric(4)))
   }
@@ -78,7 +232,7 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
 
   if(type != "both"){
 
-    fix_rate <- incidence(data, registry_years, registry_start_year, registry_end_year)
+    fix_rate <- incidence_current(data, registry_years, registry_start_year, registry_end_year)
     if(mean(data$sex) == 0){
       prior_age_d <- data_r$age_initial[data_r$sex == 0]
     }else{
@@ -104,10 +258,10 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
         diag_time <- year_no * 365 + runif(no_diag, 0, 365)
 
         if(mean(data$sex) == 0){
-          d_or_a <- rbinom(no_diag, 1, 1 - survival_model(diag_time, boot_age_dist, sex = 0,
+          d_or_a <- rbinom(no_diag, 1, 1 - prob_event(diag_time, boot_age_dist, sex = 0,
                                                    cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
         }else{
-          d_or_a <- rbinom(no_diag, 1, 1 - survival_model(diag_time, boot_age_dist, sex = 1,
+          d_or_a <- rbinom(no_diag, 1, 1 - prob_event(diag_time, boot_age_dist, sex = 1,
                                                      cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
         }
 
@@ -132,8 +286,8 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
     by_year_male_samples <- matrix(NA, nrow=N_years, ncol=N_boot)
     by_year_female_samples <- matrix(NA, nrow=N_years, ncol=N_boot)
 
-    fix_m_rate <- rev(incidence(data = data[data$sex == 0, ], registry_years, registry_start_year, registry_end_year))
-    fix_f_rate <- rev(incidence(data = data[data$sex == 1, ], registry_years, registry_start_year, registry_end_year))
+    fix_m_rate <- rev(incidence_current(data = data[data$sex == 0, ], registry_years, registry_start_year, registry_end_year))
+    fix_f_rate <- rev(incidence_current(data = data[data$sex == 1, ], registry_years, registry_start_year, registry_end_year))
 
     mean_rate_male <- mean(fix_m_rate)
     mean_rate_female <- mean(fix_f_rate)
@@ -157,10 +311,10 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
         diag_time_male <- year_no * 365 + runif(no_diag_male, 0, 365)
         diag_time_female <- year_no * 365 + runif(no_diag_female, 0, 365)
         d_or_a_male <- rbinom(no_diag_male, 1,
-                              1 - survival_model(diag_time_male, boot_age_dist_male, sex = 0,
+                              1 - prob_event(diag_time_male, boot_age_dist_male, sex = 0,
                                           cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
         d_or_a_female <- rbinom(no_diag_female, 1,
-                                1 - survival_model(diag_time_female, boot_age_dist_female, sex = 1,
+                                1 - prob_event(diag_time_female, boot_age_dist_female, sex = 1,
                                               cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
         K_ages_m <- length(diag_time_male[d_or_a_male == 0])
         K_ages_f <- length(diag_time_female[d_or_a_female == 0])
@@ -183,7 +337,6 @@ prevalence <- function(data, registry_years, registry_start_year, registry_end_y
   }
 
   by_year <- apply(by_year_samples, 1, mean)
-
   return(list(by_year, post_age_dist, by_year_samples, fix_rate))
 
 }

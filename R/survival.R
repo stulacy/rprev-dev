@@ -42,7 +42,24 @@
 #' @examples
 #' daily_survival_males <- daily_survival_rate(population_data_mx, sex = "Males")
 #' daily_survival_females <- daily_survival_rate(population_data_mx, sex = "Females")
-daily_survival_rate <- function(data, sex){
+population_survival_rate_dev <- function(form, data, max_age=100){
+  # Could probably improve on this extraction of response and variable
+  age_var <- as.character(form[[3]])
+  rate_var <- as.character(form[[2]])
+
+  rate <- vapply(seq(0, max_age-1),
+                 function(x) mean(data[data[,age_var]==x, rate_var]),
+                 numeric(1))
+
+  a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[max_age] - rate[max_age-1])
+  base <- 183 + 365 * (1:max_age) # Where does 183/182 come from?
+  base <- c(-182, 183, base)
+  daily_rate <- approx(base, a_rate, 1:(max_age * 365))
+  daily_rate <- daily_rate$y / 365
+  cumprod(1 - daily_rate)
+}
+
+daily_survival_rate_current <- function(data, sex){
 
   if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
   data <- as.data.frame(data)
@@ -74,7 +91,48 @@ daily_survival_rate <- function(data, sex){
 #' @return The coefficients from a Weibull survival model fitted to each bootrapped sample.
 #' @examples
 #' registry_survival_bootstrapped(data, N_boot = 1000)
-registry_survival_bootstrapped <- function(data, N_boot = 1000){
+registry_survival_bootstrapped_dev <- function(form, data, N_boot = 1000){
+  data_trans <- .transform_registry_data(form, data) # df -> matrix, log transform stimes
+	n_obs <- nrow(data_trans)
+  coefs <- t(vapply(1:N_boot,
+             function(x) {
+                  ith_data <- data_trans[sample(1:n_obs, n_obs, replace=T), ]
+                  wbb <- .fit_weibull(ith_data)
+             },
+             numeric(4)))
+  # Need to transform scale back from log scale
+  coefs[, ncol(coefs)] <- exp(coefs[, ncol(coefs)])
+  coefs
+}
+
+.fit_weibull <- function(data) {
+  model <- survreg.fit(data[, 3:ncol(data)],
+                       data[, 1:2],
+                       NULL, # weights
+                       numeric(nrow(data)), # offset
+                       NULL, # init
+                       survreg.control(), # controlvars
+                       survreg.distributions[['extreme']], # dist
+                       0, # scale
+                       1, # nstrat
+                       0, # strata
+                       NULL # parms
+                       )
+  coef(model)
+}
+
+.transform_registry_data <- function(form, data) {
+  # Transforms the registry data into the format specified by survreg.fit,
+  # i.e. as a matrix of values with the survival times log transformed.
+  complete <- data[complete.cases(data), ]
+  X = model.matrix(form, complete)
+  survobj <- with(complete, eval(form[[2]]))
+	Y <- cbind(log(survobj[, 1]), survobj[, 2])
+	data_trans <- cbind(Y, X)
+}
+
+
+registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 
   boot <- matrix(0, nrow=N_boot, ncol=4)
   for (i in 1:N_boot){
@@ -98,7 +156,7 @@ registry_survival_bootstrapped <- function(data, N_boot = 1000){
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-survival_model <- function(time, age, sex, cure_time, boot, daily_survival){
+prob_event <- function(time, age, sex, cure_time, boot, daily_survival){
   ifelse(age*365 + time > 36500,
          0,
          ifelse(time < cure_time,

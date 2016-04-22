@@ -1,0 +1,384 @@
+---
+title: "Changes"
+author: "Stuart Lacy"
+date: "18 April 2016"
+output: 
+  html_document: 
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_float:
+        collapsed: false
+    code_folding: show
+---
+
+# Introduction
+
+This document lists the changes made to the prevalence code in the current development version, organised by source file. Overall, the changes have improved the codebase's maintainability and readability by removing redundant code and decomposing behaviours into single use functions where possible. Overall runtime has improved as well owing to some tweaking of the bootstrapping Weibull fitting code.
+
+**NB: Required packages aren't being loaded with the package, i.e. `survival` and `dplyr`. The DESCRIPTION file isn't loading them despite listing them as required. Do they need to be told to be explicitly loaded somewhere else, and DEPENDENCIES just lists those which must be installed?**
+
+```{r, message=F, output=F, warning=F}
+library(dplyr)
+library(abind)
+library(rms)
+library(survival)
+library(devtools)
+library(knitr)
+devtools::load_all()
+registry_data <- readRDS("data/registry_data.rds")
+N_years <- 10
+cure <- 3
+opts_chunk$set(message=F, warning=F)
+```
+
+Rather than using any established unit testing framework, I've just implemented a quick assertation test here that all values in the output are the same (note to self, find out what the best testing framework for R is). This therefore requires the functions under testing to output a vector (rather than a list) to work correctly.
+
+```{r}
+test_output <- function(old_func, new_func) {
+  expected = old_func()
+  actual = new_func()
+  if (all(expected == actual)) {
+    message("Success!")
+  } else {
+    message("Failure...")
+    message("Expected:")
+    print(expected)
+    message("Actual:") 
+    print(actual)
+  }
+}
+```
+
+# `incidence.R`
+
+Changes here include:
+
+  + Don't need to pass in the whole vector of `registry_years` which aren't used, instead just pass in the ones of interest to this function, thereby removing the need to pass in starting / finishing indices
+  + Likewise can then calculate the required number of years to be investigated as the length of the passed in vector
+  + Don't need to pass in the whole data frame, only the dates of diagnosis are required to calculate incidence, therefore the `load_data` function isn't needed here either
+  + Changed the calculation for number of incident events from determining the subset of events in the desired time frame, subsetting the vector with these indices, and then calculating its length, to just calculating the sum of subset of events as it's quicker
+  + Changed the for loop into an sapply implementation for readability and encapsulation
+  + Removed the storing of the total incident cases in a variable as it's only used once
+
+## `incidence` test
+
+```{r, echo=T}
+inc_test_current <- function () {
+  registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
+                      "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
+  registry_start_year <- 2
+  registry_end_year <- 9
+  correct_inc <- incidence_current(load_data(registry_data), registry_years, registry_start_year, 
+                                   registry_end_year)
+  correct_inc
+}
+```
+
+And for the development version...
+```{r, echo=T}
+inc_test_new <- function() {
+  incidence_dev(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)))
+}
+```
+
+```{r, message=T}
+test_output(inc_test_current, inc_test_new)
+```
+
+As can be seen, the same values for incidence rates are calculated.
+
+# `survival.R`
+
+## `daily_survival_rate()`
+
+Changes:
+
+  + It doesn't appear necessary to pass in the sex selection variable along with the column, just have the user/calling code subset the data frame before calling the function. 
+  + Rather than coercing the input matrix into a dataframe so that it can be subset more easily, require that the user provide a data frame. If desired can check that if a matrix has been passed to convert into a data frame, but either way the subsetting into genders should be done outside the function.
+  + Have saved *pop_data_mx* as a data frame rather than a matrix to help deal with the above issue.
+  + Removed the selecting of the `rate` and `age` columns as keeping the other columns doesn't have any impact on how the code runs.
+  + Have added a formula interface so that the column names don't need to be hardcoded. Admittedly I don't have much experience with formulae in R and my way of using it may be a bit hacky!
+  + Have changed references to the number 100 to a reference to a parameter `max_age`, as I believe this is what it represents
+  + Not a big deal, but 182/183 and 365 should have variable names to indicate they represent the days in 6 months and a year respectively.
+  + Vectorised the rates calculation, replacing the for loop
+  + Combined two simple lines relating to calculating `daily_rate` into one line
+  + Removed the initialisation of `daily_rate` to all 0s as this is overwritten later on
+  + Included the `cumprod(1-x)` line at the end of the function
+  + Renamed function to `population_survival_rate` to better highlight that this calculates daily survival rates based on **population** data rather than the **sample** data
+  
+```{r}
+current_survival_rates <- function(x) {
+  pop_data_mx <- readRDS('data/population_data_mx.rds')
+  daily_survival_rate_males <- daily_survival_rate_current(pop_data_mx, sex = "Males")
+  daily_survival_males <- cumprod(1 - daily_survival_rate_males)
+}
+```
+
+```{r}
+new_survival_rates <- function(x) {
+  pop_data_mx <- readRDS('data/population_data_mx_df.rds')
+  daily_survival_males <- population_survival_rate_dev(rate ~ age, subset(pop_data_mx, sex==0))
+}
+```
+
+```{r, message=T}
+test_output(current_survival_rates, new_survival_rates)
+```
+
+
+As can be seen this produces the same output as before.
+
+## `registry_survival_bootstrapped`
+
+Changes:
+
+  + The function now accepts a formula interface rather than having the variable names hardcoded
+  + The for loop has been replaced by a `vapply` in an effort to speed up the run time
+  + To fit the Weibull models, `survreg.fit` is called directly rather than `survreg`. This allows the relevant pre-processing steps for a Weibull model to be taken only, as `survreg` is designed to work for a number of distributions. This does limit the flexibility of the package, i.e. if it were decided that a different survival distribution were to be used then this change would need to be reverted, however at the moment it seems a reasonable compromise for the increased run speed
+  + The data is subset into complete cases internally by `survreg.fit`, this does not evaluated at each iteration of the bootstrap loop and so has been moved outside
+  + Transforming the data frame into a matrix can be moved outside of the bootstrap loop
+  + Likewise the log transformation of the output (survival time) 
+  + As a result of changing the size of the data matrix which is bootstrapped, the random number generator will sample differently and so the resulting Weibull coefficients will no longer be the exact same as before, although the overall model fit should be very similar
+  
+We need to confirm that the significant changes to this function still result in similar behaviour, so I'll visualise here the coefficient values from the current bootstrapped implementation as well as the new refactored version.
+
+### Diagnosing coefficients
+
+```{r}
+test_bootstrap <- function(bootstrap_function) {
+  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+  data = load_data(registry_data)
+  data$sex <- as.factor(data$sex)
+  data_r <- data[data$date_initial >= min(registry_years), ]
+  form = Surv(survival_time, indicator) ~ age_initial + sex
+  
+  set.seed(3)
+  
+  if (bootstrap_function == 'current') {
+    coefs = registry_survival_bootstrapped_current(data, 1000)
+  } else {
+    coefs = registry_survival_bootstrapped_dev(form, data, 1000)
+  }
+  coefs
+}
+
+current_coefs <- test_bootstrap('current')
+new_coefs <- test_bootstrap('new')
+```
+
+```{r}
+current_coefs <- as.data.frame(current_coefs)
+colnames(current_coefs) <- c('int', 'age', 'sex', 'scale')
+current_coefs$func = 'original'
+new_coefs <- as.data.frame(new_coefs)
+colnames(new_coefs) <- c('int', 'age', 'sex', 'scale')
+new_coefs$func = 'new'
+
+comparison <- rbind(current_coefs, new_coefs)
+require(tidyr)
+require(ggplot2)
+require(dplyr)
+comparison %>% gather(coef, val, -func) %>%
+    ggplot(aes(x=val, fill=as.factor(func))) +
+      geom_histogram(position='identity', alpha=0.7) +
+      facet_wrap(~coef, scales = 'free') +
+      scale_fill_discrete('Bootstrapping function') +
+      labs(x='Coefficient value', y='Count')
+```
+
+They look to be similar enough to have the new version replace the old one. The t-tests and K-S tests below indicate there isn't enough evidence to reject the null hypothesis that they're the same at the 5% level.
+
+```{r}
+t.test(current_coefs$int, new_coefs$int)
+t.test(current_coefs$age, new_coefs$age)
+t.test(current_coefs$sex, new_coefs$sex)
+t.test(current_coefs$scale, new_coefs$scale)
+```
+
+```{r}
+ks.test(current_coefs$int, new_coefs$int)
+ks.test(current_coefs$age, new_coefs$age)
+ks.test(current_coefs$sex, new_coefs$sex)
+ks.test(current_coefs$scale, new_coefs$scale)
+```
+
+
+### Runtime speed up
+
+```{r}
+require(microbenchmark)
+runtime_comparison <- function() {
+  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+  data = load_data(registry_data)
+  data$sex <- as.factor(data$sex)
+  data_r <- data[data$date_initial >= min(registry_years), ]
+  form = Surv(survival_time, indicator) ~ age_initial + sex
+  microbenchmark(registry_survival_bootstrapped_dev(form, data, 1000),
+                 registry_survival_bootstrapped_current(data, 1000),
+                 times=5)
+}
+runtime_comparison()
+```
+
+As can be seen, the speed up resulting from these changes is substantial.
+
+# `prevalence.R`
+
+## `prevalence`
+
+Changes:
+
+  + The main change is that this large function has been refactored into several smaller functions, allowing for improved readability and maintainability
+  + Have refactored all the code which calculates the `post_age_dist` and `by_year` estimates for males and females into a single function and just call it with the relevant parameters for each sex as required
+  + The code previously didn't correctly work when datasets with a single sex were passed in. This has been fixed.
+  + Have made the function return an S3 object of class *prevalence*. NB: This is just a glorified list essentially, but is more in the style of idiomatic R and allows for simpler indexing.
+  + Have made the population daily survival rates be calculated from within `prevalence` itself, making it more user friendly. The user can specify which population registry to use. The `prevalence` object returns the daily survival rates as item `popsurv`
+  + Have changed the dimensions of the posterior age distribution output from `nyears x nbootstraps x maxyearlyinc` to `nbootstraps x maxyearlyinc x nyears`, primarily because I can't seem to get the list to collapse as desired. If this breaks compatibility with other functions then I should be able to hack a fix, although for the use in histograms etc... it doesn't make a difference
+  + As with the `incidence` function, the entire set of registry years do not need to be supplied, only those which are actually used. This removes the `registry_start_year` and `registry_end_year` parameters
+  + Should the calculation of `wb` using `survreg` use the full dataset, or just that subset by entering the registry in the years of interest (`data_r`)?
+  + Have renamed `fix_rate` to `known_inc_rate` for clarity (on the output at least)
+  + Changed the calculation of average `by_year_cases` from an `apply(foo, 1, mean)` call to `rowMeans` as it's quicker and more readable
+  
+### Diagnosing function
+
+Since the order in which the RNG is called has been changed, the results from the refactored function won't be **exactly** the same as the old ones, and so a unit test will fail here. However, we can compare them to observe if they are similar enough and only differ due to random variance.
+
+
+```{r}
+prev_current_output <- function() {
+  pop_data_mx <- readRDS('data/population_data_mx.rds')
+  set.seed(17)
+  daily_survival_rate_males <- daily_survival_rate_current(pop_data_mx, sex = "Males")
+  daily_survival_males <- cumprod(1 - daily_survival_rate_males)
+  
+  daily_survival_rate_females <- daily_survival_rate_current(pop_data_mx, sex = "Females")
+  daily_survival_females <- cumprod(1 - daily_survival_rate_females)
+  
+  registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
+                      "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
+  registry_start_year <- 2
+  registry_end_year <- 9
+  
+  prevalence_total <- prevalence_current(load_data(registry_data), registry_years, registry_start_year, 
+                                         registry_end_year, N_years = N_years, 
+                                         daily_survival_males = daily_survival_males, 
+                                         daily_survival_females = daily_survival_females, 
+                                         cure_time = cure*365)
+  
+}
+```
+
+```{r}
+prev_dev <- function() {
+  set.seed(17)
+  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+  prevalence_total <- prevalence_dev(load_data(registry_data), registry_years, 
+                                     N_years = N_years, 
+                                     cure_time = cure*365)
+}
+```
+
+Just comparing the function calls shows how much the refactored version has been simplified, with 4 fewer parameters.
+
+I'll compare the functions on their average predicted prevalence rates.
+
+```{r, message=T}
+test_output(function() prev_current_output()[[1]], 
+            function() prev_dev()$cases_avg)
+```
+
+This indicates that while the exact same average predicted prevalence rates aren't being calculated, but they are similar enough. 
+
+And can also look at their distributions (each year is in a separate frame):
+
+```{r}
+f_cur <- prev_current_output()[[3]]
+f_dev <- prev_dev()$cases_total
+cases_curr <- data.frame(lapply(setNames(seq(dim(f_cur)[1]), seq(dim(f_cur)[1])), 
+                                function(x) f_cur[x, ]),
+                         method='current')
+cases_dev <- data.frame(lapply(setNames(seq(dim(f_dev)[1]), seq(dim(f_dev)[1])), 
+                               function(x) f_dev[x, ]),
+                        method='new')
+cases_comb <- rbind(cases_curr, cases_dev)
+
+cases_comb %>% 
+  gather(year, cases, -method) %>%
+  ggplot(aes(x=cases, fill=method)) +
+    geom_histogram(alpha=0.7, position='identity') +
+    facet_wrap(~year, scales='free') +
+    scale_fill_discrete('Prevalence Function') +
+    labs(x='Cases', y='Count')
+```
+
+```{r}
+year_names = names(dplyr::select(cases_curr, -method))
+comp.t <- lapply(setNames(year_names, year_names), function(x) t.test(cases_curr[, x], cases_dev[, x])$p.value)
+comp.ks <- lapply(setNames(year_names, year_names), function(x) ks.test(cases_curr[, x], cases_dev[, x])$p.value)
+```
+
+**NB: I'm not trying to show the pattern of the predicted prevalence over time, but rather show that the values estimated by the refactored version of the `prevalence` function is consistent with the previous results.**
+
+It is surprising how similar the distributions here, even down to both having noticeable valleys in some years (7, 5 and 9) at the same number of cases. To me, this indicates this refactored version is predicting prevalence consistently with the original implementation.
+
+There are a few low p-values from the t-test here, particularly at years 1 (p < 0.05) and also 5 and 6. Looking at the distribution of these years, the distributions look to be very similar with little observable difference in the shape or spread (no obvious outliers). If anything I'd expect a difference in p-values in years 3 and 4 as the distribution around the median looks slightly different here.
+
+The K-S tests show no significant difference in the distributions.
+
+
+## `counted_prevalence`
+
+Changes:
+
+  + Change the `registry_years` variable so that the start and ending index aren't required to be passed in
+  + The code to calculate `per_year` is identical to that in `incidence`, and so this line has been replaced by a function call
+  + Have changed the code to calculate the per_year censoring into an sapply to provide encapsulation and better readability
+  + No need to subset `registry_years` to those years of interest now that only those years of interest are passed into the function
+  
+  
+```{r}
+countprev_current_output <- function() {
+  set.seed(17)
+  registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
+                      "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
+  registry_start_year <- 2
+  registry_end_year <- 9
+  
+  counted_prevalence_current(load_data(registry_data), registry_years, 
+                             registry_start_year, registry_end_year)
+}
+```
+
+```{r}
+countprev_dev <- function() {
+  set.seed(17)
+  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+  counted_prevalence_dev(load_data(registry_data), registry_years)
+}
+```
+
+```{r, message=T}
+test_output(countprev_current_output, countprev_dev)
+```
+
+# Further Work
+
+There are still several areas that can be improved:
+
+  + Remove the need for the `load_data()` function, instead have the user specify the column names in some form (formula seems too unwieldy for 5 variables, likewise passing in 5 separate vectors). The 5 columns required by the function are:
+    + `age_initial`
+    + `sex`
+    + `survival_time`
+    + `indicator`
+    + `date_initial`
+  + Have the population data loaded into the namespace with the `data()` function so it can be accessed by `prevalence()` rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with `data(<name>)`
+  + A few of the smaller diagnostic functions haven't been refactored yet:
+    + `mean_IR`
+    + `n_year_estimates`
+  + How does the weibull model work? I thought the values obtained from `survreg()` are the 3 coefficients (int + 2 covariates) and the *scale*. Also note what is the difference between `survreg$scale` and the scale found in `survreg$icoef`, the latter is apparently of the baseline model? Is this the one we want?
+  + Furthermore, when calculating the survival probability using `pweibull`, why is scale now *exp(beta X)* and shape as the scale returned from the coefficients earlier?
+  + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++.
+  + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
+  + I haven't looked at the functions in `diagnostics.R` yet
+  + Run more thorough diagnostics to confirm that the new `prevalence` implementation produces expected outputs; I've currently only compared the average bootstrapped prevalence rates
