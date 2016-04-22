@@ -101,7 +101,6 @@ prevalence <- function(data, registry_years, N_years,
     #max_yearly_incidence = 500
     #pop_vers = 1
     #colnames = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
-    
     ############################################
     
     if (all(sapply(names(colnames), function(x) x %in% names(data)))) {

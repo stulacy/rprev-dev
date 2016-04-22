@@ -1,0 +1,133 @@
+---
+title: "Debugging NLPHL data"
+author: "Stuart Lacy"
+date: "22 April 2016"
+output: 
+  html_document: 
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_float:
+        collapsed: false
+    code_folding: show
+---
+
+# Introduction
+
+The aim of this script is to debug the `NLPHL` data, as this was shown to raise errors when forming the bootstrap Weibull models.
+
+# Setup
+
+```{r, message=F, warning=F}
+library(dplyr)
+library(abind)
+library(rms)
+library(survival)
+library(devtools)
+library(knitr)
+devtools::load_all()
+opts_chunk$set(message=F, warning=F)
+```
+
+# Steph's original code
+
+Here's the bug as Steph provided it to me.
+
+```{r}
+prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
+prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
+prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
+prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
+prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime) 
+prelim$status2 <- ifelse(prelim$EventDate > "2012-08-31", 0, prelim$status)
+prelim <- prelim[!is.na(prelim$sex), ]
+prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
+```
+
+I'll just add in a seed so I can reliably reproduce it, which demonstrated that it failed at i = 23. There were 3 instances of status=1 in this bootstrap, while some bootstraps managed to work with 0 events, so I've no idea why the code is failing to converge with 3 events. There could be another factor at work here.
+
+```{r, error=T}
+set.seed(17)
+
+wb_boot <- matrix(0, nrow=1000, ncol=4)
+for (i in 1:1000){
+    message(i)
+    thesample <- sample(1:(dim(prelim_r)[1]), dim(prelim_r)[1], replace=T)
+    thedata <- prelim_r[thesample, ]
+    
+    message("Num status:\t", sum(thedata$status))
+    
+    wbb <- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+    wb_boot[i, ] <- c(wbb$coe, wbb$scale)
+}
+```
+
+# Running it in the `prevalence` package
+
+```{r, error=T}
+prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
+prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
+prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
+prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
+prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime) 
+prelim$status2 <- ifelse(prelim$EventDate > "2012-08-31", 0, prelim$status)
+prelim <- prelim[!is.na(prelim$sex), ]
+
+registry_years = sapply(13:15, function(x) sprintf("20%02d-09-01", x))
+N_years <- 10
+cure <- 3
+columns <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+
+prevalence_total <- prevalence(prelim, registry_years, 
+                             N_years = N_years, colnames=columns,
+                             cure_time = cure * 365
+                             )
+
+```
+
+This also throws errors, but a different one to before! The same warnings are present about being unable to converge, but now it fails on calculating the number of dead in `.post_age_bs()`, since the weibull coefficients are `NA`. Not sure why the original error message doesn't cause the program to stop executing, but the same cause is there, that it fails to converge. I imagine this is due to it not having enough events in the dataset, as in some bootstraps 0 people are selected who had an event! 
+
+As there are only two events in the data set this may very well be the cause of the problem!
+
+```{r}
+table(prelim_r$status)
+```
+
+# Simulating more events
+
+I'll try simulating more events in the data set to see if this helps. The following function runs the bootstrap for various numbers of simulated statuses.
+
+```{r}
+error_raised <- function(ratio_events=NULL, data=NULL, num_straps=100) {
+    set.seed(17)
+    data_sim <- data
+    
+    if (!is.null(ratio_events)) 
+        data_sim[runif(nrow(data_sim)) < ratio_events, 'status'] <- 1
+        
+    foo <- tryCatch(
+        vapply(1:num_straps, function(i) {
+            thedata <- data_sim[sample(1:(nrow(data_sim)), nrow(data_sim), replace=T), ]
+            wbb <- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+            c(wbb$coe, wbb$scale)
+        }, numeric(4)),
+        error=function(cond) 'err',
+        warning=function(cond) 'err'
+    )
+    all(foo == 'err')
+}
+```
+
+So running this without simulating any new events results in an error being raised as before.
+
+```{r}
+error_raised(data=prelim_r)
+```
+
+Let's look at a range of number of simulated events to see the point at which it fails.
+
+```{r}
+lapply(setNames(seq(0, 1, by=0.05), seq(0, 1, by=0.05)), error_raised, data=prelim_r)
+```
+
+So the point at which it switches from raising errors to working is after a ratio of 0.1, which is `r 0.1 * nrow(prelim_r)` observations in real terms.

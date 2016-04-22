@@ -25,6 +25,9 @@ library(rms)
 library(survival)
 library(devtools)
 library(knitr)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
 devtools::load_all()
 registry_data <- readRDS("data/registry_data.rds")
 N_years <- 10
@@ -36,17 +39,19 @@ Rather than using any established unit testing framework, I've just implemented 
 
 ```{r}
 test_output <- function(old_func, new_func) {
-  expected = old_func()
-  actual = new_func()
-  if (all(expected == actual)) {
-    message("Success!")
-  } else {
-    message("Failure...")
-    message("Expected:")
-    print(expected)
-    message("Actual:") 
-    print(actual)
-  }
+    expected <- old_func()
+    actual <- new_func()
+    test <- tryCatch(all(expected == actual),
+                     error=function(cond) FALSE)
+    if (test) {
+        message("Success!")
+    } else {
+        message("Failure...")
+        message("Expected:")
+        print(expected)
+        message("Actual:") 
+        print(actual)
+    }
 }
 ```
 
@@ -122,11 +127,6 @@ test_output(meanIR_test_curr, meanIR_test_dev)
 
 The test now fails as the returned objects are no longer comparable due to the dev function returning a list, but if we manually inspect the outputs we can see they are the same, aside from a precision difference in `per100K.lower`. This presumably arises from manually calculating the required z value for the confidence intervals, which is actually `r qnorm(0.975)`, rather than 1.96 as was previously hardcoded.
 
-```{r}
-meanIR_test_curr()
-meanIR_test_dev()
-```
-
 # `survival.R`
 
 ## `daily_survival_rate()`
@@ -164,7 +164,6 @@ new_survival_rates <- function(x) {
 ```{r, message=T}
 test_output(current_survival_rates, new_survival_rates)
 ```
-
 
 As can be seen this produces the same output as before.
 
@@ -215,9 +214,6 @@ colnames(new_coefs) <- c('int', 'age', 'sex', 'scale')
 new_coefs$func = 'new'
 
 comparison <- rbind(current_coefs, new_coefs)
-require(tidyr)
-require(ggplot2)
-require(dplyr)
 comparison %>% gather(coef, val, -func) %>%
     ggplot(aes(x=val, fill=as.factor(func))) +
       geom_histogram(position='identity', alpha=0.7) +
@@ -316,7 +312,7 @@ prev_dev <- function() {
   registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
   names = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
   
-  prevalence_total <- prevalence(load_data(registry_data), registry_years, 
+  prevalence_total <- prevalence(registry_data, registry_years, 
                                  N_years = N_years, colnames=names,
                                  cure_time = cure*365)
 }
@@ -438,6 +434,8 @@ nyear_test_curr <- function() {
   prevalence_curr <- prev_current_output()
   by_year_samples_total <- prevalence_curr[[3]]
   by_year_total <- prevalence_curr[[1]]
+  registry_start_year = 2
+  registry_end_year = 9
   
   n_year_estimates_current(N_years = 3, registry_start_year = registry_start_year, 
                            registry_end_year = registry_end_year, 
@@ -450,6 +448,7 @@ nyear_test_curr <- function() {
 ```{r}
 nyear_test_dev <- function() {
   prevalence_d <- prev_dev()
+  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
   n_year_estimates(N_years = 3, num_reg_years=length(registry_years)-1,
                        the_samples = prevalence_d$cases_total, 
                        by_year = prevalence_d$cases_avg,
@@ -457,18 +456,13 @@ nyear_test_dev <- function() {
 }
 ```
 
-As expected the test fails as the outputs are lists.
+As expected the test fails as the outputs are lists, however, manual inspection demonstrates that they are calculating the same values (given the minor variation in the prevalence calculations).
 
 ```{r}
 test_output(nyear_test_curr, nyear_test_dev)
 ```
 
-However manual inspection demonstrates that they are calculating the same values (given the minor variation in the prevalence calculations).
 
-```{r}
-nyear_test_curr()
-nyear_test_dev()
-```
 
 ## `prevalence_by_age`
 
@@ -514,13 +508,6 @@ prevalence_by_age(dist = prev_obj$post, registry_end_year=9, N_years=10, age_int
 # Further Work
 
 There are still several areas that can be improved:
-
-  + Remove the need for the `load_data()` function, instead have the user specify the column names in some form (formula seems too unwieldy for 5 variables, likewise passing in 5 separate vectors). The 5 columns required by the function are:
-    + `age_initial`
-    + `sex`
-    + `survival_time`
-    + `indicator`
-    + `date_initial`
   + Have the population data loaded into the namespace with the `data()` function so it can be accessed by `prevalence()` rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with `data(<name>)`
   + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++.
   + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
