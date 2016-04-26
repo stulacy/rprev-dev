@@ -179,7 +179,7 @@ prevalence <- function(data, registry_years, N_years,
     by_year_avg <- rowMeans(by_year_samples)
     
     prev_out <- list(cases_avg=by_year_avg, post=post_age_dist, cases_total=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions)
+                     popsurv=surv_functions, nyears=N_years, nbootstraps=N_boot)
     attr(prev_out, 'class') <- 'prevalence'
     prev_out
 }
