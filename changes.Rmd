@@ -568,8 +568,9 @@ bar
 # Further Work
 
 There are still several areas that can be improved:
+
   + Have the population data loaded into the namespace with the `data()` function so it can be accessed by `prevalence()` rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with `data(<name>)`
-  + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++.
+  + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++. Maybe just parallelise it instead?
   + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
   + Improve the `print` and `summary` methods of `prevalence` after receiving feedback
   + I haven't looked at the functions in `diagnostics.R` yet
