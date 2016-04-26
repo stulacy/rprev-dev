@@ -102,6 +102,26 @@ prevalence <- function(data, registry_years, N_years,
     #pop_vers = 1
     #colnames = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
     ############################################
+    #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
+    #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
+    #prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
+    #prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
+    #prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime) 
+    #prelim <- prelim[!is.na(prelim$sex), ]
+    #prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
+    #
+    #registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
+    #N_years <- 10
+    #names <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+    #cure <- 3
+    #cure_time = cure * 365
+    #N_boot = 1000
+    #pop_vers = 1
+    #max_yearly_incidence = 500
+    #data = prelim_r
+    #colnames = names
+    #############################################
+
     
     if (all(sapply(names(colnames), function(x) x %in% names(data)))) {
         # User has supplied a data frame with the required naming scheme
@@ -138,23 +158,16 @@ prevalence <- function(data, registry_years, N_years,
     } else {
         stop("Error: Need to implement second population data choice.")
     }
+    ##################################################
     
     # Calculate population survival rates for each sex in dataset
     surv_functions <- lapply(setNames(levels(data_use$sex), levels(data_use$sex)), 
                              function(x) population_survival_rate(rate ~ age, data=subset(pop_df, sex==x)))
-    ##################################################
     
     
     data_r <- data_use[data_use$entry_date >= min(registry_years), ]
     
-    if(cure_time > 0){
-        wb_boot <- registry_survival_bootstrapped(Surv(time, status) ~ age + sex,
-                                                  data_r, N_boot)
-    } else {
-        # Hack for some data with low cure time
-        wb <- survreg(Surv(time, status) ~ age + sex, data=data_r)
-        wb_boot = t(replicate(N_boot, c(wb$coe, wb$scale)))
-    }
+    wb_boot <- registry_survival_bootstrapped(Surv(time, status) ~ age + sex, data_r, N_boot)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
     
     # Run the prevalence estimator for each subgroup

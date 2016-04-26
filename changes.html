@@ -505,13 +505,6 @@ runtime_comparison &lt;- function() {
                  times=5)
 }
 runtime_comparison()</code></pre>
-<pre><code>## Unit: seconds
-##                                                expr       min        lq
-##    registry_survival_bootstrapped(form, data, 1000)  7.095793  7.172904
-##  registry_survival_bootstrapped_current(data, 1000) 10.736256 10.814613
-##      mean    median        uq       max neval cld
-##   7.41931  7.266825  7.341606  8.219422     5  a 
-##  11.44202 11.147624 11.878320 12.633308     5   b</code></pre>
 <p>As can be seen, the speed up resulting from these changes is substantial.</p>
 </div>
 </div>
@@ -795,23 +788,73 @@ prevalence_by_age(dist = prev_obj$post, registry_end_year=9, N_years=10, age_int
 <pre><code>## [1] 0.03922394 0.29970359 0.57250282 0.08856123</code></pre>
 </div>
 </div>
-<div id="further-work" class="section level1">
-<h1><span class="header-section-number">5</span> Further Work</h1>
-<p>There are still several areas that can be improved:</p>
+<div id="utility-functions" class="section level1">
+<h1><span class="header-section-number">5</span> Utility Functions</h1>
+<p>I’ve also added in <code>print</code> and <code>summary</code> methods for the <code>prevalence</code> object, found in <code>utils.R</code>.</p>
+<pre class="r"><code>obj &lt;- prev_dev()
+print(obj)</code></pre>
+<pre><code>## Estimated 10 year prevalence is 772.057.</code></pre>
+<pre class="r"><code>summary(obj)</code></pre>
+<pre><code>## Registry Data
+## ~~~~~~~~~~~~~
+## Number of years: 8 
+## Known incidence rate:
+## 191 190 186 176 205 218 205 218
+## 
+## Bootstrapping
+## ~~~~~~~~~~~~~
+## Iterations: 1000 
+## Posterior age distribution summary:
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##       0      44      60      57      71     100 9227943 
+## Average prevalent cases per year:
+## 165.629 97.278 88.001 64.935 55.801 61.153 63.516 56.99 59.847 58.907</code></pre>
+</div>
+<div id="debugging-nlphl-data" class="section level1">
+<h1><span class="header-section-number">6</span> Debugging NLPHL data</h1>
+<pre class="r"><code>test_nlphl &lt;- function() {
+    prelim &lt;- read.csv(&quot;R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv&quot;, header=T)
+    prelim$DateOfDiag &lt;- as.Date(prelim$DateOfDiag, format=&quot;%d/%m/%Y&quot;)
+    prelim$EventDate &lt;- as.Date(prelim$EventDate, format=&quot;%d/%m/%Y&quot;)
+    prelim$stime &lt;- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units=&quot;days&quot;))
+    prelim$stime &lt;- ifelse(prelim$stime &lt;= 0, 1, prelim$stime) 
+    prelim &lt;- prelim[!is.na(prelim$sex), ]
+    prelim_r &lt;- prelim[prelim$DateOfDiag &gt;= &quot;2006-09-01&quot;, ]
+    
+    registry_years = sapply(7:15, function(x) sprintf(&quot;20%02d-09-01&quot;, x))
+    N_years &lt;- 10
+    names &lt;- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+    cure &lt;- 3
+    
+    set.seed(17)
+    
+    prevalence(prelim_r, registry_years, 
+               N_years = N_years, colnames=names,
+               cure_time = cure*365)
+}</code></pre>
+<pre class="r"><code>foo &lt;- test_nlphl()
+foo</code></pre>
+<pre><code>## Estimated 10 year prevalence is 99.077.</code></pre>
+<p>I’ve made several changes to the code to get the algorithm working with the NLPHL dataset, acting as an example dataset where there are very few events, and so the fit found by the Weibull model may not be ideal.</p>
 <ul>
-<li>Remove the need for the <code>load_data()</code> function, instead have the user specify the column names in some form (formula seems too unwieldy for 5 variables, likewise passing in 5 separate vectors). The 5 columns required by the function are:
+<li>When the initial bootstrapped coefficients are determined, appropriate error handling determines if there has been an error in this procedure rather than crashing the program</li>
+<li>If any of the following conditions are found for a bootstrapped sample, then a new set of coefficients are produced. This is continued until all the sets of coefficients are <em>clean</em>
 <ul>
-<li><code>age_initial</code></li>
-<li><code>sex</code></li>
-<li><code>survival_time</code></li>
-<li><code>indicator</code></li>
-<li><code>date_initial</code></li>
+<li>If any of the coefficients are <code>NA</code></li>
+<li>If any of the coefficients are <code>NaN</code></li>
+<li>If the raw shape parameter is &gt; 100, as this leads to large values when calculating exp(shape) which is the parameterisation used in the survival probability calculation</li>
 </ul></li>
-<li>Have the population data loaded into the namespace with the <code>data()</code> function so it can be accessed by <code>prevalence()</code> rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with <code>data(&lt;name&gt;)</code></li>
-<li>It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in <code>survreg.fit</code> to be implemented in C++.</li>
-<li>The package doesn’t load dependent libraries (such as survival, dplyr etc…), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?</li>
-<li>I haven’t looked at the functions in <code>diagnostics.R</code> yet</li>
+<li>Another state which can cause the program to crash is when the <code>scale</code> (<code>exp(beta*X)</code>) parameter is 0, <code>pweibull</code> returns <code>NaN</code>. Since this parameter is a function of the co-variates, it is hard to determine precisely what values of beta are too large when these are calculated during the bootstrapping phase, so instead when the survival probabilities are calculated a small value (0.000001) is added to <code>scale</code> to ensure that a probability in [0,1] is returned.</li>
+<li>The <code>prevalence</code> function also returns a warning to the user if there are any issues with the coefficients during this bootstrapping, which along with the warnings thrown from <code>survfit</code> about the function not converging, should alert the user to the fact that there are complications with their data set</li>
 </ul>
+<p>As can be seen below, these changes haven’t affected the performance when using a larger data set with more events.</p>
+<pre class="r"><code>bar &lt;- prev_dev()
+bar</code></pre>
+<pre><code>## Estimated 10 year prevalence is 772.057.</code></pre>
+</div>
+<div id="further-work" class="section level1">
+<h1><span class="header-section-number">7</span> Further Work</h1>
+<p>There are still several areas that can be improved: + Have the population data loaded into the namespace with the <code>data()</code> function so it can be accessed by <code>prevalence()</code> rather than having to explicitly load it (and encounter path difficulties). Just like when packages come with datasets they can be loaded with <code>data(&lt;name&gt;)</code> + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in <code>survreg.fit</code> to be implemented in C++. + The package doesn’t load dependent libraries (such as survival, dplyr etc…), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified? + Improve the <code>print</code> and <code>summary</code> methods of <code>prevalence</code> after receiving feedback + I haven’t looked at the functions in <code>diagnostics.R</code> yet</p>
 </div>
 
 

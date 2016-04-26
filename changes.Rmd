@@ -241,7 +241,7 @@ ks.test(current_coefs$scale, new_coefs$scale)
 
 ### Runtime speed up
 
-```{r}
+```{r, eval=F}
 require(microbenchmark)
 runtime_comparison <- function() {
   registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
@@ -516,6 +516,53 @@ print(obj)
 
 ```{r}
 summary(obj)
+```
+
+# Debugging NLPHL data
+
+```{r}
+test_nlphl <- function() {
+    prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
+    prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
+    prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
+    prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
+    prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime) 
+    prelim <- prelim[!is.na(prelim$sex), ]
+    prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
+    
+    registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
+    N_years <- 10
+    names <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+    cure <- 3
+    
+    set.seed(17)
+    
+    prevalence(prelim_r, registry_years, 
+               N_years = N_years, colnames=names,
+               cure_time = cure*365)
+}
+```
+
+```{r}
+foo <- test_nlphl()
+foo
+```
+
+I've made several changes to the code to get the algorithm working with the NLPHL dataset, acting as an example dataset where there are very few events, and so the fit found by the Weibull model may not be ideal.
+
+  + When the initial bootstrapped coefficients are determined, appropriate error handling determines if there has been an error in this procedure rather than crashing the program
+  + If any of the following conditions are found for a bootstrapped sample, then a new set of coefficients are produced. This is continued until all the sets of coefficients are *clean*
+    + If any of the coefficients are `NA`
+    + If any of the coefficients are `NaN`
+    + If the raw shape parameter is > 100, as this leads to large values when calculating exp(shape) which is the parameterisation used in the survival probability calculation
+  + Another state which can cause the program to crash is when the `scale` (`exp(beta*X)`) parameter is 0, `pweibull` returns `NaN`. Since this parameter is a function of the co-variates, it is hard to determine precisely what values of beta are too large when these are calculated during the bootstrapping phase, so instead when the survival probabilities are calculated a small value (0.000001) is added to `scale` to ensure that a probability in [0,1] is returned.
+  + The `prevalence` function also returns a warning to the user if there are any issues with the coefficients during this bootstrapping, which along with the warnings thrown from `survfit` about the function not converging, should alert the user to the fact that there are complications with their data set
+  
+As can be seen below, these changes haven't affected the performance when using a larger data set with more events.
+
+```{r}
+bar <- prev_dev()
+bar
 ```
 
 # Further Work

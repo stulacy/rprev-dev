@@ -239,7 +239,7 @@ library(survival)
 library(devtools)
 library(knitr)
 devtools::load_all()
-opts_chunk$set(message=F, warning=F)</code></pre>
+opts_chunk$set(message=F, warning=F, error=T)</code></pre>
 </div>
 <div id="stephs-original-code" class="section level1">
 <h1><span class="header-section-number">3</span> Steph’s original code</h1>
@@ -252,6 +252,22 @@ prelim$stime &lt;- ifelse(prelim$stime &lt;= 0, 1, prelim$stime)
 prelim$status2 &lt;- ifelse(prelim$EventDate &gt; &quot;2012-08-31&quot;, 0, prelim$status)
 prelim &lt;- prelim[!is.na(prelim$sex), ]
 prelim_r &lt;- prelim[prelim$DateOfDiag &gt;= &quot;2006-09-01&quot;, ]</code></pre>
+<p>Note that a model is correctly fitted when no bootstrapping is present:</p>
+<pre class="r"><code>mod_nobs &lt;- survreg(Surv(stime, status) ~ age + sex, data=prelim_r)
+mod_nobs</code></pre>
+<pre><code>## Call:
+## survreg(formula = Surv(stime, status) ~ age + sex, data = prelim_r)
+## 
+## Coefficients:
+## (Intercept)         age         sex 
+## 10.51851889 -0.03554609  3.46140293 
+## 
+## Scale= 0.2245385 
+## 
+## Loglik(model)= -18.3   Loglik(intercept only)= -21.6
+##  Chisq= 6.71 on 2 degrees of freedom, p= 0.035 
+## n=78 (18 observations deleted due to missingness)</code></pre>
+<p>However, when bootstrapping, errors are raised.</p>
 <p>I’ll just add in a seed so I can reliably reproduce it, which demonstrated that it failed at i = 23. There were 3 instances of status=1 in this bootstrap, while some bootstraps managed to work with 0 events, so I’ve no idea why the code is failing to converge with 3 events. There could be another factor at work here.</p>
 <pre class="r"><code>set.seed(17)
 
@@ -270,24 +286,16 @@ for (i in 1:1000){
 </div>
 <div id="running-it-in-the-prevalence-package" class="section level1">
 <h1><span class="header-section-number">4</span> Running it in the <code>prevalence</code> package</h1>
-<pre class="r"><code>prelim &lt;- read.csv(&quot;R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv&quot;, header=T)
-prelim$DateOfDiag &lt;- as.Date(prelim$DateOfDiag, format=&quot;%d/%m/%Y&quot;)
-prelim$EventDate &lt;- as.Date(prelim$EventDate, format=&quot;%d/%m/%Y&quot;)
-prelim$stime &lt;- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units=&quot;days&quot;))
-prelim$stime &lt;- ifelse(prelim$stime &lt;= 0, 1, prelim$stime) 
-prelim$status2 &lt;- ifelse(prelim$EventDate &gt; &quot;2012-08-31&quot;, 0, prelim$status)
-prelim &lt;- prelim[!is.na(prelim$sex), ]
-
-registry_years = sapply(13:15, function(x) sprintf(&quot;20%02d-09-01&quot;, x))
+<pre class="r"><code>registry_years = sapply(7:15, function(x) sprintf(&quot;20%02d-09-01&quot;, x))
 N_years &lt;- 10
 cure &lt;- 3
 columns &lt;- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
 
 prevalence_total &lt;- prevalence(prelim, registry_years, 
-                             N_years = N_years, colnames=columns,
-                             cure_time = cure * 365
+                               N_years = N_years, colnames=columns,
+                               cure_time = cure * 365
                              )</code></pre>
-<pre><code>## Error in gzfile(file, &quot;rb&quot;): cannot open the connection</code></pre>
+<pre><code>## Error in coxph.wtest(t(x) %*% (wt * x), c((wt * eta + weights * deriv$dg) %*% : NA/NaN/Inf in foreign function call (arg 3)</code></pre>
 <p>This also throws errors, but a different one to before! The same warnings are present about being unable to converge, but now it fails on calculating the number of dead in <code>.post_age_bs()</code>, since the weibull coefficients are <code>NA</code>. Not sure why the original error message doesn’t cause the program to stop executing, but the same cause is there, that it fails to converge. I imagine this is due to it not having enough events in the dataset, as in some bootstraps 0 people are selected who had an event!</p>
 <p>As there are only two events in the data set this may very well be the cause of the problem!</p>
 <pre class="r"><code>table(prelim_r$status)</code></pre>
@@ -384,6 +392,151 @@ prevalence_total &lt;- prevalence(prelim, registry_years,
 ## $`1`
 ## [1] FALSE</code></pre>
 <p>So the point at which it switches from raising errors to working is after a ratio of 0.1, which is 9.6 observations in real terms.</p>
+<p><strong>HOWEVER: Why did it work for the original case, which only had two events as well?</strong></p>
+</div>
+<div id="further-debugging" class="section level1">
+<h1><span class="header-section-number">6</span> Further debugging</h1>
+<p>Maybe there’s an interaction between the co-variates and the events, let’s try building it up without using any co-variates to having both age and sex.</p>
+<p>The function works but has warnings, saying it hasn’t converged, but how has it not thrown an error then?!</p>
+<pre class="r"><code>no_covars &lt;- vapply(1:1000, function(i) {
+                        thedata &lt;- prelim_r[sample(1:(nrow(prelim_r)), nrow(prelim_r), replace=T), ]
+                        wbb &lt;- survreg(Surv(stime, status) ~ 1, data=thedata)
+                        c(wbb$coe, wbb$scale)
+                    }, numeric(2))
+no_covars[ , 1:3]</code></pre>
+<pre><code>##                   [,1]       [,2]      [,3]
+## (Intercept) 8.39897521 8.41409706 8.1675436
+##             0.01313918 0.01306545 0.2088688</code></pre>
+<p>Hmmm that works so it seems there is an relationship between number of events and the co-variates which causes the algorithm to fail.</p>
+<p>I’ve just realised that the dataframe hasn’t been subset to include only complete data.</p>
+<pre class="r"><code>prelim_complete &lt;- prelim_r[complete.cases(prelim_r), ]
+nrow(prelim_complete)</code></pre>
+<pre><code>## [1] 78</code></pre>
+<p>Ok now let’s try this with forming the null model:</p>
+<pre class="r"><code>no_covars_comp &lt;- vapply(1:1000, function(i) {
+                        thedata &lt;- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+                        wbb &lt;- survreg(Surv(stime, status) ~ 1, data=thedata)
+                        c(wbb$coe, wbb$scale)
+                    }, numeric(2))
+no_covars_comp[, 1:3]</code></pre>
+<pre><code>##                  [,1]      [,2]     [,3]
+## (Intercept) 8.3597762 8.1813001 8.596068
+##             0.2243739 0.2121414 0.253873</code></pre>
+<p>Yep still doesn’t converge either, but it’s only throw warning, not errors. As can be seen there are still coefficient values.</p>
+<p>What about when using the 2 covariates?</p>
+<pre class="r"><code>allcovars_comp &lt;- vapply(1:1000, function(i) {
+                            thedata &lt;- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+                            wbb &lt;- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                            c(wbb$coe, wbb$scale)
+                        }, numeric(4))</code></pre>
+<pre><code>## Error in coxph.wtest(t(x) %*% (wt * x), c((wt * eta + weights * deriv$dg) %*% : NA/NaN/Inf in foreign function call (arg 3)</code></pre>
+<pre class="r"><code>allcovars_comp[, 1:3]</code></pre>
+<pre><code>## Error in eval(expr, envir, enclos): object 'allcovars_comp' not found</code></pre>
+<p>Nope still fails.</p>
+<p>The code below returns the bootstrap sample which returns an error when fitting a Weibull model to it:</p>
+<pre class="r"><code>foo &lt;- function() {
+    errordata = NULL
+    for (i in 1:1000){
+        thedata &lt;- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+        out &lt;- tryCatch({wbb &lt;- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                  c(wbb$coe, wbb$scale)
+                  },
+                 error=function(cond) c(1,2))
+        
+        if (length(out) != 4) 
+            errordata = thedata
+    }
+    errordata
+}</code></pre>
+<pre class="r"><code>error &lt;- foo()</code></pre>
+<p>So now the dataframe <code>error</code> contains an error producing dataframe, voila.</p>
+<pre class="r"><code>survreg(Surv(stime, status) ~ age + sex, data=error)</code></pre>
+<pre><code>## Error in coxph.wtest(t(x) %*% (wt * x), c((wt * eta + weights * deriv$dg) %*% : NA/NaN/Inf in foreign function call (arg 3)</code></pre>
+<p>Let’s look at the properties of this data frame which cause it to have errors:</p>
+<p>Firstly there’s only two events, both of which are the same observation repeated in the bootstrap. Comparing these to the full dataset (which doesn’t raise an error) shows there’s very little demographic difference between the observations with an event in the bootstrapped and the full dataset.</p>
+<pre class="r"><code>error[error$status==1, ]</code></pre>
+<pre><code>##       EGU_ID sex      age DateOfDiag status  EventDate stime status2
+## 3   08-00706   0 72.59137 2008-04-18      1 2012-10-03  1629       0
+## 3.1 08-00706   0 72.59137 2008-04-18      1 2012-10-03  1629       0</code></pre>
+<pre class="r"><code>prelim_complete[prelim_complete$status==1, ]</code></pre>
+<pre><code>##     EGU_ID sex      age DateOfDiag status  EventDate stime status2
+## 3 08-00706   0 72.59137 2008-04-18      1 2012-10-03  1629       0
+## 4 08-00047   0 70.42574 2008-01-10      1 2013-06-20  1988       0</code></pre>
+<p>These are both from males, but this is also the case in the original dataset, so this in itself isn’t the cause of the issue.</p>
+<pre class="r"><code>with(error, table(status, sex))</code></pre>
+<pre><code>##       sex
+## status  0  1
+##      0 58 18
+##      1  2  0</code></pre>
+<pre class="r"><code>with(prelim_complete, table(status, sex))</code></pre>
+<pre><code>##       sex
+## status  0  1
+##      0 58 18
+##      1  2  0</code></pre>
+<p>The other covariate is a continuous predictor (age), but if we split it by its median value we can observe how it is distributed by events, and this distribution is well kept by the bootstrapped sample.</p>
+<pre class="r"><code>with(error, table(status, age &gt; median(age)))</code></pre>
+<pre><code>##       
+## status FALSE TRUE
+##      0    39   37
+##      1     0    2</code></pre>
+<pre class="r"><code>with(prelim_complete, table(status, age &gt; median(age)))</code></pre>
+<pre><code>##       
+## status FALSE TRUE
+##      0    39   37
+##      1     0    2</code></pre>
+<p>Maybe errors are thrown if the only events are identical? I’ll make a test function to test this case. This function returns 1000 values, one for each bootstrap, with the following meaning:</p>
+<ul>
+<li><code>NA</code>: There was no error</li>
+<li><code>ident</code>: The only events in the error raising bootstrap sample were copies of the same observation</li>
+<li><code>noevent</code>: There were no events in the error raising bootstrap sample</li>
+<li><code>noident</code>: There were events in the error raising bootstrap sample, but there were more than one unique values</li>
+</ul>
+<pre class="r"><code>errors_rpt_events &lt;- function() {
+    total &lt;- rep(NA, 1000)
+    for (i in 1:1000){
+        thedata &lt;- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+        total[i] &lt;- tryCatch({wbb &lt;- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                              NA
+                              },
+                             error=function(cond) {
+                                 pos_events = thedata[thedata$status==1, ]
+                                 num_unique_vals = apply(pos_events, 2, function(x) length(unique(x)))
+                                 if (all(num_unique_vals == 1)) {
+                                     resample = 'ident'
+                                 } else if (all(num_unique_vals == 0)) {
+                                     resample = 'noevent'
+                                 } else {
+                                     resample = 'noident'
+                                 }
+                                 resample
+                             })
+    }
+    total
+}</code></pre>
+<p>Interestingly, there were no errors thrown due to lack of events in the dataset! Unfortunately, however, there’s no simple relationship between unique events in the sample and errors being raised.</p>
+<pre class="r"><code>set.seed(17)
+errors = errors_rpt_events()
+table(errors)</code></pre>
+<pre><code>## errors
+##   ident noident 
+##       6      25</code></pre>
+<p>Just for posterity’s sake I’ll try running the main prevalence function now only using the complete dataset.</p>
+<pre class="r"><code>registry_years = sapply(7:15, function(x) sprintf(&quot;20%02d-09-01&quot;, x))
+N_years &lt;- 10
+cure &lt;- 3
+columns &lt;- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+
+prevalence_total &lt;- prevalence(prelim[complete.cases(prelim), ], registry_years, 
+                               N_years = N_years, colnames=columns,
+                               cure_time = cure * 365
+                             )</code></pre>
+<pre><code>## Error in coxph.wtest(t(x) %*% (wt * x), c((wt * eta + weights * deriv$dg) %*% : NA/NaN/Inf in foreign function call (arg 3)</code></pre>
+<p>Nope this still doesn’t work!</p>
+</div>
+<div id="conclusions" class="section level1">
+<h1><span class="header-section-number">7</span> Conclusions</h1>
+<p>I haven’t been able to pinpoint the precise relationship in the dataset which causes errors to be raised, however, it is definitely due to a small sample, particularly of events.</p>
+<p>To fix this issue, I’ll include error handling into the bootstrapping function to identify when errors have been raised, warn the user that X many errors have been encountered, and then replace these values with randomly selected coefficients which did work.</p>
 </div>
 
 

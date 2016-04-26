@@ -26,7 +26,7 @@ library(survival)
 library(devtools)
 library(knitr)
 devtools::load_all()
-opts_chunk$set(message=F, warning=F)
+opts_chunk$set(message=F, warning=F, error=T)
 ```
 
 # Steph's original code
@@ -43,6 +43,15 @@ prelim$status2 <- ifelse(prelim$EventDate > "2012-08-31", 0, prelim$status)
 prelim <- prelim[!is.na(prelim$sex), ]
 prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
 ```
+
+Note that a model is correctly fitted when no bootstrapping is present:
+
+```{r}
+mod_nobs <- survreg(Surv(stime, status) ~ age + sex, data=prelim_r)
+mod_nobs
+```
+
+However, when bootstrapping, errors are raised.
 
 I'll just add in a seed so I can reliably reproduce it, which demonstrated that it failed at i = 23. There were 3 instances of status=1 in this bootstrap, while some bootstraps managed to work with 0 events, so I've no idea why the code is failing to converge with 3 events. There could be another factor at work here.
 
@@ -65,22 +74,14 @@ for (i in 1:1000){
 # Running it in the `prevalence` package
 
 ```{r, error=T}
-prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
-prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
-prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
-prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
-prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime) 
-prelim$status2 <- ifelse(prelim$EventDate > "2012-08-31", 0, prelim$status)
-prelim <- prelim[!is.na(prelim$sex), ]
-
-registry_years = sapply(13:15, function(x) sprintf("20%02d-09-01", x))
+registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
 N_years <- 10
 cure <- 3
 columns <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
 
 prevalence_total <- prevalence(prelim, registry_years, 
-                             N_years = N_years, colnames=columns,
-                             cure_time = cure * 365
+                               N_years = N_years, colnames=columns,
+                               cure_time = cure * 365
                              )
 
 ```
@@ -131,3 +132,170 @@ lapply(setNames(seq(0, 1, by=0.05), seq(0, 1, by=0.05)), error_raised, data=prel
 ```
 
 So the point at which it switches from raising errors to working is after a ratio of 0.1, which is `r 0.1 * nrow(prelim_r)` observations in real terms.
+
+**HOWEVER: Why did it work for the original case, which only had two events as well?**
+
+# Further debugging
+
+Maybe there's an interaction between the co-variates and the events, let's try building it up without using any co-variates to having both age and sex.
+
+The function works but has warnings, saying it hasn't converged, but how has it not thrown an error then?!
+
+```{r}
+no_covars <- vapply(1:1000, function(i) {
+                        thedata <- prelim_r[sample(1:(nrow(prelim_r)), nrow(prelim_r), replace=T), ]
+                        wbb <- survreg(Surv(stime, status) ~ 1, data=thedata)
+                        c(wbb$coe, wbb$scale)
+                    }, numeric(2))
+no_covars[ , 1:3]
+```
+
+Hmmm that works so it seems there is an relationship between number of events and the co-variates which causes the algorithm to fail.
+
+I've just realised that the dataframe hasn't been subset to include only complete data.
+
+```{r}
+prelim_complete <- prelim_r[complete.cases(prelim_r), ]
+nrow(prelim_complete)
+```
+
+Ok now let's try this with forming the null model:
+
+```{r}
+no_covars_comp <- vapply(1:1000, function(i) {
+                        thedata <- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+                        wbb <- survreg(Surv(stime, status) ~ 1, data=thedata)
+                        c(wbb$coe, wbb$scale)
+                    }, numeric(2))
+no_covars_comp[, 1:3]
+```
+
+Yep still doesn't converge either, but it's only throw warning, not errors. As can be seen there are still coefficient values.
+
+What about when using the 2 covariates?
+
+```{r}
+allcovars_comp <- vapply(1:1000, function(i) {
+                            thedata <- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+                            wbb <- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                            c(wbb$coe, wbb$scale)
+                        }, numeric(4))
+allcovars_comp[, 1:3]
+```
+
+Nope still fails. 
+
+The code below returns the bootstrap sample which returns an error when fitting a Weibull model to it:
+
+```{r}
+foo <- function() {
+    errordata = NULL
+    for (i in 1:1000){
+        thedata <- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+        out <- tryCatch({wbb <- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                  c(wbb$coe, wbb$scale)
+                  },
+                 error=function(cond) c(1,2))
+        
+        if (length(out) != 4) 
+            errordata = thedata
+    }
+    errordata
+}
+```
+
+```{r}
+error <- foo()
+```
+
+So now the dataframe `error` contains an error producing dataframe, voila.
+
+```{r}
+survreg(Surv(stime, status) ~ age + sex, data=error)
+```
+
+Let's look at the properties of this data frame which cause it to have errors:
+
+Firstly there's only two events, both of which are the same observation repeated in the bootstrap. Comparing these to the full dataset (which doesn't raise an error) shows there's very little demographic difference between the observations with an event in the bootstrapped and the full dataset.
+
+```{r}
+error[error$status==1, ]
+prelim_complete[prelim_complete$status==1, ]
+```
+
+These are both from males, but this is also the case in the original dataset, so this in itself isn't the cause of the issue.
+
+```{r}
+with(error, table(status, sex))
+with(prelim_complete, table(status, sex))
+```
+
+The other covariate is a continuous predictor (age), but if we split it by its median value we can observe how it is distributed by events, and this distribution is well kept by the bootstrapped sample.
+
+```{r}
+with(error, table(status, age > median(age)))
+with(prelim_complete, table(status, age > median(age)))
+```
+
+Maybe errors are thrown if the only events are identical? I'll make a test function to test this case. This function returns 1000 values, one for each bootstrap, with the following meaning:
+
+  - `NA`: There was no error
+  - `ident`: The only events in the error raising bootstrap sample were copies of the same observation
+  - `noevent`: There were no events in the error raising bootstrap sample
+  - `noident`: There were events in the error raising bootstrap sample, but there were more than one unique values
+
+```{r}
+errors_rpt_events <- function() {
+    total <- rep(NA, 1000)
+    for (i in 1:1000){
+        thedata <- prelim_complete[sample(1:(nrow(prelim_complete)), nrow(prelim_complete), replace=T), ]
+        total[i] <- tryCatch({wbb <- survreg(Surv(stime, status) ~ age + sex, data=thedata)
+                              NA
+                              },
+                             error=function(cond) {
+                                 pos_events = thedata[thedata$status==1, ]
+                                 num_unique_vals = apply(pos_events, 2, function(x) length(unique(x)))
+                                 if (all(num_unique_vals == 1)) {
+                                     resample = 'ident'
+                                 } else if (all(num_unique_vals == 0)) {
+                                     resample = 'noevent'
+                                 } else {
+                                     resample = 'noident'
+                                 }
+                                 resample
+                             })
+    }
+    total
+}
+```
+
+Interestingly, there were no errors thrown due to lack of events in the dataset! Unfortunately, however, there's no simple relationship between unique events in the sample and errors being raised. 
+
+```{r}
+set.seed(17)
+errors = errors_rpt_events()
+table(errors)
+```
+
+
+Just for posterity's sake I'll try running the main prevalence function now only using the complete dataset.
+
+```{r}
+registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
+N_years <- 10
+cure <- 3
+columns <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
+
+prevalence_total <- prevalence(prelim[complete.cases(prelim), ], registry_years, 
+                               N_years = N_years, colnames=columns,
+                               cure_time = cure * 365
+                             )
+```
+
+Nope this still doesn't work!
+
+# Conclusions
+
+I haven't been able to pinpoint the precise relationship in the dataset which causes errors to be raised, however, it is definitely due to a small sample, particularly of events. 
+
+To fix this issue, I'll include error handling into the bootstrapping function to identify when errors have been raised, warn the user that X many errors have been encountered, and then replace these values with randomly selected coefficients which did work.
