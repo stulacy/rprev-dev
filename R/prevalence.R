@@ -420,7 +420,7 @@ n_year_estimates <- function(N_years, num_reg_years,
     }
     
     CI <- z_level * sqrt(se) * 100000
-    object <- list(raw=the_estimate, per100K=the_proportion,
+    object <- list(absolute.prevalence=the_estimate, per100K=the_proportion,
                    per100K.lower=the_proportion - CI,
                    per100K.upper=the_proportion + CI)
     lapply(object, round, precision)
