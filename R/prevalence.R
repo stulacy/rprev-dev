@@ -93,10 +93,6 @@ prevalence <- function(data, registry_years, N_years,
     ############################################
     #
     # TODO Remove when finished debugging
-    # foooooo
-    # foooooooooo2
-    # baaaaaaaaaar
-    # put on the spot.
     #set.seed(17)
     #data = registry_data
     #registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
@@ -107,7 +103,6 @@ prevalence <- function(data, registry_years, N_years,
     #pop_vers = 1
     #colnames = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
     ############################################
-    # New comment here stu
     #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
     #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
     #prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
