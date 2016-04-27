@@ -105,6 +105,7 @@ prevalence <- function(data, registry_years, N_years,
     #pop_vers = 1
     #colnames = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
     ############################################
+    # New comment here stu
     #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
     #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
     #prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
