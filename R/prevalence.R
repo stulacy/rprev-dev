@@ -7,28 +7,25 @@
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
 #' counted_prevalence(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
-counted_prevalence <- function(data, registry_years, 
-                               colnames=list(event_date='', entry_date='', status_at_index='')) {
+counted_prevalence <- function(entry, status_at_index, start=NULL, num_years=NULL) {
     
-    if (all(sapply(names(colnames), function(x) x %in% names(data)))) {
-        # User has supplied a data frame with the required naming scheme
-        data_use <- data
-    } else if (all(sapply(colnames, function(x) x != ''))) {
-        # User has supplied a list with the required names
-        data_use <- as.data.frame(lapply(colnames, function(x) data[x]))
-        colnames(data_use) <- names(colnames)
-    } else {
-        stop("Error: Either provide the required column names in the 'data' 
-           argument, or specify them in argument 'colnames'.")
-    }
+    if (is.null(start))
+        start <- min(entry)
     
-    # TODO Test if required
-    #data_use <- data_use[complete.cases(data_use), ]
-    per_year <- incidence(data_use$entry_date, registry_years)
-    # TODO Clean up
-    num_cens <- vapply(seq(length(registry_years)-1), function(i)
-        sum(data_use$status_at_index[data_use$entry_date >= registry_years[i] & data_use$entry_date < registry_years[i + 1]]),
-        numeric(1))
+    if (is.null(num_years)) 
+        num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+    
+    registry_years <- .determine_registry_years(start, num_years)
+    
+    # Need no NAs for this!
+    clean <- complete.cases(entry) & complete.cases(status_at_index)
+    entry <- entry[clean]
+    status_at_index <- status_at_index[clean]
+    
+    per_year <- incidence(entry, start=start, num_years=num_years)
+    num_cens <- vapply(seq(num_years), function(i)
+                            sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
+                       numeric(1))
     per_year - num_cens
 }
 
@@ -83,8 +80,10 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                            registry_end_year, daily_survival_males = daily_survival_males,
 #'                            daily_survival_females = daily_survival_females, cure_time = cure*365,
 #'                            N_years = 10)
-prevalence <- function(data, registry_years, N_years,
-                       cure_time=NULL,
+#'                            
+#' TODO Rename N_years and num_years
+prevalence <- function(data, N_years,
+                       cure_time=NULL, start=NULL, num_years=NULL,
                        colnames = list(age='', sex='', entry_date='', 
                                        status='', time=''),
                        N_boot=1000, max_yearly_incidence=500,
@@ -123,7 +122,7 @@ prevalence <- function(data, registry_years, N_years,
     #colnames = names
     #############################################
 
-    
+    # Form the dataset with the required names
     if (all(sapply(names(colnames), function(x) x %in% names(data)))) {
         # User has supplied a data frame with the required naming scheme
         data_use <- data
@@ -148,6 +147,14 @@ prevalence <- function(data, registry_years, N_years,
     if (length(levels(data_use$sex)) > 2)
         stop("Error: function can't currently function with more than two patient sex.")
     
+    # Determine the registry years of interest from assessing the code
+    if (is.null(start))
+        start <- min(data_use$entry_date)
+    
+    if (is.null(num_years)) 
+        num_years <- floor(as.numeric(difftime(max(data_use$entry_date), start) / 365.25))
+    
+    registry_years <- .determine_registry_years(start, num_years)
     
     ##################################################
     #       Calculate population survival rates
@@ -166,7 +173,7 @@ prevalence <- function(data, registry_years, N_years,
                              function(x) population_survival_rate(rate ~ age, data=subset(pop_df, sex==x)))
     
     
-    data_r <- data_use[data_use$entry_date >= min(registry_years), ]
+    data_r <- data_use[data_use$entry_date >= start, ]
     
     wb_boot <- registry_survival_bootstrapped(Surv(time, status) ~ age + sex, data_r, N_boot)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
@@ -174,7 +181,7 @@ prevalence <- function(data, registry_years, N_years,
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(data_r$sex), function(x) {
         sub_data <- data_r[data_r$sex==x, ]
-        .prevalence_subgroup(sub_data$age, sub_data$entry_date, registry_years, wb_boot, length(registry_years)-1,
+        .prevalence_subgroup(sub_data$age, sub_data$entry_date, start, wb_boot, num_years,
                              surv_functions[[x]], cure_time, as.numeric(x), max_yearly_incidence, N_years)
     })
     
@@ -199,9 +206,9 @@ prevalence <- function(data, registry_years, N_years,
 }
 
 
-.prevalence_subgroup <- function(prior_age_d, entry_date, reg_years, wboot, estyears, survfunc,
+.prevalence_subgroup <- function(prior_age_d, entry_dates, start_date, wboot, estyears, survfunc,
                                  cure, sex, max_year_inc, num_years) {
-    fix_rate_rev <- rev(incidence(entry_date, reg_years))
+    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_years=estyears))
     mean_rate <- mean(fix_rate_rev)
     
     #  This is the new implementation of calculating the yearly predicted prevalence
