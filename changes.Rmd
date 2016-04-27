@@ -443,8 +443,7 @@ nyear_test_curr <- function() {
 ```{r}
 nyear_test_dev <- function() {
   prevalence_d <- prev_dev()
-  registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
-  n_year_estimates(N_years = 3, num_reg_years=length(registry_years)-1,
+  n_year_estimates(N_years = 3, num_reg_years=8,
                        the_samples = prevalence_d$cases_total, 
                        by_year = prevalence_d$cases_avg,
                        population_size = 3500000)
@@ -480,10 +479,7 @@ prevage_test_curr <- function() {
 ```{r}
 prevage_test_dev <- function() {
     prev_obj <- prev_dev()
-    post_age_dist_total <- prev_obj$post
-    registry_end_year = 9
-    N_years = 10
-    prevalence_by_age(dist = post_age_dist_total, registry_end_year, N_years)
+    prevalence_by_age(prev_obj)
 }
 ```
 

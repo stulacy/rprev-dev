@@ -200,7 +200,7 @@ prevalence <- function(data, N_years,
     by_year_avg <- rowMeans(by_year_samples)
     
     prev_out <- list(cases_avg=by_year_avg, post=post_age_dist, cases_total=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions, nyears=N_years, nbootstraps=N_boot)
+                     popsurv=surv_functions, nyears=N_years, nregyears=num_years, nbootstraps=N_boot)
     attr(prev_out, 'class') <- 'prevalence'
     prev_out
 }
@@ -473,11 +473,12 @@ n_year_estimates_current <- function(N_years, registry_start_year, registry_end_
 #' @examples
 #' result <- prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
 #'                  N_years = N_years)
-prevalence_by_age <- function(dist, registry_end_year, N_years, age_intervals=seq(10, 80, by=10)) {
+prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
     if (! all(age_intervals >= 0)) 
         stop("Must have positive ages")
     
-    the_dist <- dist[, , registry_end_year:N_years]
+    # TODO Can this not be refactored somewhat?
+    the_dist <- object$post[, , object$nregyears:object$nyears]
     the_dist <- the_dist[!is.na(the_dist)]
     
     # Add lower and upper bounds for range
