@@ -95,6 +95,7 @@ prevalence <- function(data, registry_years, N_years,
     # TODO Remove when finished debugging
     # foooooo
     # foooooooooo2
+    # baaaaaaaaaar
     #set.seed(17)
     #data = registry_data
     #registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
