@@ -94,6 +94,7 @@ prevalence <- function(data, registry_years, N_years,
     #
     # TODO Remove when finished debugging
     # foooooo
+    # foooooooooo2
     # baaaaaaaaaar
     #set.seed(17)
     #data = registry_data
