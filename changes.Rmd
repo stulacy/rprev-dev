@@ -82,7 +82,7 @@ inc_test_current <- function () {
 And for the development version...
 ```{r, echo=T}
 inc_test_new <- function() {
-  incidence(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)))
+  incidence(registry_data$DateOfDiag, start="2005-09-01", num_years=8)
 }
 ```
 
@@ -116,8 +116,7 @@ meanIR_test_curr <- function() {
 
 ```{r}
 meanIR_test_dev <- function() {
-  meanIR(registry_data$DateOfDiag, sapply(5:13, function(x) sprintf("20%02d-09-01", x)),
-             population_size=3500000)
+  meanIR(registry_data$DateOfDiag, population_size=3500000, start='2005-09-01', num_years=8)
 }
 ```
 
@@ -125,7 +124,7 @@ meanIR_test_dev <- function() {
 test_output(meanIR_test_curr, meanIR_test_dev)
 ```
 
-The test now fails as the returned objects are no longer comparable due to the dev function returning a list, but if we manually inspect the outputs we can see they are the same, aside from a precision difference in `per100K.lower`. This presumably arises from manually calculating the required z value for the confidence intervals, which is actually `r qnorm(0.975)`, rather than 1.96 as was previously hardcoded.
+The test now fails as the returned objects are no longer comparable due to the dev function returning a list, but if we manually inspect the outputs we can see they are the same. Note that the z values for the confidence intervals are now manually coded and so there may be a slight precision issue, as this is calculated to be `r qnorm(0.975)`, rather than the previously hardcoded 1.96.
 
 # `survival.R`
 

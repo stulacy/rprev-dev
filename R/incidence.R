@@ -82,13 +82,22 @@ load_data <- function(data,
 #' @examples
 #' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
 #' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
-incidence <- function(entry, registry_years) {
-    per_year <- vapply(seq(length(registry_years)-1),
+incidence <- function(entry, start=NULL, num_years=NULL) {
+    
+    if (is.null(start))
+        start <- min(entry)
+    
+    if (is.null(num_years)) 
+        num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+    
+    registry_years <- .determine_registry_years(start, num_years)
+    
+    per_year <- vapply(seq(num_years),
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
                        integer(1))
     
     if(sum(per_year) < 30) warning("warning: low number of incident cases.")
-    return(per_year)
+    per_year
 }
 
 incidence_current <- function(data, registry_years, registry_start_year, registry_end_year){
@@ -117,12 +126,20 @@ incidence_current <- function(data, registry_years, registry_start_year, registr
 #' @examples
 #' incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year = 1,
 #' registry_end_year = 4, population_size = 3500000)
-meanIR <- function(entry, registry_years, population_size, precision = 2, level=0.95){
+meanIR <- function(entry, population_size, start=NULL, num_years=NULL, precision = 2, level=0.95){
     
-    mean_rate <- mean(incidence(entry, registry_years))
+    if (is.null(start))
+        start <- min(entry)
+    
+    if (is.null(num_years)) 
+        num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+    
+    registry_years <- .determine_registry_years(start, num_years)
+    
+    mean_rate <- mean(incidence(entry, start=start, num_years=num_years))
     z_conf <- qnorm((1+level)/2)
     
-    CI <- 100000 * (z_conf * sqrt(mean_rate) / length(registry_years)) / population_size
+    CI <- 100000 * (z_conf * sqrt(mean_rate) / num_years) / population_size
     est <- 100000 * mean_rate / population_size
     
     object <- list(absolute=mean_rate, per100K=est, per100K.lower=est-CI, per100K.upper=est+CI)
