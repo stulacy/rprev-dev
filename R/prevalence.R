@@ -22,7 +22,8 @@ counted_prevalence <- function(data, registry_years,
            argument, or specify them in argument 'colnames'.")
     }
     
-    data_use <- data_use[complete.cases(data_use), ]
+    # TODO Test if required
+    #data_use <- data_use[complete.cases(data_use), ]
     per_year <- incidence(data_use$entry_date, registry_years)
     # TODO Clean up
     num_cens <- vapply(seq(length(registry_years)-1), function(i)
