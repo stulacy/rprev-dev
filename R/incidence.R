@@ -107,7 +107,7 @@ incidence <- function(entry, start=NULL, num_years=NULL) {
 #' @return Vector of absolute incidence values for each of the specified years of a registry.
 #' @examples
 #' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
-#' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
+#' incidence_current(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
 incidence_current <- function(data, registry_years, registry_start_year, registry_end_year){
     years_estimated <- registry_end_year - registry_start_year + 1
     per_year <- rep(NA, years_estimated)
