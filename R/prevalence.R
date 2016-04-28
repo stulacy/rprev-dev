@@ -6,7 +6,7 @@
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
-#' counted_prevalence(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
+#' counted_prevalence(registry_data$DateOfDiag, registry_data$status2, start="2005-09-01", 8)
 counted_prevalence <- function(entry, status_at_index, start=NULL, num_years=NULL) {
     
     if (is.null(start))
