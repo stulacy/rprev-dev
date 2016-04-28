@@ -2,8 +2,8 @@
 #'
 #' This function compares the actual variance of the yearly incidence rates with rates simulated from a Poisson process with overall rate equal to the overall mean rate.
 #'
-#' @param data A vector of absolute incidence for each complete year of the registry.
-#' @param N_sim Number of times to run the simulation.
+#' @param data Vector of absolute incidence for each complete year of the registry.
+#' @param N_sim Integer to specify number of simulations.
 #' @return Vector of p values for over- and under-dispersion based on the position of the observed sequence variance in the distribution.
 #' @examples
 #' sim_check(raw_incidence)
