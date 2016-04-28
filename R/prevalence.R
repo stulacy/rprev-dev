@@ -423,15 +423,16 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
 
 #' Calculate predicted prevalence for a given number of years.
 #'
-#' @param N_years Number of years prevalence is to be calculated for.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param the_samples Bootstrapped samples used to gauge the sampling variation in the estimates.
-#' @param by_year Predicted prevalence by year of the registry.
-#' @param population_size A number corresponding to the size of the population.
+#' @param N_years Integer representing number of years prevalence is to be calculated for.
+#' @param num_reg_years Integer representing number of registry years to include.
+#' @param the_samples Array of bootstrapped samples used to gauge the sampling variation in the estimates.
+#' @param by_year Vector of predicted prevalence by year of the registry.
+#' @param population_size Integer corresponding to the size of the population.
+#' @param precision Integer representing the number of decimal places required.
+#' @param level Double representing the desired confidence interval width.
 #' @return An estimate of prevalence, in total and /100,000 with confidence intervals.
 #' @examples
-#' n_year_estimates(N_years = 3, registry_start_year = year1, registry_end_year = lastyear,
+#' n_year_estimates(N_years = 3, num_reg_years = 8,
 #'                  the_samples = by_year_male_samples,
 #'                  by_year = by_year_male, population_size = 1700000)
 n_year_estimates <- function(N_years, num_reg_years, 
@@ -465,6 +466,19 @@ n_year_estimates <- function(N_years, num_reg_years,
     lapply(object, round, precision)
 }
 
+#' Calculate predicted prevalence for a given number of years.
+#'
+#' @param N_years Number of years prevalence is to be calculated for.
+#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @param the_samples Bootstrapped samples used to gauge the sampling variation in the estimates.
+#' @param by_year Predicted prevalence by year of the registry.
+#' @param population_size A number corresponding to the size of the population.
+#' @return An estimate of prevalence, in total and /100,000 with confidence intervals.
+#' @examples
+#' n_year_estimates_current(N_years = 3, registry_start_year = year1, registry_end_year = lastyear,
+#'                  the_samples = by_year_male_samples,
+#'                  by_year = by_year_male, population_size = 1700000)
 n_year_estimates_current <- function(N_years, registry_start_year, registry_end_year,
                                      the_samples, by_year, population_size){
     if (N_years > length(by_year)) stop("error: too many years for the data.")
