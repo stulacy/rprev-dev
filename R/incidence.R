@@ -123,14 +123,13 @@ incidence_current <- function(data, registry_years, registry_start_year, registr
 
 #' Convert absolute incidence values to per 100,000 population values.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param population_size A number representing the size of the population at risk.
-#' @param precision The number of decimal places required.
-#' @return A vector containing mean incidence/year and incidence rate/100,000/year with confidence
-#'         intervals.
+#' @param entry Vector of diagnosis dates for each patient in the registry.
+#' @param population_size Integer representing the size of the population at risk.
+#' @param start Date from which incident cases are included.
+#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param precision Integer representing the number of decimal places required.
+#' @param level Double representing the desired confidence interval width.
+#' @return List containing mean incidence/year and incidence rate/100,000/year with confidence intervals.
 #' @examples
 #' incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year = 1,
 #' registry_end_year = 4, population_size = 3500000)
@@ -154,6 +153,19 @@ meanIR <- function(entry, population_size, start=NULL, num_years=NULL, precision
     lapply(object, round, precision)
 }
 
+#' Convert absolute incidence values to per 100,000 population values.
+#'
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param registry_years A vector of dates delineating years of the registry.
+#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @param population_size A number representing the size of the population at risk.
+#' @param precision The number of decimal places required.
+#' @return A vector containing mean incidence/year and incidence rate/100,000/year with confidence
+#'         intervals.
+#' @examples
+#' incidence_rates <- meanIR_current(load_data(registry_data), registry_years, registry_start_year = 1,
+#' registry_end_year = 4, population_size = 3500000)
 meanIR_current <- function(data, registry_years, registry_start_year, registry_end_year, population_size, precision = 2){
     
     per_year <- incidence_current(data, registry_years, registry_start_year, registry_end_year)
