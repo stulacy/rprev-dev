@@ -74,14 +74,12 @@ load_data <- function(data,
 
 #' Calculate absolute incidence from registry data.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of registry.
-#' @param registry_start_year Ordinal defining the first year of registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of registry data to be used.
-#' @return Vector of absolute incidence values for each of the specified years of a registry.
+#' @param entry Vector of diagnosis dates for each patient in the registry.
+#' @param start Date from which incident cases are included.
+#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @return Vector of absolute incidence values for each included year of the registry.
 #' @examples
-#' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
-#' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
+#' incidence(registry_data$DateOfDiag, start="2005-09-01", 8)
 incidence <- function(entry, start=NULL, num_years=NULL) {
     
     if (is.null(start))
@@ -100,6 +98,16 @@ incidence <- function(entry, start=NULL, num_years=NULL) {
     per_year
 }
 
+#' Calculate absolute incidence from registry data.
+#'
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param registry_years A vector of dates delineating years of registry.
+#' @param registry_start_year Ordinal defining the first year of registry data to be used.
+#' @param registry_end_year Ordinal defining the last year of registry data to be used.
+#' @return Vector of absolute incidence values for each of the specified years of a registry.
+#' @examples
+#' registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
+#' incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
 incidence_current <- function(data, registry_years, registry_start_year, registry_end_year){
     years_estimated <- registry_end_year - registry_start_year + 1
     per_year <- rep(NA, years_estimated)
