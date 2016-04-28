@@ -1,9 +1,9 @@
 #' Count prevalence from registry data.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal  defining the last year of the registry data to be used.
+#' @param entry Vector of diagnosis dates for each patient in the registry.
+#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param start Date from which incident cases are included.
+#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
 #' counted_prevalence(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
@@ -29,6 +29,15 @@ counted_prevalence <- function(entry, status_at_index, start=NULL, num_years=NUL
     per_year - num_cens
 }
 
+#' Count prevalence from registry data.
+#'
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param registry_years A vector of dates delineating years of the registry.
+#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param registry_end_year Ordinal  defining the last year of the registry data to be used.
+#' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
+#' @examples
+#' counted_prevalence_current(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
 counted_prevalence_current <- function(data, registry_years, registry_start_year, registry_end_year){
     
     data <- data[!(is.na(data$date_event)), ]
