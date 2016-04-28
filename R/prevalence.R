@@ -478,7 +478,7 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
         stop("Must have positive ages")
     
     # TODO Can this not be refactored somewhat?
-    the_dist <- object$post[, , object$nregyears:object$nyears]
+    the_dist <- object$post[, , object$nregyears+1:object$nyears]
     the_dist <- the_dist[!is.na(the_dist)]
     
     # Add lower and upper bounds for range
