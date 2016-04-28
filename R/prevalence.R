@@ -510,14 +510,13 @@ n_year_estimates_current <- function(N_years, registry_start_year, registry_end_
     return(list(raw, prop))
 }
 
-#' Output extrapolated number of prevalent cases per 10-year age group.
+#' Output extrapolated number of prevalent cases for specified age bands.
 #'
-#' @param dist The age distribution of prevalent cases following simulation.
-#' @param registry_end_year The last complete year of registry data.
-#' @param N_years The year to make predictions until.
-#' @return Predicted number of prevalent cases per 10-year age group.
+#' @param object Object returned by prevalence\(\) from which to extrapolate. 
+#' @param age_intervals Vector of integers to delineate age bands.
+#' @return Vector of predicted number of prevalent cases for specified age bands.
 #' @examples
-#' result <- prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
+#' prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
 #'                  N_years = N_years)
 prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
     if (! all(age_intervals >= 0)) 
@@ -534,6 +533,15 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
            function(x) sum(the_dist >= ages[x] & the_dist < ages[x+1]) / length(the_dist))
 }
 
+#' Output extrapolated number of prevalent cases per 10-year age group.
+#'
+#' @param dist The age distribution of prevalent cases following simulation.
+#' @param registry_end_year The last complete year of registry data.
+#' @param N_years The year to make predictions until.
+#' @return Predicted number of prevalent cases per 10-year age group.
+#' @examples
+#' result <- prevalence_by_age_current(dist = post_age_dist_male, registry_end_year = 4,
+#'                  N_years = N_years)
 prevalence_by_age_current <- function(dist, registry_end_year, N_years){
     
     the_dist <- dist[registry_end_year:N_years, , ]
