@@ -36,14 +36,16 @@
 
 #' Population survival rate.
 #'
-#' @param data A dataset of population survival data by year.
-#' @param sex Can be "Males" or "Females".
-#' @return An estimate of the survival rate by day for ages <=100 years.
+#' @param form Formula to define...
+#' @param data Data frame containing calendar_year, sex, age and rate.
+#' @param max_age Integer to specify maximum age.
+#' @return An estimate of the survival rate by day.
 #' @examples
-#' daily_survival_males <- daily_survival_rate(population_data_mx, sex = "Males")
-#' daily_survival_females <- daily_survival_rate(population_data_mx, sex = "Females")
+#' pop_data_mx <- load(population_data_mx)
+#' daily_survival_males <- population_survival_rate(rate ~ age, subset(pop_data_mx, sex==0))
 population_survival_rate <- function(form, data, max_age=100){
     # Could probably improve on this extraction of response and variable
+    # Does this function need to have "population in its name?" Could it be more generally applied?
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
     
@@ -59,6 +61,14 @@ population_survival_rate <- function(form, data, max_age=100){
     cumprod(1 - daily_rate)
 }
 
+#' Population survival rate.
+#'
+#' @param data A dataset of population survival data by year.
+#' @param sex Can be "Males" or "Females".
+#' @return An estimate of the survival rate by day for ages <=100 years.
+#' @examples
+#' daily_survival_males <- daily_survival_rate(population_data_mx, sex = "Males")
+#' daily_survival_females <- daily_survival_rate(population_data_mx, sex = "Females")
 daily_survival_rate_current <- function(data, sex){
     
     if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
