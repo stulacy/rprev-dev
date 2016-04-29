@@ -1,0 +1,529 @@
+---
+title: "Simulating Dataset"
+author: "Stuart Lacy"
+date: "28 April 2016"
+output: 
+  html_document: 
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_float:
+        collapsed: false
+    code_folding: show
+---
+
+# Introduction
+
+The aim of this script is to be used as a notepad for building a simulated registry dataset.
+
+# `weisim`
+
+This code will use the `weisum` function found in the included `rfun.R` file that Simon provided.
+
+```{r}
+library(dplyr)
+library(flexsurv)
+library(survival)
+library(knitr)
+source('../tests/rfun.R')
+opts_chunk$set(error=T)
+```
+
+Here's a function call with the default arguments:
+
+```{r}
+set.seed(17)
+head(weisim(n=100, p=1, b=1, shp=1, rancens=T, rate=1, trunc=F, tau=2))
+head(weisim(n=100, p=2, b=c(0.3, 2), shp=1, rancens=T, rate=1, trunc=F, tau=2))
+```
+
+Let's try and understand what each mean:
+
+  + `n` (int): Number of samples to make
+  + `p` (int): Number of parameters
+  + `b` (double): Coefficients, a vector with length `p`
+  + `shp` (double): Shape
+  + `rancens` (bool): Whether to use random censoring
+  + `rate` (double): Random censoring rate
+  + `trunc` (bool): Not entirely sure, whether to truncate data?
+  + `tau` (double): Parameter involved in truncation
+  
+# `weisim2`
+
+I've refactored `weisim` to allow for co-variates with normal distributions with means and variances different to 0 and 1 (the defaults which are used in `weisim`).
+
+The argument list is now:
+
+  + `n` (int): Number of samples to make
+  + `beta` (double): Coefficients, a vector with length `p`
+  + `mu` (double): Means of the covarites, a vector with length `p`
+  + `sigma` (double): Standard deviations of the covarites, a vector with length `p`
+  + `shape` (double): Shape
+  + `rancens` (bool): Whether to use random censoring
+  + `rate` (double): Random censoring rate
+  + `trunc` (bool): Not entirely sure, whether to truncate data?
+  + `tau` (double): Parameter involved in truncation
+  
+I've also changed the calculation of event time, so that it's just *-log(u)* which is raised to *1/p*, whereas before it was the whole *-log(u) / exp(betaX)* which was raised to this power. Furthermore I've used scale as 1 / scale. This difference is resulting from a different parameterisation of S(t) from a Weibull distribution, I used the one that I've seen in other publications and Wikipedia, while the version used by the original authors of `rfun` is that used in the *Klein & Moeschberger* book.
+  
+**NB: `p` is no longer an argument to this function, instead it is implicitly derived as the length of `beta`, `mu`, and `sigma`.**
+
+```{r}
+weisim2(10, beta=c(1.5, 0.7), mu=c(0, 5), sigma=c(1.3, 2), shape=0.8, rate=1.5)
+```
+
+So this works, and it quits if the user doesn't provide enough information.
+
+```{r, error=T}
+weisim2(10, beta=c(1.5), mu=c(0, 5), sigma=c(1.3, 2), shape=0.8, rate=1.5)
+```
+
+# Simulating survival times
+
+Let's see if we can use this function to simulate survival times drawn from the distribution of events in the registry data.
+
+```{r}
+registry_data <- readRDS("../data/registry_data.rds")
+```
+
+## Null model
+
+I'll start with the null model:
+
+```{r}
+nullmod <- flexsurv::flexsurvreg(Surv(stime, status) ~ 1, data=registry_data, dist='weibull')
+nullmod
+plot(nullmod, xlim=c(0, 5000))
+```
+
+Let's try and generate some meaningful event times then, using 'sensible' values for these parameters, remembering that the values for shape and scale shown here are *exponents* of the coefficients, which is fine for `scale` since this will be exponentiated when calculating the linear predictor, but for `shape` which isn't exponentiated during the calculation, we need to do this manually.
+
+I'll firstly try without any covariates, just the intercept (which is scale). Since scale is going to be exponentiated later on, it needs to be supplied in the log transform. I'm unsure with shape whether to make it 1/shape, or keep it the same as it is, which is consistent with `pweibull`. I'll try with just shape, particularly as the function itself uses 1/shape in its calculation.
+
+```{r}
+nullest = weisim2(10000, beta=NULL, mu=NULL, sigma=NULL, scale=log(1190), shape=0.653, rancens=F, rate=0.5, trunc=F)
+plot(survfit(Surv(time, status) ~ 1, data=nullest), xlim=c(0, 5000))
+```
+
+That looks right!
+
+Let's see if this function produces similar values to that provided by `rweibull`:
+
+**NB: For rweibull we pass in the exponentiated parameters, for the sim function we need scale on the log scale as it's going to be exponentiated**
+
+```{r}
+wb_vals <- rweibull(10000, shape=0.653, scale=1190)
+plot(survfit(Surv(wb_vals, rep(1, 10000)) ~ 1), xlim=c(0, 5000))
+```
+
+It produces the same distribution, thereby indicating this function is consistent with rweibull.
+
+## With covariates
+
+Let's use the registry data to obtain an idea of the variance of ages, along with appropriate coefficient values:
+
+```{r}
+mean(registry_data$age)
+sd(registry_data$age)
+```
+
+That's a higher standard deviation than I'd expect! I was going to use 10 or 15 years. The mean is as I'd expect.
+
+And a standard weibull fit gives the coefficient estimates *-0.0615* for age, *0.792* for shape, and *59,300* for scale. Note that these distribution parameters are the exponentiated form of them, and so care should be taken when plugging into an equation.
+
+This gives me an idea of what sort of values to be using, although of course the ones I choose will be arbitrary and not related to this dataset, or from any of our current HMRN data.
+
+```{r}
+mod <- flexsurv::flexsurvreg(Surv(stime, status) ~ age, data=registry_data, dist='weibull')
+mod
+plot(mod, xlim=c(0, 5000))
+```
+
+Let's try using these values to simulate event times which incorporate age.
+
+```{r}
+ageest = weisim2(10000, beta=-0.0615, mu=60, sigma=10, scale=log(59300), shape=0.792, rancens=F, rate=0.5, trunc=F)
+plot(survfit(Surv(time, status) ~ 1, data=ageest), xlim=c(0, 5000))
+```
+
+This looks ok, let's fit a model to it and see what we get.
+
+```{r}
+mod2 <- flexsurvreg(Surv(time, status) ~ x, data=ageest, dist='weibull')
+mod2
+```
+
+It's not the exact same coefficients because I have a different age distribution, but it's close enough.
+
+Now let's try adding in gender, I'll have a separate column for pbinomials:
+
+Just getting sensible values for sex coefficients:
+
+```{r}
+sex_mod <- flexsurvreg(Surv(stime, status) ~ age + sex, data=registry_data, dist='weibull')
+sex_mod
+```
+
+I'll use the exact same parameters of covariate distributions to try and generate the exact same survival time distribution.
+
+**NB: This high proportion of women isn't typical of the general population at all!**
+
+```{r}
+table(registry_data$sex)
+1509 / (1509 + 399)
+mean(registry_data$age)
+sd(registry_data$age)
+```
+
+
+```{r}
+sextest = weisim2(10000, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=F, rate=0.5, trunc=F)
+plot(survfit(Surv(time, status) ~ 1, data=sextest), xlim=c(0, 5000))
+
+plot(sex_mod, xlim=c(0, 5000))
+```
+
+Doesn't look quite right, does fitting a model to it generate the correct coefficients?
+
+```{r}
+flexsurvreg(Surv(time, status) ~ X1 + X2, data=sextest, dist='weibull')
+```
+
+That's close enough for me!
+
+## Conclusions
+
+Now I have a function which can generate a dataset with both continuous and binomial covariates, easy. The remaining two issues to solve are:
+
+  + Generate censoring patterns
+  + Simulating registry entry dates
+
+# Simulating entry dates
+
+Now we need to simulate entry dates, assuming that the rate of entry is distributed with a poisson distribution with parameter lambda.
+
+This means that the probability of an incident case at a specific time point can be obtained with the pdf, so the plot below displays the probability of an incident case `x` days after the last incident case:
+
+```{r}
+plot(sapply(seq(1, 365) / 365, dexp, rate=20))
+```
+
+Likewise the cdf plots the probability that a new event will have occurred `q` days after the previous one. So for a disease with incidence rates of 20 cases a year, generally the longest gap between new cases being incident is 100 days.
+
+```{r}
+plot(sapply(seq(1, 365) / 365, pexp, rate=20))
+```
+
+So drawing from the exponential distribution parameterised by lambda = number of incident cases in a year, and multiplying by 365.25, we can obtain a series of interarrival times.
+
+```{r}
+times = round(rexp(1000, 20) * 365.25)
+hist(times)
+```
+
+By taking the cumulative sum of these we can obtain the number of days since an arbitrary start point.
+
+```{r}
+start_deltas = cumsum(times)
+```
+
+And then using `difftime` we can create a function to create actual entry dates by passing in a reference initial date.
+
+```{r}
+sim_entry_dates <- function(n, inc_rate, start_date='2005-01-01') {
+    times <- round(rexp(n, inc_rate) * 365.25)
+    start_deltas <- cumsum(times)
+    sapply(start_deltas, function(x) as.character(as.Date(start_date) + x))
+}
+```
+
+Let's test this by asking for 100 cases with an incidence rate of 20 a year, so we'd expect around 5 years of event times.
+
+```{r}
+dates <- sim_entry_dates(100, 20, start_date='2010-03-28')
+dates
+```
+
+These look good!
+
+## Conclusion
+
+So now we can simulate covariates, survival times, and entry dates; event dates can be easily calculated from the survival times and the entry dates. Next we just need censoring to be incorporated.
+
+# Simulating censorship patterns
+
+I'll be assuming random censoring for this, which requires two steps:
+
+  1. Randomly selected a certain proportion of observations to be censored, they can be selected uniformly.
+  2. Randomly select a censoring time Tc less than survival time Ts. This can be randomly selected from a uniform distribution between the start time and the event time - or would it be more appropriate to have more censoring with people at longer survival times?
+  
+At least that's how I'd do it, whereas the code in `weisim` assumes that time to censor is distributed exponentially, which seems odd to me. The `rate` parameter to this function is the censoring rate, whereby I have no idea how to set a suitable value, so let's try and fit an exponential model to the censoring data in `registry_data` and get an estimate for a suitable coefficient.
+
+```{r}
+cens_data <- filter(registry_data, status==0)
+cens_model <- flexsurvreg(Surv(stime, rep(1, nrow(cens_data))) ~ 1, data=cens_data, dist='exp')
+cens_model
+```
+
+So a very small rate then!
+
+As with the weibull distribution, note that the value displayed in this summary is the exponentiated version of the ones displayed in the model summary.
+
+```{r}
+cens_model$coefficients
+exp(cens_model$coefficients)
+```
+
+Let's just quickly simulate some censoring times to understand which of these values to use.
+
+```{r}
+cens_times1 <- rexp(10000, rate=cens_model$coefficients)
+cens_times2 <- rexp(10000, rate=exp(cens_model$coefficients))
+```
+
+Oh it has to be the exponentiated version. So the basically the exponentiated values displayed in the summary are **always** the ones we want to use, except in weibull models where `scale` depends on covariates, in which case we need to calculate the exponent of `scale` + betaX.
+
+So let's try using this value of rate (0.000444) in the `weisim` calculations.
+
+Let's look at how much censoring is present in the registry data:
+
+```{r}
+table(registry_data$status)
+612 / (612+1926) * 100
+```
+
+24%, not that much.
+
+Rerunning the following code however, produces vastly different values of censoring, presumably due to the small sample size. The output values look relatively sensible however which is a good thing.
+
+```{r}
+weisim2(10, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=T, rate=0.00044, trunc=F)
+```
+
+I'll try running it with larger sample sizes repeatedly to see if the censoring proportion is more stable. Yes it is. I could do with a little less censoring but we can work from here.
+
+```{r}
+f = weisim2(10000, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=T, rate=0.00044, trunc=F)
+f = weisim2(10000, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=T, rate=0.00044, trunc=F)
+f = weisim2(10000, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=T, rate=0.00044, trunc=F)
+f = weisim2(10000, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, rancens=T, rate=0.00044, trunc=F)
+```
+
+# Combining survival times and entry dates
+
+Now I'll create a function to wrap both of these steps into a one line call to create a simulated dataset.
+
+```{r}
+simulate_dataset <- function(n=100, inc_rate=50, scale=1, shape=1, beta=NULL, mu=NULL, sigma=NULL, 
+                             pbinomial=NULL, rancens=T, censrate=1, start_date='2005-01-01') { 
+    entry_dates <- sim_entry_dates(n, inc_rate=inc_rate, start_date=start_date)
+    df <- weisim2(n, beta=beta, mu=mu, sigma=sigma, pbinomial=pbinomial, scale=scale, shape=shape, rancens=rancens, rate=censrate, trunc=F)
+    
+    # Clean up data by calculating event dates and converting binary predictors to factors
+    df$entry <- entry_dates
+    df$eventdate <- as.character(as.Date(df$entry) + df$time)
+    binom_columns <- sapply(seq_along(pbinomial), function(i) paste('X', i+length(mu), sep=''))
+    df[, binom_columns] <- as.factor(df[, binom_columns])
+    
+    df
+}
+```
+
+Now let's try running this with sensible parameters that I've established from the registry_data dataset.
+
+```{r}
+sim_data = simulate_dataset(10000, inc_rate=30, beta=c(-0.0544, -2.47), mu=64, sigma=19, pbinomial=0.79, scale=log(279000), shape=0.932, 
+                            rancens=T, censrate=0.00044)
+summary(sim_data)
+min(sim_data$entry)
+max(sim_data$entry)
+```
+
+```{r}
+hist(sim_data$X1)
+```
+
+Ok a few issues to note:
+
+  - Because I've simulated a thousand patients with only 20 incident cases a year, the ending date is into 2335! **Find a more suitable incidence rate and n**
+  - The ages don't look realistic, despite using the sd from the registry_data. **Try again with one and see how it works**
+  - The survival times don't look realistic! **This can be filtered out by the curetime variable**
+
+Maybe a better way would be to:
+  
+  - Determine the sample size required (<= 1000)
+  - Infer from this a sensible incidence rate
+  - Calculate multiple datasets, ordered by survival time
+  - Take the average to hopefully even out any extreme values
+  
+Is bootstrapping this overkill?! I'll firstly come up with a simulated dataset with sensible parameter values and see how it does.
+
+## Sensible parameters
+
+I'll want a thousand or two patients, let's go with a thousand. Say I want a 10 year repository, so 100 incident cases a year. I'll make age have a standard deviation of 10, with a mean of 65, so that most cases are in 45-85 which makes sense. For sex I'll use a probability of 0.55, as females will be more likely to have this simulated disease.
+
+I'll use trial and error to get a value of censrate that provides around 30% censoring.
+
+```{r}
+sens_sim_data = simulate_dataset(1000, inc_rate=100, beta=c(-0.0544, -2.47), mu=65, sigma=10, pbinomial=0.55, scale=log(279000), shape=0.932, 
+                            rancens=T, censrate=0.00014)
+summary(sens_sim_data)
+min(sens_sim_data$entry)
+max(sens_sim_data$entry)
+
+min(sens_sim_data$eventdate)
+max(sens_sim_data$eventdate)
+```
+
+Age looks sensible
+
+```{r}
+hist(sens_sim_data$X1)
+```
+
+Some very long survivals, 25,000 days is 68 years! These particularly don't make sense as the age of these persons at diagnosis was 50, so they're going to live to be 120!
+
+```{r}
+hist(sens_sim_data$time)
+sens_sim_data[sens_sim_data$time > 20000, ]
+```
+
+So most patients are dead by 27 years, but this is too long! I'll play with the scale parameter until I can get this to more reasonable values.
+
+```{r}
+plot(flexsurvreg(Surv(time, status) ~ X1 + X2, data=sens_sim_data, dist='weibull'))
+```
+
+## Sensible survival times
+
+I've just realised that I'll need to censor the dataset if people are still alive at a set point (index date?), which in the `registry_data` dataset appeasr to be spread out over several days in December.
+
+```{r}
+registry_data %>% 
+    filter(!is.na(EventDate)) %>%
+    arrange(EventDate) %>% 
+    tail(30)
+```
+
+Since I'm going for 10 years of data, I'll have it censored beyond 2015-03-17. This will then need to recalculate the survival times.
+
+```{r}
+simulate_dataset2 <- function(n=100, inc_rate=50, scale=1, shape=1, beta=NULL, mu=NULL, sigma=NULL, 
+                             pbinomial=NULL, rancens=T, censrate=1, start_date='2005-01-01',
+                             index='2015-03-17') { 
+    
+    entry_dates <- sim_entry_dates(n, inc_rate=inc_rate, start_date=start_date)
+    df <- weisim2(n, beta=beta, mu=mu, sigma=sigma, pbinomial=pbinomial, scale=scale, shape=shape, rancens=rancens, rate=censrate, trunc=F)
+    
+    # Clean up data by calculating event date and censoring those beyond index 
+    df$entry <- entry_dates
+    df$eventdate <- as.character(as.Date(df$entry) + df$time)
+    cens_at_index <- df$eventdate > index
+    df$eventdate[cens_at_index] <- index
+    df$status[cens_at_index] <- 0
+    df$time[cens_at_index] <- difftime(as.Date(df$eventdate[cens_at_index]), as.Date(df$entry[cens_at_index]), units='days')
+    
+    # convert binary predictors to factors
+    binom_columns <- sapply(seq_along(pbinomial), function(i) paste('X', i+length(mu), sep=''))
+    df[, binom_columns] <- as.factor(df[, binom_columns])
+    
+    df
+}
+```
+
+Let's try this now:
+
+```{r}
+sens_sim_data2 = simulate_dataset2(1000, inc_rate=100, beta=c(-0.05, -2), mu=65, sigma=10, pbinomial=0.55, scale=log(27900), shape=0.8, 
+                                  rancens=T, censrate=0.00014, start_date='2003-01-01', index='2015-03-17')
+summary(sens_sim_data2)
+min(sens_sim_data2$entry)
+max(sens_sim_data2$entry)
+
+min(sens_sim_data2$eventdate)
+max(sens_sim_data2$eventdate)
+```
+
+Note that I'm using an index date around 12 years after the start date, while I'm asking for effectively 10 years of incidence (100 cases a year, with 1000 patients), so that I shouldn't have any issues with patients being entered before the index date.
+
+```{r}
+plot(survfit(Surv(time, status) ~ 1, data=sens_sim_data2))
+```
+
+# Final Tuning
+
+Now let's tie all these functions into one place and see if I can generate a sensible dataset!
+
+```{r}
+my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, scale=1, shape=1, rancens=T, rate=1, trunc=F, tau=2) { 
+    
+    if (! length(mu) == length(sigma))
+        stop("Error: mu and sigma must have the same length.")
+    
+    if (! length(beta) == length(mu) + length(pbinomial))
+        stop("Error: Number of betas must be equal to length of mu + pbinomial")
+    
+    # Always have intercept, which is just scale if no other covariates are supplied
+    x = cbind(rep(1, n))
+    # Add continuous variables
+    if (!is.null(mu) & !is.null(sigma)) 
+        x = cbind(x, mapply(function(m, s) rnorm(n, m, s), mu, sigma))
+    # Add binary variables
+    if (!is.null(pbinomial)) 
+        x = cbind(x, sapply(pbinomial, function(p) rbinom(n, 1, p)))
+    
+    bx = x %*% c(scale, beta)
+    
+    t = (-log(runif(n))) ^ (1/shape) * exp(bx)  # This is rweibull
+    ic = rep(1,n)
+    if (rancens == T) {
+        c1 = (-log(runif(n))/rate)  # This is rexp
+        i = c1 < t
+        t[i] = c1[i]
+        ic[i] = 0
+    }
+    if (trunc == T) {
+        i = t > tau
+        t[i] = tau
+        ic[i] = 0
+    }
+    i = order(t)
+    time = round(t[i])
+    cens = ic[i]
+    x = x[i,-1]
+    cat(100 * sum(1-cens) / n, "percent censored\n")
+    data.frame(time=time, status=cens, x)    
+}
+```
+
+```{r}
+sim_entry_dates <- function(n, inc_rate, start_date='2005-01-01') {
+    times <- round(rexp(n, inc_rate) * 365.25)
+    start_deltas <- cumsum(times)
+    sapply(start_deltas, function(x) as.character(as.Date(start_date) + x))
+}
+```
+
+```{r}
+simulate_dataset <- function(n=100, inc_rate=50, scale=1, shape=1, beta=NULL, mu=NULL, sigma=NULL, 
+                             pbinomial=NULL, rancens=T, censrate=1, start_date='2005-01-01',
+                             index='2015-03-17') { 
+    
+    entry_dates <- sim_entry_dates(n, inc_rate=inc_rate, start_date=start_date)
+    df <- my_weisim(n, beta=beta, mu=mu, sigma=sigma, pbinomial=pbinomial, scale=scale, shape=shape, rancens=rancens, rate=censrate, trunc=F)
+    
+    # Clean up data by calculating event date and censoring those beyond index 
+    df$entry <- entry_dates
+    df$eventdate <- as.character(as.Date(df$entry) + df$time)
+    cens_at_index <- df$eventdate > index
+    df$eventdate[cens_at_index] <- index
+    df$status[cens_at_index] <- 0
+    df$time[cens_at_index] <- difftime(as.Date(df$eventdate[cens_at_index]), as.Date(df$entry[cens_at_index]), units='days')
+    
+    # convert binary predictors to factors
+    binom_columns <- sapply(seq_along(pbinomial), function(i) paste('X', i+length(mu), sep=''))
+    df[, binom_columns] <- as.factor(df[, binom_columns])
+    
+    df
+}
+```
