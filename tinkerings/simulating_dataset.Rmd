@@ -25,8 +25,9 @@ library(dplyr)
 library(flexsurv)
 library(survival)
 library(knitr)
+library(ggplot2)
 source('../tests/rfun.R')
-opts_chunk$set(error=T)
+opts_chunk$set(error=T, fig.align='center')
 ```
 
 Here's a function call with the default arguments:
@@ -455,6 +456,11 @@ plot(survfit(Surv(time, status) ~ 1, data=sens_sim_data2))
 Now let's tie all these functions into one place and see if I can generate a sensible dataset!
 
 ```{r}
+rm(list = ls())
+```
+
+
+```{r}
 my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, scale=1, shape=1, rancens=T, rate=1, trunc=F, tau=2) { 
     
     if (! length(mu) == length(sigma))
@@ -489,6 +495,7 @@ my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, sca
     }
     i = order(t)
     time = round(t[i])
+    time = ifelse(time == 0, 1, time)
     cens = ic[i]
     x = x[i,-1]
     cat(100 * sum(1-cens) / n, "percent censored\n")
@@ -527,3 +534,101 @@ simulate_dataset <- function(n=100, inc_rate=50, scale=1, shape=1, beta=NULL, mu
     df
 }
 ```
+
+```{r, eval=T}
+set.seed(17)
+df <- simulate_dataset(1000, inc_rate=100, scale=10, shape=0.7, mu=65, sigma=10, pbinomial=0.51, beta=c(-0.05, -0.5),
+                       rancens=T, censrate=0.0006, start_date='2003-01-01', index='2015-03-17')
+plot(survfit(Surv(time, status) ~ 1, data=df))
+flexsurvreg(Surv(time+1, status) ~ X1 + X2, data=df, dist='weibull')
+```
+
+This dataset looks good, with a cure time looking around 3 years when deaths start to tail off. Both sex and age are statistically significant predictors, but this can be changed if desired. The survival curve looks like one from a real data set, it's just the betas I'm not so sure about.
+
+# Descriptive stats of simulated dataset
+
+## Survival time
+
+A large proportion of people have events in the first 100 days, I'll check whether these are deaths or censorings later on. It appears to indicate that this simulated disease behaves quite similarly to AML, with a fast acting progression leading to a high initial number of deaths.
+
+```{r}
+hist(df$time)
+```
+
+Below is the histogram of the survival times from just the people who had an event, it follows the plot of all patients above, showing that the disease acts very quickly (within one hundred days) and also shows that the censoring appears to be random.
+
+```{r}
+hist(df[df$status==1, 'time'])
+```
+
+Here is the plot of survival times for censored patients, which for some reason appears to be bi-modal, it'd be helpful to determine the source of this as otherwise this censoring pattern may not be considered random.
+
+```{r}
+hist(df[df$status==0, 'time'])
+```
+
+## Age
+
+Perhaps this simulated age is **too** normal, maybe should have added some noise to age?
+
+```{r}
+hist(df$X1)
+```
+
+The univariate model below shows a slight statistically significant impact of age on hazard, this is the direction I was wanting so that's good.
+
+```{r}
+coxph(Surv(time, status) ~ X1, data=df)
+```
+
+## Sex
+
+Note that sex doesn't come with any encoded labels, I provided the probability 0.51 which I thought would be the probability of a value = 1, which in this case I was going to use to mean female. However, the proportion of 1s in this dataset is `r 492 / (492 + 508)`, indicating that either female has actually been encoded as 0, or that females are encoded as 1 but have just been selected as a minority due to chance.
+
+**Having confirmed that the simulate dataset code is working as intended, then males are encoded as 0 and females as 1 in the sex covariate**
+
+```{r}
+table(df$X2)
+```
+
+The Kaplan-Meier plot below shows that survival for males is significantly higher than that for females, we can change this behaviour or reduce the difference between the two by tweaking the coefficient for this covariate. I've tweaked it to a level where it has an impact upon survival rates, but if desired we can reduce this impact.
+
+```{r}
+survf <- survfit(Surv(time, status) ~ X2, data=df)
+plotdf <- data.frame(surv=survf$surv, cens=survf$n.censor, time=survf$time, upper=survf$upper, lower=survf$lower, sex=rep(c(0, 1), survf$strata))
+ggplot(plotdf, aes(x=time, y=surv, colour=as.factor(sex))) + 
+    geom_line(size=0.1) + 
+    geom_point(data=subset(plotdf, cens>=1), aes(x=time, y=surv), shape=3, size=0.7) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.1) + 
+    ylim(0,1) + 
+    labs(x='\nTime (days)', y='Survival Probability\n') + 
+    scale_colour_discrete('Sex', breaks=c(0, 1), labels=c('male', 'female')) +
+    theme_bw() 
+```
+
+As expected from the Kaplan-Meier, sex has a statistically significant impact upon hazard, with females having worse prognostic outcomes than males.
+
+```{r}
+coxph(Surv(time, status) ~ X2, data=df)
+```
+
+The Kaplan-Meier curve also seems to show that there is more censoring present amongst males than females, let's have a look at this:
+
+```{r}
+with(df, table(X2, status))
+```
+
+Since the male/female split is 51:49, we'd expect near enough equal amounts in each cell, but instead females are less likely to be censored (`r round(147 / (147*345) * 100)`% censored vs `r round(203 / (203+305) * 100)`% for males). This is presumably due to females having worse survival rates and so are likely to die before being censored.
+
+I'll just save this dataset then for future use, along with renaming covariate columns.
+
+```{r, eval=F}
+prevsim <- dplyr::select(df, time, status, age=X1, sex=X2, entrydate=entry, eventdate)
+save(prevsim, file='data/prevsim.rda')
+```
+
+# Potential issues
+
+  + Is the effect of sex too strong?
+  + Why are there two peaks in the survival times of censored patients?
+  + Should there be noise added to age and sex, to reduce the statistical significance of the betas?
