@@ -89,10 +89,8 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                                colnames = names)
 #'                            
 #' TODO Rename N_years and num_years and make cure_time a number of years
-prevalence <- function(data, N_years,
+prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_years=NULL,
-                       colnames = list(age='', sex='', entry_date='', 
-                                       status='', time=''),
                        N_boot=1000, max_yearly_incidence=500,
                        pop_vers=1) {
     
@@ -100,14 +98,16 @@ prevalence <- function(data, N_years,
     #
     # TODO Remove when finished debugging
     #set.seed(17)
-    #data = registry_data
-    #registry_years = sapply(5:13, function(x) sprintf("20%02d-09-01", x))
+    #N_years = 10
+    #data = subset(registry_data, sex==0)
     #N_years = N_years
     #cure_time = cure*365
+    #start = '2005-09-01'
+    #num_years = 8
     #N_boot = 1000
     #max_yearly_incidence = 500
     #pop_vers = 1
-    #colnames = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
+    #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
     ############################################
     #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
     #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
@@ -126,23 +126,35 @@ prevalence <- function(data, N_years,
     #pop_vers = 1
     #max_yearly_incidence = 500
     #data = prelim_r
-    #colnames = names
     #############################################
 
-    # Form the dataset with the required names
-    if (all(sapply(names(colnames), function(x) x %in% names(data)))) {
-        # User has supplied a data frame with the required naming scheme
-        data_use <- data
-    } else if (all(sapply(colnames, function(x) x != ''))) {
-        # User has supplied a list with the required names
-        data_use <- as.data.frame(lapply(colnames, function(x) data[x]))
-        colnames(data_use) <- names(colnames)
-    } else {
-        stop("Error: Either provide the required column names in the 'data' 
-           argument, or specify them in argument 'colnames'.")
-    }
+    # Extract required column names from formula
+    spec <- c('age', 'sex', 'entry')
+    terms <- terms(form, spec)
+    special_indices <- attr(terms, 'specials')
     
-    data_use$sex <- as.factor(data_use$sex)
+    if (any(sapply(special_indices, is.null)))
+        stop("Error: Provide function terms for age, sex, and entry date.")
+    
+    v <- as.list(attr(terms, 'variables'))[-1]
+    var_names <- unlist(lapply(special_indices, function(i) v[i]))
+    
+    age_var <- .extract_var_name(var_names$age)
+    sex_var <- .extract_var_name(var_names$sex)
+    entry_var <- .extract_var_name(var_names$entry)
+    
+    # Extract survival formula
+    response_index <- attr(terms, 'response')
+    resp <- v[response_index][[1]]
+    non_covariate_inds <- c(response_index, unlist(special_indices))
+    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+    
+    if (length(covar_names) > 0)
+        stop("Error: Functionality isn't currently provided for additional covariates.")
+    
+    surv_form <- as.formula(paste(deparse(resp), '~', 
+                                  paste(age_var, sex_var, sep='+'),
+                                  paste(covar_names, collapse='+')))
     
     # Assign curetime if not provided, set to be so large that it has no impact
     if (is.null(cure_time))
@@ -151,45 +163,34 @@ prevalence <- function(data, N_years,
     if (! pop_vers %in% c(1, 2))
         stop("Error: 'pop_vers' must take on a value of either 1 or 2.")
     
-    if (length(levels(data_use$sex)) > 2)
-        stop("Error: function can't currently function with more than two patient sex.")
-    
+    data[, sex_var] <- as.factor(data[, sex_var])
+    if (length(levels(data[, sex_var])) > 2)
+        stop("Error: function can't currently function with more than two levels of sex.")
+            
     # Determine the registry years of interest from assessing the code
     if (is.null(start))
-        start <- min(data_use$entry_date)
+        start <- min(data[, entry_var])
     
     if (is.null(num_years)) 
-        num_years <- floor(as.numeric(difftime(max(data_use$entry_date), start) / 365.25))
+        num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
     
     registry_years <- .determine_registry_years(start, num_years)
     
-    ##################################################
-    #       Calculate population survival rates
-    ##################################################
-    # TODO Have this correctly done from within the package!
-    # Load population data
-    #if (pop_vers == 1) {
-    #    pop_df <- readRDS('data/population_data_mx_df.rds')
-    #} else {
-    #    stop("Error: Need to implement second population data choice.")
-    #}
-    data(population_data_mx)
-    ##################################################
-    
     # Calculate population survival rates for each sex in dataset
-    surv_functions <- lapply(setNames(levels(data_use$sex), levels(data_use$sex)), 
+    data(population_data_mx)
+    surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])), 
                              function(x) population_survival_rate(rate ~ age, data=subset(population_data_mx, sex==x)))
     
+    data_r <- data[data[, entry_var] >= start, ]
     
-    data_r <- data_use[data_use$entry_date >= start, ]
-    
-    wb_boot <- registry_survival_bootstrapped(Surv(time, status) ~ age + sex, data_r, N_boot)
+    # TODO This formula here shouldnt be hardcoded, should be input variable
+    wb_boot <- registry_survival_bootstrapped(surv_form, data_r, N_boot)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
     
     # Run the prevalence estimator for each subgroup
-    results <- lapply(levels(data_r$sex), function(x) {
-        sub_data <- data_r[data_r$sex==x, ]
-        .prevalence_subgroup(sub_data$age, sub_data$entry_date, start, wb_boot, num_years,
+    results <- lapply(levels(data_r[, sex_var]), function(x) {
+        sub_data <- data_r[data_r[sex_var]==x, ]
+        .prevalence_subgroup(sub_data[, age_var], sub_data[, entry_var], start, wb_boot, num_years,
                              surv_functions[[x]], cure_time, as.numeric(x), max_yearly_incidence, N_years)
     })
     
