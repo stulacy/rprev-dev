@@ -168,16 +168,17 @@ prevalence <- function(data, N_years,
     ##################################################
     # TODO Have this correctly done from within the package!
     # Load population data
-    if (pop_vers == 1) {
-        pop_df <- readRDS('data/population_data_mx_df.rds')
-    } else {
-        stop("Error: Need to implement second population data choice.")
-    }
+    #if (pop_vers == 1) {
+    #    pop_df <- readRDS('data/population_data_mx_df.rds')
+    #} else {
+    #    stop("Error: Need to implement second population data choice.")
+    #}
+    data(population_data_mx)
     ##################################################
     
     # Calculate population survival rates for each sex in dataset
     surv_functions <- lapply(setNames(levels(data_use$sex), levels(data_use$sex)), 
-                             function(x) population_survival_rate(rate ~ age, data=subset(pop_df, sex==x)))
+                             function(x) population_survival_rate(rate ~ age, data=subset(population_data_mx, sex==x)))
     
     
     data_r <- data_use[data_use$entry_date >= start, ]
@@ -523,7 +524,7 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
         stop("Must have positive ages")
     
     # TODO Can this not be refactored somewhat?
-    the_dist <- object$post[, , object$nregyears+1:object$nyears]
+    the_dist <- object$post[, , (object$nregyears + 1):object$nyears]
     the_dist <- the_dist[!is.na(the_dist)]
     
     # Add lower and upper bounds for range
