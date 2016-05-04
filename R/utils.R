@@ -33,3 +33,12 @@ summary.prevalence <- function(object, ...) {
     sapply(0:num_years, function(x) paste(as.numeric(strftime(start, '%Y'))+x, 
                                           strftime(start, '%m-%d'), sep='-'))
 }
+
+# Extracts the variable names from a formula
+# expr (language): Expression in the form entry(diagdate), where
+# 'entry' is the known function name while the name inside brackets
+# is the user's column name for that variable
+.extract_var_name <- function(expr) {
+    as.character(expr)[[2]]
+}
+    

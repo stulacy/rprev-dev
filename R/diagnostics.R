@@ -46,16 +46,13 @@ sim_check <- function(data, N_sim = 100000){
 #' @examples
 #' smoothed_incidence(load_data(registry_data), registry_years = registry_years,
 #'          registry_start_year = registry_start_year, registry_end_year = registry_end_year)
-smoothed_incidence <- function(data, registry_years, registry_start_year, registry_end_year,
-                     N=1000, df=6){
+smoothed_incidence <- function(entry_date, start_date, num_years, N=1000, df=6){
 
-  raw_incidence <- incidence(data, registry_years, registry_start_year, registry_end_year)
-  years_estimated <- registry_end_year - registry_start_year + 1
+  raw_incidence <- incidence(entry_date, start=start_date, num_years=num_years)
 
-  data$dg <- as.double(data$date_initial)
-  data$dg <- data$dg - min(data$dg)
+  dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
 
-  dfr_diags <- sort(data$dg)
+  dfr_diags <- sort(dg)
   cum_inc <- 1:length(dfr_diags)
   smo <- smooth.spline(dfr_diags, cum_inc, df=df)
 
@@ -68,18 +65,137 @@ smoothed_incidence <- function(data, registry_years, registry_start_year, regist
   day_mean_rate <- mean_rate/365
   CI_lim <- 1.96 * sqrt(mean_rate)/365
   pl_lim <- CI_lim * 2.0
-  pre_smo <- predict(smo, 1:(365*years_estimated), deriv=1)
+  pre_smo <- predict(smo, 1:(365*num_years), deriv=1)
 
-  plt3 <- plot(365*(1:years_estimated) - 182.5, raw_incidence/365, pch=20, col="red",
+  plt3 <- plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
        xlab="days", ylab="incidence rate",
        ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:years_estimated) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
   lines(pre_smo, type="l", lwd=2, col="green")
 
   abline(h = day_mean_rate, lty=2)
   abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
   abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:years_estimated)*365, col="pink", lty=2)
+  abline(v=(1:num_years)*365, col="pink", lty=2)
+
+  N <- length(dfr_diags)
+  M <- 1000
+  boot_out <- matrix(NA, nrow = M, ncol = N)
+
+  for (i in 1:M){
+    x <- sort(runif(N, 0, max(dfr_diags)))
+    the_smo <- smooth.spline(x, 1:N, df=4)
+    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
+  }
+
+  plt4 <- plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-20,20), xlab="days", ylab="deviation from smooth")
+  for (i in 1:M){
+    lines(x, boot_out[i,], col="grey")
+  }
+
+  lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
+
+  upper_lim <- apply(boot_out, 2, quantile, probs=0.975)
+  lower_lim <- apply(boot_out, 2, quantile, probs=0.025)
+
+  lines(x, upper_lim, col="blue")
+  lines(x, lower_lim, col="blue")
+
+  return(list(plt1, plt2, plt3, plt4))
+
+}
+
+
+smoothed_incidence_current <- function(entry_date, start_date, num_years, N=1000, df=6){
+
+  raw_incidence <- incidence(entry_date, start=start_date, num_years=num_years)
+
+  dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
+
+  dfr_diags <- sort(dg)
+  cum_inc <- 1:length(dfr_diags)
+  smo <- smooth.spline(dfr_diags, cum_inc, df=df)
+
+  plt1 <- plot(dfr_diags, cum_inc, pch=20, cex=0.7, xlab="days", ylab="cumulative diagnoses")
+  abline(a=0, b=length(dfr_diags)/dfr_diags[length(dfr_diags)], col="red", lwd=2)
+  lines(smo, col="green", lwd=2)
+
+  plt2 <- plot(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, type="l", xlab="days", ylab="deviation from smooth")
+  mean_rate <- mean(raw_incidence)
+  day_mean_rate <- mean_rate/365
+  CI_lim <- 1.96 * sqrt(mean_rate)/365
+  pl_lim <- CI_lim * 2.0
+  pre_smo <- predict(smo, 1:(365*num_years), deriv=1)
+
+  plt3 <- plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+       xlab="days", ylab="incidence rate",
+       ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
+  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(pre_smo, type="l", lwd=2, col="green")
+
+  abline(h = day_mean_rate, lty=2)
+  abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
+  abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
+  abline(v=(1:num_years)*365, col="pink", lty=2)
+
+  N <- length(dfr_diags)
+  M <- 1000
+  boot_out <- matrix(NA, nrow = M, ncol = N)
+
+  for (i in 1:M){
+    x <- sort(runif(N, 0, max(dfr_diags)))
+    the_smo <- smooth.spline(x, 1:N, df=4)
+    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
+  }
+
+  plt4 <- plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-20,20), xlab="days", ylab="deviation from smooth")
+  for (i in 1:M){
+    lines(x, boot_out[i,], col="grey")
+  }
+
+  lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
+
+  upper_lim <- apply(boot_out, 2, quantile, probs=0.975)
+  lower_lim <- apply(boot_out, 2, quantile, probs=0.025)
+
+  lines(x, upper_lim, col="blue")
+  lines(x, lower_lim, col="blue")
+
+  return(list(plt1, plt2, plt3, plt4))
+
+}
+
+smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=6){
+
+  raw_incidence <- incidence(entry_date, start=start_date, num_years=num_years)
+
+  dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
+
+  dfr_diags <- sort(dg)
+  cum_inc <- 1:length(dfr_diags)
+  smo <- smooth.spline(dfr_diags, cum_inc, df=df)
+
+  plt1 <- plot(dfr_diags, cum_inc, pch=20, cex=0.7, xlab="days", ylab="cumulative diagnoses")
+  abline(a=0, b=length(dfr_diags)/dfr_diags[length(dfr_diags)], col="red", lwd=2)
+  lines(smo, col="green", lwd=2)
+
+  plt2 <- plot(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, type="l", xlab="days", ylab="deviation from smooth")
+  mean_rate <- mean(raw_incidence)
+  day_mean_rate <- mean_rate/365
+  CI_lim <- 1.96 * sqrt(mean_rate)/365
+  pl_lim <- CI_lim * 2.0
+  pre_smo <- predict(smo, 1:(365*num_years), deriv=1)
+
+  plt3 <- plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+       xlab="days", ylab="incidence rate",
+       ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
+  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(pre_smo, type="l", lwd=2, col="green")
+
+  abline(h = day_mean_rate, lty=2)
+  abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
+  abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
+  abline(v=(1:num_years)*365, col="pink", lty=2)
 
   N <- length(dfr_diags)
   M <- 1000
