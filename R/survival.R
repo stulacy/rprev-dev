@@ -123,14 +123,15 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000){
 
 .calculate_bootstrapped_coefficients <- function(data, N) {
     n_obs <- nrow(data)
+    n_coef <- ncol(data) - 1  # minus 2 for time + status, + 1 for shape
     t(vapply(1:N,
       function(x) {
           ith_data <- data[sample(1:n_obs, n_obs, replace=T), ]
           tryCatch(.fit_weibull(ith_data),
-                   error=function(cond) rep(NA, 4)
+                   error=function(cond) rep(NA, n_coef)
           )
       },
-      numeric(4)))
+      numeric(n_coef)))
 }
 
 .row_any_error <- function(matrix) {
@@ -201,11 +202,13 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-prob_death <- function(time, age, sex, cure_time, boot, daily_survival){
-    scale <- exp(boot[1] + age*boot[2] + sex*boot[3]) + 0.000001  # Hack to ensure scale != 0
-    ifelse(age*365 + time > 36500,
+prob_death <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age=100){
+    scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
+    shape <- 1 / boot_coefs[length(boot_coefs)]
+    age <- data[, 2]  # hardcoded I know, but it will always be first after intercept
+    ifelse(age*365 + time > (max_age * 365),
            0,
            ifelse(time < cure_time,
-                  1 - pweibull(time, scale=scale, shape=1/boot[4]),
-                  (1 - pweibull(cure_time, scale=scale, shape=1/boot[4])) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
+                  1 - pweibull(time, scale=scale, shape=shape),
+                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
 }
