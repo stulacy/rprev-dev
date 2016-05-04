@@ -212,3 +212,13 @@ prob_death <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age
                   1 - pweibull(time, scale=scale, shape=shape),
                   (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
 }
+
+prob_death_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
+    scale <- exp(boot[1] + age * boot[2] + sex * boot[3]) + 0.000001  # Hack to ensure scale != 0
+    shape <- 1 / boot[4]
+    ifelse(age*365 + time > (max_age * 365),
+           0,
+           ifelse(time < cure_time,
+                  1 - pweibull(time, scale=scale, shape=shape),
+                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
+}

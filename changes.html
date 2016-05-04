@@ -516,6 +516,7 @@ runtime_comparison()</code></pre>
 <ul>
 <li>The main change is that this large function has been refactored into several smaller functions, allowing for improved readability and maintainability</li>
 <li>Have refactored all the code which calculates the <code>post_age_dist</code> and <code>by_year</code> estimates for males and females into a single function and just call it with the relevant parameters for each sex as required</li>
+<li>Rather than requiring a data frame with the correctly specified column names, the function now accepts a formula</li>
 <li>The code previously didn’t correctly work when datasets with a single sex were passed in. This has been fixed.</li>
 <li>Have made the function return an S3 object of class <em>prevalence</em>. NB: This is just a glorified list essentially, but is more in the style of idiomatic R and allows for simpler indexing.</li>
 <li>Have made the population daily survival rates be calculated from within <code>prevalence</code> itself, making it more user friendly. The user can specify which population registry to use. The <code>prevalence</code> object returns the daily survival rates as item <code>popsurv</code></li>
@@ -543,21 +544,27 @@ runtime_comparison()</code></pre>
   registry_end_year &lt;- 9
   N_years = 10
   
-  prevalence_total &lt;- prevalence_current(load_data(registry_data), registry_years, registry_start_year, 
-                                         registry_end_year, N_years = N_years, 
-                                         daily_survival_males = daily_survival_males, 
-                                         daily_survival_females = daily_survival_females, 
-                                         cure_time = cure*365)
-  
+  prevalence_current(load_data(registry_data), registry_years, registry_start_year, 
+                     registry_end_year, N_years = N_years, 
+                     daily_survival_males = daily_survival_males, 
+                     daily_survival_females = daily_survival_females, 
+                     cure_time = cure*365)
 }</code></pre>
 <pre class="r"><code>prev_dev &lt;- function() {
   set.seed(17)
   N_years = 10
-  names = list(age='age', sex='sex', entry_date='DateOfDiag', status='status', time='stime') 
-  
-  prevalence_total &lt;- prevalence(registry_data, N_years = N_years, colnames=names,
-                                 start='2005-09-01', num_years=8,
-                                 cure_time = cure*365)
+  prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
+             registry_data, N_years = N_years,
+             start='2005-09-01', num_years=8,
+             cure_time = cure*365)
+}</code></pre>
+<pre class="r"><code>prev_male &lt;- function() {
+  set.seed(17)
+  N_years = 10
+  prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
+             subset(registry_data, sex==0), N_years = 10,
+             start='2005-09-01', num_years=8,
+             cure_time = cure*365)
 }</code></pre>
 <p>Just comparing the function calls shows how much the refactored version has been simplified, with 4 fewer parameters.</p>
 <p>I’ll compare the functions on their average predicted prevalence rates.</p>
@@ -818,13 +825,14 @@ print(obj)</code></pre>
     
     set.seed(17)
     
-    prevalence(prelim_r, start='2007-09-01', num_years=8,
-               N_years = N_years, colnames=names,
+    prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
+               prelim_r, start='2007-09-01', num_years=8,
+               N_years = N_years,
                cure_time = cure*365)
 }</code></pre>
 <pre class="r"><code>foo &lt;- test_nlphl()
 foo</code></pre>
-<pre><code>## Estimated 10 year prevalence is 99.077.</code></pre>
+<pre><code>## Estimated 10 year prevalence is 772.057.</code></pre>
 <p>I’ve made several changes to the code to get the algorithm working with the NLPHL dataset, acting as an example dataset where there are very few events, and so the fit found by the Weibull model may not be ideal.</p>
 <ul>
 <li>When the initial bootstrapped coefficients are determined, appropriate error handling determines if there has been an error in this procedure rather than crashing the program</li>

@@ -97,17 +97,18 @@ prevalence <- function(form, data, N_years,
     ############################################
     #
     # TODO Remove when finished debugging
-    #set.seed(17)
-    #N_years = 10
-    ##data = subset(registry_data, sex==0)
-    #data = registry_data
-    #N_years = N_years
-    #cure_time = cure*365
-    #start = '2005-09-01'
-    #num_years = 8
-    #N_boot = 1000
-    #max_yearly_incidence = 500
-    #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
+    set.seed(17)
+    N_years = 10
+    #data = subset(registry_data, sex==0)
+    data = registry_data
+    N_years = N_years
+    cure_time = cure*365
+    start = '2005-09-01'
+    num_years = 8
+    N_boot = 1000
+    max_yearly_incidence = 500
+    form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
+    population_data = NULL
     ############################################
     #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
     #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
@@ -168,11 +169,22 @@ prevalence <- function(form, data, N_years,
         num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
     
     # Calculate population survival rates for each sex in dataset
-    data(population_data_mx)
-    surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])), 
-                             function(x) population_survival_rate(rate ~ age, data=subset(population_data_mx, sex==x)))
+    if (is.null(population_data)) {
+        data(population_data_mx)
+        population_data <- population_data_mx
+    } else {
+        # Obtain population data, and ensure it has the correct columns
+        req_pop_names <- c('rate', 'age', 'sex')
+        if (!all(sapply(req_pop_names, function(x) x %in% names(population_data)))) {
+           stop("Error: The supplied population data frame must contain columns 'rate', 'age', 'sex'.") 
+        }
+    }
     
-    #registry_years <- .determine_registry_years(start, num_years)  TODO Remove if doesn't impact
+    if (levels(population_data$sex) != levels(data[, sex_var]))
+        stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
+    
+    surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])), 
+                             function(x) population_survival_rate(rate ~ age, data=subset(population_data, sex==x)))
     
     # Calculate bootstrapped weibull coefficients for registry data
     data_r <- data[data[, entry_var] >= start, ]
@@ -395,11 +407,11 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
                 diag_time_male <- year_no * 365 + runif(no_diag_male, 0, 365)
                 diag_time_female <- year_no * 365 + runif(no_diag_female, 0, 365)
                 d_or_a_male <- rbinom(no_diag_male, 1,
-                                      1 - prob_death(diag_time_male, boot_age_dist_male, sex = 0,
-                                                     cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
+                                      1 - prob_death_current(diag_time_male, boot_age_dist_male, sex = 0,
+                                                             cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
                 d_or_a_female <- rbinom(no_diag_female, 1,
-                                        1 - prob_death(diag_time_female, boot_age_dist_female, sex = 1,
-                                                       cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
+                                        1 - prob_death_current(diag_time_female, boot_age_dist_female, sex = 1,
+                                                               cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
                 K_ages_m <- length(diag_time_male[d_or_a_male == 0])
                 K_ages_f <- length(diag_time_female[d_or_a_female == 0])
                 if(K_ages_m > 0) post_age_dist_male[j , i, 1:K_ages_m] <-
