@@ -1,4 +1,4 @@
-Package: rprev
+Package: prevR
 Type: Package
 Title: Functions for Estimating Prevalence
 Version: 0.1
