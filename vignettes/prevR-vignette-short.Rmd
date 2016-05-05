@@ -17,14 +17,11 @@ devtools::load_all()
 
 ## Basic Experimental Setup
 
-Ensuring that the working directory is set to this source file location, first the survival package and relevant dataset is loaded:
-
 ```{r setup, message = FALSE, warning = FALSE}
 library(dplyr)
 library(abind)
 library(rms)
 library(survival)
-library(devtools)
 library(knitr)
 library(tidyr)
 library(ggplot2)
@@ -34,32 +31,32 @@ load("H:/Repos/prevR/data/prevsim.rda")
 registry_data <- prevsim
 N_years <- 10
 cure <- 3
+
+summary(registry_data)
+
+survf <- survfit(Surv(time, status) ~ sex, data=registry_data)
+plot(survf, lwd=2, col = c(1:2), xlab="survival (days)", ylab="probability")
+legend(1040, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 ```
 
-`indicator_censored_at_index` is a version of the `indicator` variable, where cases still alive at a chosen index date, in this case 31st August 2013, are given a value "0". This is used in the calculation of counted prevalence. `indicator`, `survival_time` and `date_event` are also used within the prevalence simulation in order to maximise use of the available data for the modelling component.
+*prevsim.rda* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the maximum number of years for which prevalence is predicted. 
 
-After loading the data, we suggest that variables specific to a particular analysis are given values to be used in the rest of the script. A vector of dates delineating the years of our registry needs to be created, and parameters for the statistical calculations need to be set. The variables relating to years correspond to the incident cases for each year of the registry. `registry_start_year` represents the first complete year of registry data to use in the calculations, which may not be 1 if it is unlikely that all incident cases were captured in the first year. Similarly, `registry_end_year` represents the last complete year of the registry from which data can be used in the calculations. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the maximum number of years for which prevalence is predicted. 
+There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. Therefore, whilst we can use all the survival data for the available incident cases for modelling, we must choose an index date at which we are confident the number of incident cases is complete for estimating prevalence. We choose 30th January 2013 as an index date for this synthetic dataset, and create an additional indicator variable where all cases alive after this date are censored.
 
-```{r experimentparameters}
-registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
-                    "2009-09-01", "2010-09-01", "2011-09-01", "2012-09-01", "2013-09-01")
-registry_start_year <- 2
-registry_end_year <- 9
-N_years <- 10
-cure <- 3
+```{r}
+status2 <- censor_at_index(registry_data$status, registry_data$eventdate, indexdate = "2013-01-30")
 ```
 
 ## Elementary Calculations
 
-The following code calculates absolute incidence of disease for each complete year of the registry, using the prespecified variables:
+The following code calculates absolute incidence of disease for each selected year of the registry:
 
 ```{r totalincidence, error = TRUE}
-raw_incidence <- incidence(load_data(registry_data), registry_years, registry_start_year, 
-                           registry_end_year)
+raw_incidence <- incidence(registry_data$entrydate, start="2004-01-01", 8)
 raw_incidence
 ```
 
-It can be concluded that the disease has around 180 new cases each year. To assess consistency of the incidence data with a homogeneous Poisson process, the `sim_check` and `smoothed_incidence` functions can be used:
+It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with a homogeneous Poisson process, the `sim_check` and `smoothed_incidence` functions can be used:
 
 ```{r}
 sim_check(raw_incidence)
@@ -67,63 +64,62 @@ sim_check(raw_incidence)
 
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
 par(mfrow=c(2,2))
-smoothed_incidence(load_data(registry_data), registry_years, registry_start_year, 
-                   registry_end_year)
+smoothed_incidence(registry_data$entrydate, start_date="2004-01-01", num_years=8)
 ```
 
 The age distribution of incident cases can also be inspected:
 
 ```{r incidenceage, fig.width = 4, fig.height = 4, error = TRUE}
-par(mfrow=c(1,1))
-incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year, 
-                           registry_end_year)
+#par(mfrow=c(1,1))
+#incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year, 
+#                           registry_end_year)
 ```
 
 To calculate the mean incidence rate per 100,000 within the study population `meanIR` is used, which requires an estimate of the size of the population at risk:
   
 ```{r incidencerate, error = TRUE}
-incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year, 
-                          registry_end_year, population_size = 3500000)
+incidence_rates <- meanIR(registry_data$entrydate, population_size = 3500000,
+                          start = "2004-01-01", num_years = 8)
 incidence_rates
 ```
 
 An estimate of prevalence can be counted from the data:
 
 ```{r survival, error = TRUE}
-raw_prevalence <- counted_prevalence(load_data(registry_data), 
-                         registry_years, registry_start_year, registry_end_year)
+raw_prevalence <- counted_prevalence(registry_data$entrydate, status_at_index = status2,
+                          start = "2004-01-01", num_years = 8)
 raw_prevalence
 ```
 
 ## Survival Modelling
 
-Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `surv_diag`:
+Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `survival_modelling_diagnostics`:
 
 ```{r survivaldiag, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
-par(mfrow=c(2,2))
-survival_modelling_diagnostics(load_data(registry_data), ages = c(55, 65, 75, 85, 100), 
-                               registry_years, registry_start_year, registry_end_year)
+#par(mfrow=c(2,2))
+#survival_modelling_diagnostics(load_data(registry_data), ages = c(55, 65, 75, 85, 100), 
+#                               registry_years, registry_start_year, registry_end_year)
 ```
 
 ```{r survivaldiag2, echo = FALSE, fig.show="hide"}
-output <- survival_modelling_diagnostics(load_data(registry_data), 
-                                         ages = c(55, 65, 75, 85, 100), registry_years, 
-                                         registry_start_year, registry_end_year)
-output[[5]]
+#output <- survival_modelling_diagnostics(load_data(registry_data), 
+#                                         ages = c(55, 65, 75, 85, 100), registry_years, 
+#                                         registry_start_year, registry_end_year)
+#output[[5]]
 ```
 
 ### Check Functional Form of Age:
 
 ```{r ageform2, fig.width = 7, fig.height = 4, error = TRUE}
-par(mfrow=c(1,2))
-functional_form_age(load_data(registry_data), registry_years, registry_start_year, 
-                    registry_end_year)
+#par(mfrow=c(1,2))
+#functional_form_age(load_data(registry_data), registry_years, registry_start_year, 
+#                    registry_end_year)
 ```
 
 Next, general population period survival data for the region is loaded and yearly rates are translated into daily rates using linear interpolation.
 
 ```{r popsurv, fig.width = 6, fig.height = 4, error = TRUE}
-load("../data/population_data_mx.rda")
+load("../data/population_data.rda")
 
 daily_survival_rate_males <- daily_survival_rate(population_data_mx, sex = "Males")
 daily_survival_males <- cumprod(1 - daily_survival_rate_males)
