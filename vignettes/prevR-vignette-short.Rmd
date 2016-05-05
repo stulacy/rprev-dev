@@ -116,16 +116,13 @@ Firstly, we can inspect the survival data for consistency between years of the r
 #                    registry_end_year)
 ```
 
-Next, general population period survival data for the region is loaded and yearly rates are translated into daily rates using linear interpolation.
+Next, general population period survival data for the region is loaded and yearly rates are translated into daily rates using linear interpolation using `population_survival_rate()`.
 
 ```{r popsurv, fig.width = 6, fig.height = 4, error = TRUE}
 load("../data/population_data.rda")
 
-daily_survival_rate_males <- daily_survival_rate(population_data_mx, sex = "Males")
-daily_survival_males <- cumprod(1 - daily_survival_rate_males)
-
-daily_survival_rate_females <- daily_survival_rate(population_data_mx, sex = "Females")
-daily_survival_females <- cumprod(1 - daily_survival_rate_females)
+daily_survival_males <- population_survival_rate(rate ~ age, subset(population_data, sex == 0))
+daily_survival_females <- population_survival_rate(rate ~ age, subset(population_data, sex == 1))
 
 plot(daily_survival_males, type="l", col="blue", xlab="days", ylab="survival")
 lines(daily_survival_females, col="red")
@@ -136,10 +133,8 @@ legend("topright", legend = c("Males", "Females"),
 We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` for diagnostic information and to assess the model fit. 
 
 ```{r weibull, error = TRUE}
-registry_data_r <- load_data(registry_data)
-registry_data_r <- registry_data_r[registry_data_r$date_initial >= 
-                                     registry_years[registry_start_year], ]
-wb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data=registry_data_r)
+registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-01", ]
+wb <- survreg(Surv(time, status) ~ age + sex, data=registry_data_r)
 summary(wb)
 ```
 
