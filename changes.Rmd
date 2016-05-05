@@ -28,6 +28,7 @@ library(knitr)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
+library(doParallel)
 devtools::load_all()
 registry_data <- readRDS("data/registry_data.rds")
 N_years <- 10
@@ -248,14 +249,15 @@ runtime_comparison <- function() {
   data$sex <- as.factor(data$sex)
   data_r <- data[data$date_initial >= min(registry_years), ]
   form = Surv(survival_time, indicator) ~ age_initial + sex
-  microbenchmark(registry_survival_bootstrapped(form, data, 1000),
+  microbenchmark(registry_survival_bootstrapped(form, data, 1000, n_cores=1),
+                 registry_survival_bootstrapped(form, data, 1000, n_cores=4),
                  registry_survival_bootstrapped_current(data, 1000),
-                 times=5)
+                 times=3)
 }
 runtime_comparison()
 ```
 
-As can be seen, the speed up resulting from these changes is substantial.
+As can be seen, the speed up resulting from these changes is substantial, although parallelising the execution doesn't offer any benefits for this dataset.
 
 # `prevalence.R`
 

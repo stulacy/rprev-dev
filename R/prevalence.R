@@ -92,23 +92,24 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
-                       population_data=NULL) {
+                       population_data=NULL, n_cores=1) {
     
     ############################################
     #
     # TODO Remove when finished debugging
-    set.seed(17)
-    N_years = 10
-    #data = subset(registry_data, sex==0)
-    data = registry_data
-    N_years = N_years
-    cure_time = cure*365
-    start = '2005-09-01'
-    num_years = 8
-    N_boot = 1000
-    max_yearly_incidence = 500
-    form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
-    population_data = NULL
+    #set.seed(17)
+    #N_years = 10
+    ##data = subset(registry_data, sex==0)
+    #data = registry_data
+    #N_years = N_years
+    #cure_time = cure*365
+    #start = '2005-09-01'
+    #num_years = 8
+    #N_boot = 1000
+    #max_yearly_incidence = 500
+    #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
+    #population_data = NULL
+    #parallel = F
     ############################################
     #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
     #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
@@ -128,6 +129,13 @@ prevalence <- function(form, data, N_years,
     #max_yearly_incidence = 500
     #data = prelim_r
     #############################################
+    
+    if (n_cores > 1) {
+        if (!require(doParallel)) {
+            warning("doParallel not installed. Running program serially instead.")
+            n_cores <- 1 
+        }
+    }
 
     # Extract required column names from formula
     spec <- c('age', 'sex', 'entry')
@@ -180,7 +188,7 @@ prevalence <- function(form, data, N_years,
         }
     }
     
-    if (levels(population_data$sex) != levels(data[, sex_var]))
+    if (!all(levels(population_data$sex) == levels(data[, sex_var])))
         stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
     
     surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])), 
@@ -192,7 +200,7 @@ prevalence <- function(form, data, N_years,
     surv_form <- as.formula(paste(deparse(resp), '~', 
                                   req_covariate,
                                   paste(covar_names, collapse='+')))
-    wb_boot <- registry_survival_bootstrapped(surv_form, data_r, N_boot)
+    wb_boot <- registry_survival_bootstrapped(surv_form, data_r, N_boot, n_cores=n_cores)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
     
     # Run the prevalence estimator for each subgroup
