@@ -115,8 +115,10 @@ $(document).ready(function () {
 </div>
 
 
-<div id="steph-does-unit-testing" class="section level1">
+<div id="steph-does-unit-testing" class="section level1 tabset">
 <h1>Steph does unit testing!</h1>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
 <pre class="r"><code>load(&quot;H:/Repos/prevR/data/prevsim.rda&quot;)
 registry_data &lt;- prevsim
 
@@ -151,8 +153,9 @@ summary(registry_data)</code></pre>
         print(actual)
     }
 }</code></pre>
-<div id="adapted-counted_prevalence-to-create-indicator-censored-at-index" class="section level2">
-<h2>Adapted counted_prevalence to create indicator censored at index</h2>
+</div>
+<div id="counted_prevalence" class="section level2">
+<h2>counted_prevalence</h2>
 <pre class="r"><code>countprev_dev &lt;- function() {
   counted_prevalence(registry_data$entrydate, 
                      registry_data$eventdate, 
@@ -160,23 +163,46 @@ summary(registry_data)</code></pre>
                      indexdate = &quot;2013-01-30&quot;, 
                      start=&quot;2004-01-30&quot;, 9)
 }</code></pre>
-<pre class="r"><code>countprev_current_output &lt;- function() {
-  registry_years &lt;- c(&quot;2003-01-30&quot;, &quot;2004-01-30&quot;, &quot;2005-01-30&quot;, &quot;2006-01-30&quot;, &quot;2007-01-30&quot;, &quot;2008-01-30&quot;,
+<pre class="r"><code>registry_years &lt;- c(&quot;2003-01-30&quot;, &quot;2004-01-30&quot;, &quot;2005-01-30&quot;, &quot;2006-01-30&quot;, &quot;2007-01-30&quot;, &quot;2008-01-30&quot;,
                       &quot;2009-01-30&quot;, &quot;2010-01-30&quot;, &quot;2011-01-30&quot;, &quot;2012-01-30&quot;, &quot;2013-01-30&quot;)
-  registry_start_year &lt;- 2
-  registry_end_year &lt;- 10
+registry_start_year &lt;- 2
+registry_end_year &lt;- 10
+
+registry_data$status2 &lt;- ifelse(registry_data$eventdate &gt; &quot;2013-01-30&quot;, 0, registry_data$status)
   
-  registry_data$status2 &lt;- ifelse(registry_data$eventdate &gt; &quot;2013-01-30&quot;, 0, registry_data$status)
+registry_data$indicator_censored_at_index &lt;- registry_data$status2
+registry_data$date_initial &lt;- registry_data$entrydate
+registry_data$date_event &lt;- registry_data$eventdate
+registry_data$indicator &lt;- registry_data$status
   
-  registry_data$indicator_censored_at_index &lt;- registry_data$status2
-  registry_data$date_initial &lt;- registry_data$entrydate
-  registry_data$date_event &lt;- registry_data$eventdate
-  registry_data$indicator &lt;- registry_data$status
+countprev_current_output &lt;- function() {
   
   counted_prevalence_current(registry_data, registry_years, 
                              registry_start_year, registry_end_year)
 }</code></pre>
 <pre class="r"><code>test_output(countprev_current_output, countprev_dev)</code></pre>
+<pre><code>## Success!</code></pre>
+</div>
+<div id="prev_chisq" class="section level2">
+<h2>prev_chisq</h2>
+<pre class="r"><code>prevalence_total &lt;- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
+                               registry_data, N_years = 10, cure_time = 10*365, 
+                               start='2004-01-30', num_years=9)
+
+by_year_total &lt;- prevalence_total[[1]]
+
+prevchisq_dev &lt;- function() {
+  prev_chisq(registry_data$entrydate,
+            registry_data$eventdate, 
+            registry_data$status, 
+            indexdate = &quot;2013-01-30&quot;, 
+            start=&quot;2004-01-30&quot;, 9,
+            by_year = by_year_total)
+}</code></pre>
+<pre class="r"><code>prevchisq_current_output &lt;- function() {
+  prev_chisq_current(registry_data, registry_years, registry_start_year, registry_end_year, by_year = by_year_total)
+}</code></pre>
+<pre class="r"><code>test_output(prevchisq_current_output, prevchisq_dev)</code></pre>
 <pre><code>## Success!</code></pre>
 </div>
 </div>

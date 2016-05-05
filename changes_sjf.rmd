@@ -5,7 +5,9 @@ date: "5 May 2016"
 output: html_document
 ---
 
-# Steph does unit testing!
+# Steph does unit testing! {.tabset}
+
+## Setup
 
 ```{r setup, echo=FALSE, message = FALSE, warning=FALSE}
 library(devtools)
@@ -48,7 +50,7 @@ test_output <- function(old_func, new_func) {
 }
 ```
 
-## Adapted counted_prevalence to create indicator censored at index
+## counted_prevalence
 
 ```{r counted_prevalence}
 countprev_dev <- function() {
@@ -61,26 +63,54 @@ countprev_dev <- function() {
 ```
 
 ```{r counted_prevalence_current}
-countprev_current_output <- function() {
-  registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
+registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
                       "2009-01-30", "2010-01-30", "2011-01-30", "2012-01-30", "2013-01-30")
-  registry_start_year <- 2
-  registry_end_year <- 10
+registry_start_year <- 2
+registry_end_year <- 10
+
+registry_data$status2 <- ifelse(registry_data$eventdate > "2013-01-30", 0, registry_data$status)
   
-  registry_data$status2 <- ifelse(registry_data$eventdate > "2013-01-30", 0, registry_data$status)
+registry_data$indicator_censored_at_index <- registry_data$status2
+registry_data$date_initial <- registry_data$entrydate
+registry_data$date_event <- registry_data$eventdate
+registry_data$indicator <- registry_data$status
   
-  registry_data$indicator_censored_at_index <- registry_data$status2
-  registry_data$date_initial <- registry_data$entrydate
-  registry_data$date_event <- registry_data$eventdate
-  registry_data$indicator <- registry_data$status
+countprev_current_output <- function() {
   
   counted_prevalence_current(registry_data, registry_years, 
                              registry_start_year, registry_end_year)
 }
 ```
 
-
-
 ```{r counted_prevalence_comp, message=T}
 test_output(countprev_current_output, countprev_dev)
+```
+
+## prev_chisq
+
+```{r check_prevalence}
+prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
+                               registry_data, N_years = 10, cure_time = 10*365, 
+                               start='2004-01-30', num_years=9)
+
+by_year_total <- prevalence_total[[1]]
+
+prevchisq_dev <- function() {
+  prev_chisq(registry_data$entrydate,
+            registry_data$eventdate, 
+            registry_data$status, 
+            indexdate = "2013-01-30", 
+            start="2004-01-30", 9,
+            by_year = by_year_total)
+}
+```
+
+```{r check_prevalence_current}
+prevchisq_current_output <- function() {
+  prev_chisq_current(registry_data, registry_years, registry_start_year, registry_end_year, by_year = by_year_total)
+}
+```
+
+```{r check_prevalence_comp, message=T}
+test_output(prevchisq_current_output, prevchisq_dev)
 ```

@@ -505,13 +505,18 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @return Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 #' @examples
-#' prev_chisq(entry = registry_data$DateOfDiag,
-#'            status_at_index = registry_data$status2, 
-#'            start="2005-09-01", num_years=8, 
+#' prev_chisq(entry = registry_data$entrydate,
+#'            registry_data$eventdate, 
+#'            registry_data$status, 
+#'            indexdate = "2013-01-30", 
+#'            start="2004-01-30", 9,
 #'            by_year = by_year_total)
-prev_chisq <- function(entry, status_at_index, start=NULL, num_years=NULL, by_year){
+prev_chisq <- function(entry, events, status, 
+           indexdate, start=NULL, num_years=NULL,
+           by_year = by_year_total){
 
-  observed <- counted_prevalence(entry, status_at_index, start, num_years)
+  observed <- counted_prevalence(entry, events, status,
+                                 indexdate, start, num_years)
   predicted <- rev(by_year[1:num_years])
   chi <- sum(((observed - predicted)^2)/predicted)
   1 - pchisq(chi, num_years)
@@ -531,7 +536,7 @@ prev_chisq <- function(entry, status_at_index, start=NULL, num_years=NULL, by_ye
 #' prev_chisq_current(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
 prev_chisq_current <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
     
-    observed <- counted_prevalence(data, registry_years, registry_start_year, registry_end_year)
+    observed <- counted_prevalence_current(data, registry_years, registry_start_year, registry_end_year)
     predicted <- rev(by_year[1:(registry_end_year - registry_start_year + 1)])
     chi <- sum(((observed - predicted)^2)/predicted)
     result <- 1 - pchisq(chi, (registry_end_year - registry_start_year))
