@@ -12,7 +12,7 @@
 #'                    registry_data$eventdate, 
 #'                    registry_data$status, 
 #'                    indexdate = "2013-01-30", 
-#'                    start="2005-01-30", num_years=8)
+#'                    start="2004-01-30", num_years=8)
 counted_prevalence <- function(entry, events, status, indexdate, start=NULL, num_years=NULL) {
     
     if (is.null(start))
