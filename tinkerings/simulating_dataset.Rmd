@@ -26,7 +26,7 @@ library(flexsurv)
 library(survival)
 library(knitr)
 library(ggplot2)
-source('../tests/rfun.R')
+source('../tinkerings/rfun.R')
 opts_chunk$set(error=T, fig.align='center')
 ```
 
@@ -462,7 +462,6 @@ rm(list = ls())
 
 ```{r}
 my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, scale=1, shape=1, rancens=T, rate=1, trunc=F, tau=2) { 
-    
     if (! length(mu) == length(sigma))
         stop("Error: mu and sigma must have the same length.")
     
@@ -481,7 +480,7 @@ my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, sca
     bx = x %*% c(scale, beta)
     
     t = (-log(runif(n))) ^ (1/shape) * exp(bx)  # This is rweibull
-    ic = rep(1,n)
+    ic = rep(1, n)
     if (rancens == T) {
         c1 = (-log(runif(n))/rate)  # This is rexp
         i = c1 < t
@@ -493,11 +492,10 @@ my_weisim <- function(n=100, beta=NULL, mu=NULL, sigma=NULL, pbinomial=NULL, sca
         t[i] = tau
         ic[i] = 0
     }
-    i = order(t)
-    time = round(t[i])
+    time = round(t)
     time = ifelse(time == 0, 1, time)
-    cens = ic[i]
-    x = x[i,-1]
+    cens = ic
+    x = x[, -1]
     cat(100 * sum(1-cens) / n, "percent censored\n")
     data.frame(time=time, status=cens, x)    
 }
@@ -537,9 +535,12 @@ simulate_dataset <- function(n=100, inc_rate=50, scale=1, shape=1, beta=NULL, mu
 
 ```{r, eval=T}
 set.seed(17)
-df <- simulate_dataset(1000, inc_rate=100, scale=10, shape=0.7, mu=65, sigma=10, pbinomial=0.51, beta=c(-0.05, -0.5),
-                       rancens=T, censrate=0.0006, start_date='2003-01-01', index='2015-03-17')
+df <- simulate_dataset(1000, inc_rate=100, scale=11.2, shape=0.5, mu=65, sigma=10, pbinomial=0.51, beta=c(-0.05, 0.4),
+                       rancens=T, censrate=0.0001, start_date='2003-01-01', index='2015-03-17')
 plot(survfit(Surv(time, status) ~ 1, data=df))
+```
+
+```{r}
 flexsurvreg(Surv(time+1, status) ~ X1 + X2, data=df, dist='weibull')
 ```
 
@@ -561,7 +562,7 @@ Below is the histogram of the survival times from just the people who had an eve
 hist(df[df$status==1, 'time'])
 ```
 
-Here is the plot of survival times for censored patients, which for some reason appears to be bi-modal, it'd be helpful to determine the source of this as otherwise this censoring pattern may not be considered random.
+Here is the plot of survival times for censored patients, which is distributed exponentially.
 
 ```{r}
 hist(df[df$status==0, 'time'])
