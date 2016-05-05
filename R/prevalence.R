@@ -1,21 +1,11 @@
 #' Count prevalence from registry data.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry.
-#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param events Vector of dates corresponding to the indicator variable.
+#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param indexdate Index date at which to estimate prevalence.
 #' @param start Date from which incident cases are included.
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' #' Create indicator variable with alive cases censored at a chosen index date.
-#'
-#' @param indicator Vector indicating patient status with 0 = alive or censored and 1 = deceased.
-#' @param events Vector of dates corresponding to the indicator variable.
-#' @param indexdate Index date at which to estimate prevalence.
-#' @return Vector of binary values when 1 == deceased and 0 = censored at the index date.
-#' @examples
-#' censor_at_index(registry_data$eventdate, registry_data$status, indexdate = "2013-01-30")
-censor_at_index <- function(indicator, events, indexdate){
-    
-    indicator_censored
-}
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
 #' counted_prevalence(registry_data$entrydate, 
