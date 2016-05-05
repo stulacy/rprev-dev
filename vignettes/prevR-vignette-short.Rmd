@@ -41,18 +41,14 @@ legend(1040, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 
 *prevsim.rda* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the maximum number of years for which prevalence is predicted. 
 
-There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. Therefore, whilst we can use all the survival data for the available incident cases for modelling, we must choose an index date at which we are confident the number of incident cases is complete for estimating prevalence. We choose 30th January 2013 as an index date for this synthetic dataset, and create an additional indicator variable where all cases alive after this date are censored.
-
-```{r}
-status2 <- censor_at_index(registry_data$status, registry_data$eventdate, indexdate = "2013-01-30")
-```
+There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. Therefore, whilst we can use all the survival data for the available incident cases for modelling, we must choose an index date at which we are confident the number of incident cases is complete for estimating prevalence. We choose 30th January 2013 as an index date for this synthetic dataset, and create an additional indicator variable where all cases alive after this date are censored. This is created and used within `counted_prevalence()`.
 
 ## Elementary Calculations
 
 The following code calculates absolute incidence of disease for each selected year of the registry:
 
 ```{r totalincidence, error = TRUE}
-raw_incidence <- incidence(registry_data$entrydate, start="2004-01-01", 8)
+raw_incidence <- incidence(registry_data$entrydate, start="2004-01-30", 8)
 raw_incidence
 ```
 
@@ -64,7 +60,7 @@ sim_check(raw_incidence)
 
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
 par(mfrow=c(2,2))
-smoothed_incidence(registry_data$entrydate, start_date="2004-01-01", num_years=8)
+smoothed_incidence(registry_data$entrydate, start_date="2004-01-30", num_years=8)
 ```
 
 The age distribution of incident cases can also be inspected:
@@ -79,7 +75,7 @@ To calculate the mean incidence rate per 100,000 within the study population `me
   
 ```{r incidencerate, error = TRUE}
 incidence_rates <- meanIR(registry_data$entrydate, population_size = 3500000,
-                          start = "2004-01-01", num_years = 8)
+                          start = "2004-01-30", num_years = 8)
 incidence_rates
 ```
 
@@ -87,7 +83,7 @@ An estimate of prevalence can be counted from the data:
 
 ```{r survival, error = TRUE}
 raw_prevalence <- counted_prevalence(registry_data$entrydate, status_at_index = status2,
-                          start = "2004-01-01", num_years = 8)
+                          start = "2004-01-30", num_years = 8)
 raw_prevalence
 ```
 
@@ -133,7 +129,7 @@ legend("topright", legend = c("Males", "Females"),
 We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` for diagnostic information and to assess the model fit. 
 
 ```{r weibull, error = TRUE}
-registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-01", ]
+registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30", ]
 wb <- survreg(Surv(time, status) ~ age + sex, data=registry_data_r)
 summary(wb)
 ```
@@ -144,8 +140,8 @@ Prevalence can now be calculated:
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               registry_data, N_years = N_years, start='2005-09-01', num_years=8,
-                               cure_time = cure*365)
+                               registry_data, N_years = N_years, cure_time = cure*365, 
+                               start='2005-01-30', num_years=8)
 
 by_year_total <- prevalence_total[[1]]
 by_year_total
@@ -154,8 +150,7 @@ by_year_total
 `by_year_total` is a vector of raw prevalence per year of the registry. Whether the model is predicting good numbers for the recent years for which we have actual prevalence can be assessed using a chi squared test:
 
 ```{r test, error = TRUE}
-prev_chisq(load_data(registry_data), registry_years, registry_start_year, registry_end_year, 
-           by_year = by_year_total)
+prev_chisq(registry_data$DateOfDiag, registry_data$status2, start="2005-09-01", 8, by_year = by_year_total)
 ```
 
 The age distribution of prevalent cases can be viewed as a histogram:
