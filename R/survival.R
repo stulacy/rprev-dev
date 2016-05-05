@@ -72,7 +72,6 @@ population_survival_rate <- function(form, data, max_age=100){
 daily_survival_rate_current <- function(data, sex){
     
     if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
-    data <- as.data.frame(data)
     if(sex == "Males") data = filter(data, sex == 0)
     if(sex == "Females") data = filter(data, sex == 1)
     data <- data %>%
@@ -103,10 +102,10 @@ daily_survival_rate_current <- function(data, sex){
 #' form = Surv(survival_time, indicator) ~ age_initial + sex
 #' data = load_data(registry_data)
 #' registry_survival_bootstrapped(form, data)
-registry_survival_bootstrapped <- function(form, data, N_boot = 1000){
+registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1){
     data_trans <- .transform_registry_data(form, data) # df -> matrix, log transform stimes. Required for survreg.fit
-    coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot)
-    # TODO Improve wording
+    coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot, n_cores=n_cores)
+    
     if (sum(.row_any_error(coefs)) > 1) 
         warning("Error in cox.ph, possibly due to small number of events in bootstrap sample. Replacing with a new sample.")
     
@@ -121,29 +120,35 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000){
     coefs
 }
 
-.calculate_bootstrapped_coefficients <- function(data, N) {
+.calculate_bootstrapped_coefficients <- function(data, N, n_cores=1) {
     n_obs <- nrow(data)
-    t(vapply(1:N,
-      function(x) {
-          ith_data <- data[sample(1:n_obs, n_obs, replace=T), ]
-          tryCatch(.fit_weibull(ith_data),
-                   error=function(cond) rep(NA, 4)
-          )
-      },
-      numeric(4)))
+    n_coef <- ncol(data) - 1  # minus 2 for time + status, + 1 for shape
+    
+    if (n_cores > 1) {
+        cl <- makeCluster(n_cores)
+        registerDoParallel(cl)
+        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind', 
+                .inorder=F, .export='.calculate_coefficients') %dopar% {
+            .calculate_coefficients(data, n_obs, n_coef)
+        }
+    } else {
+        t(replicate(N, .calculate_coefficients(data, n_obs, n_coef)))
+    }
 }
 
-.row_any_error <- function(matrix) {
-    # Matrix is a N row matrix, this function calculates which rows of this matrix have all NA values
-    # Returns a logical vector of N length
-    # 3 types of errors:
-    #   - NA
-    #   - NaN
-    #   - Too large scale parameter, leads to problems with infinite log or obtaining cumulative prob
-    apply(matrix, 1, function(x) any(sapply(x, function(y) is.na(y) | is.nan(y))) | x[length(x)] > 100)
+.calculate_coefficients <- function(data, nobs, ncoef) {
+    # Helper function to bootstrap the data and fit a weibull
+    # Split into a separate function to reduce repetition when called in parallel or serial
+    # TODO Rename this function something more meaningful and less easily confused with calculate_bootstrapped_coefficients
+    bstrap <- data[sample(1:nobs, nobs, replace=T), ]
+    tryCatch(.fit_weibull(bstrap),
+             error=function(cond) rep(NA, ncoef)
+    )
 }
 
 .fit_weibull <- function(data) {
+    # Helper function to fit weibull by calling the lower level survreg.fit function
+    # Abstracts away this complex and ugly function call
     model <- survreg.fit(data[, 3:ncol(data)],
                          data[, 1:2],
                          NULL, # weights
@@ -157,6 +162,16 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000){
                          NULL # parms
     )
     coef(model)
+}
+
+.row_any_error <- function(matrix) {
+    # Matrix is a N row matrix, this function calculates which rows of this matrix have all NA values
+    # Returns a logical vector of N length
+    # 3 types of errors:
+    #   - NA
+    #   - NaN
+    #   - Too large scale parameter, leads to problems with infinite log or obtaining cumulative prob
+    apply(matrix, 1, function(x) any(sapply(x, function(y) is.na(y) | is.nan(y))) | x[length(x)] > 100)
 }
 
 .transform_registry_data <- function(form, data) {
@@ -201,11 +216,23 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-prob_death <- function(time, age, sex, cure_time, boot, daily_survival){
-    scale <- exp(boot[1] + age*boot[2] + sex*boot[3]) + 0.000001  # Hack to ensure scale != 0
-    ifelse(age*365 + time > 36500,
+prob_alive <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age=100){
+    scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
+    shape <- 1 / boot_coefs[length(boot_coefs)]
+    age <- data[, 2]  # hardcoded I know, but it will always be first after intercept
+    ifelse(age*365 + time > (max_age * 365),
            0,
            ifelse(time < cure_time,
-                  1 - pweibull(time, scale=scale, shape=1/boot[4]),
-                  (1 - pweibull(cure_time, scale=scale, shape=1/boot[4])) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
+                  1 - pweibull(time, scale=scale, shape=shape),
+                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
+}
+
+prob_alive_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
+    scale <- exp(boot[1] + age * boot[2] + sex * boot[3]) + 0.000001  # Hack to ensure scale != 0
+    shape <- 1 / boot[4]
+    ifelse(age*365 + time > (max_age * 365),
+           0,
+           ifelse(time < cure_time,
+                  1 - pweibull(time, scale=scale, shape=shape),
+                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
 }

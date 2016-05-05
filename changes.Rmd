@@ -28,6 +28,7 @@ library(knitr)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
+library(doParallel)
 devtools::load_all()
 registry_data <- readRDS("data/registry_data.rds")
 N_years <- 10
@@ -147,16 +148,16 @@ Changes:
   
 ```{r}
 current_survival_rates <- function(x) {
-  data(population_data_mx_mat)
-  daily_survival_rate_males <- daily_survival_rate_current(population_data_mx_mat, sex = "Males")
+  data(UKmortality)
+  daily_survival_rate_males <- daily_survival_rate_current(UKmortality, sex = "Males")
   daily_survival_males <- cumprod(1 - daily_survival_rate_males)
 }
 ```
 
 ```{r}
 new_survival_rates <- function(x) {
-  data(population_data_mx)
-  daily_survival_males <- population_survival_rate(rate ~ age, subset(population_data_mx, sex==0))
+  data(UKmortality)
+  daily_survival_males <- population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
 }
 ```
 
@@ -248,14 +249,15 @@ runtime_comparison <- function() {
   data$sex <- as.factor(data$sex)
   data_r <- data[data$date_initial >= min(registry_years), ]
   form = Surv(survival_time, indicator) ~ age_initial + sex
-  microbenchmark(registry_survival_bootstrapped(form, data, 1000),
+  microbenchmark(registry_survival_bootstrapped(form, data, 1000, n_cores=1),
+                 registry_survival_bootstrapped(form, data, 1000, n_cores=4),
                  registry_survival_bootstrapped_current(data, 1000),
-                 times=5)
+                 times=3)
 }
 runtime_comparison()
 ```
 
-As can be seen, the speed up resulting from these changes is substantial.
+As can be seen, the speed up resulting from these changes is substantial, although parallelising the execution doesn't offer any benefits for this dataset.
 
 # `prevalence.R`
 
@@ -282,12 +284,12 @@ Since the order in which the RNG is called has been changed, the results from th
 
 ```{r}
 prev_current_output <- function() {
-  data(population_data_mx_mat)
+  data(UKmortality)
   set.seed(17)
-  daily_survival_rate_males <- daily_survival_rate_current(population_data_mx_mat, sex = "Males")
+  daily_survival_rate_males <- daily_survival_rate_current(UKmortality, sex = "Males")
   daily_survival_males <- cumprod(1 - daily_survival_rate_males)
   
-  daily_survival_rate_females <- daily_survival_rate_current(population_data_mx_mat, sex = "Females")
+  daily_survival_rate_females <- daily_survival_rate_current(UKmortality, sex = "Females")
   daily_survival_females <- cumprod(1 - daily_survival_rate_females)
   
   registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
@@ -309,7 +311,7 @@ prev_dev <- function() {
   set.seed(17)
   N_years = 10
   prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
-             registry_data, N_years = N_year,
+             registry_data, N_years = N_years,
              start='2005-09-01', num_years=8,
              cure_time = cure*365)
 }
@@ -320,7 +322,7 @@ prev_male <- function() {
   set.seed(17)
   N_years = 10
   prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
-             subset(registry_data, sex==0), N_years = N_year,
+             subset(registry_data, sex==0), N_years = 10,
              start='2005-09-01', num_years=8,
              cure_time = cure*365)
 }
@@ -570,8 +572,6 @@ bar
 
 There are still several areas that can be improved:
 
-  + Are there any actual differences between population_data and population_data_mx?
-  + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++. Maybe just parallelise it instead?
   + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
   + Improve the `print` and `summary` methods of `prevalence` after receiving feedback
   + I haven't looked at the functions in `diagnostics.R` yet
