@@ -18,11 +18,11 @@ censor_at_index <- function(indicator, events, indexdate){
 }
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
-#' counted_prevalence(registry_data$DateOfDiag, 
+#' counted_prevalence(registry_data$entrydate, 
 #'                    registry_data$eventdate, 
 #'                    registry_data$status, 
 #'                    indexdate = "2013-01-30", 
-#'                    start="2005-09-01", 8)
+#'                    start="2005-01-30", num_years=8)
 counted_prevalence <- function(entry, events, status, indexdate, start=NULL, num_years=NULL) {
     
     if (is.null(start))
