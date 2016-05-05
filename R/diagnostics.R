@@ -515,5 +515,26 @@ prev_chisq <- function(entry, status_at_index, start=NULL, num_years=NULL, by_ye
   predicted <- rev(by_year[1:num_years])
   chi <- sum(((observed - predicted)^2)/predicted)
   1 - pchisq(chi, num_years)
+  
+  # needs correcting sjf 05/05/2016
 
+}
+
+#' Chi squared test between prevalence prediction and observed values in the registry.
+#'
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param registry_years A vector of dates delineating years of the registry.
+#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @return Plots of the smoothed incidence function and corresponding deviations.
+#' @examples
+#' prev_chisq_current(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
+prev_chisq_current <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
+    
+    observed <- counted_prevalence(data, registry_years, registry_start_year, registry_end_year)
+    predicted <- rev(by_year[1:(registry_end_year - registry_start_year + 1)])
+    chi <- sum(((observed - predicted)^2)/predicted)
+    result <- 1 - pchisq(chi, (registry_end_year - registry_start_year))
+    return(result)
+    
 }
