@@ -178,7 +178,7 @@ prevalence <- function(form, data, N_years,
     
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
-        data(population_data_mx)
+        data(population_data)
         population_data <- population_data_mx
     } else {
         # Obtain population data, and ensure it has the correct columns
