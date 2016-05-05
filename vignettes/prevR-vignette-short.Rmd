@@ -143,10 +143,8 @@ summary(wb)
 Prevalence can now be calculated:
 
 ```{r prevalencetotal, error = TRUE}
-prevalence_total <- prevalence(load_data(registry_data), registry_years, registry_start_year, 
-                               registry_end_year, N_years = N_years, 
-                               daily_survival_males = daily_survival_males, 
-                               daily_survival_females = daily_survival_females, 
+prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
+                               registry_data, N_years = N_years, start='2005-09-01', num_years=8,
                                cure_time = cure*365)
 
 by_year_total <- prevalence_total[[1]]
