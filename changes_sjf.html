@@ -153,11 +153,20 @@ summary(registry_data)</code></pre>
 }</code></pre>
 <div id="adapted-counted_prevalence-to-create-indicator-censored-at-index" class="section level2">
 <h2>Adapted counted_prevalence to create indicator censored at index</h2>
+<pre class="r"><code>countprev_dev &lt;- function() {
+  counted_prevalence(registry_data$entrydate, 
+                     registry_data$eventdate, 
+                     registry_data$status, 
+                     indexdate = &quot;2013-01-30&quot;, 
+                     start=&quot;2004-01-30&quot;, 9)
+}</code></pre>
 <pre class="r"><code>countprev_current_output &lt;- function() {
   registry_years &lt;- c(&quot;2003-01-30&quot;, &quot;2004-01-30&quot;, &quot;2005-01-30&quot;, &quot;2006-01-30&quot;, &quot;2007-01-30&quot;, &quot;2008-01-30&quot;,
                       &quot;2009-01-30&quot;, &quot;2010-01-30&quot;, &quot;2011-01-30&quot;, &quot;2012-01-30&quot;, &quot;2013-01-30&quot;)
-  registry_start_year &lt;- 3
+  registry_start_year &lt;- 2
   registry_end_year &lt;- 10
+  
+  registry_data$status2 &lt;- ifelse(registry_data$eventdate &gt; &quot;2013-01-30&quot;, 0, registry_data$status)
   
   registry_data$indicator_censored_at_index &lt;- registry_data$status2
   registry_data$date_initial &lt;- registry_data$entrydate
@@ -167,19 +176,8 @@ summary(registry_data)</code></pre>
   counted_prevalence_current(registry_data, registry_years, 
                              registry_start_year, registry_end_year)
 }</code></pre>
-<pre class="r"><code>countprev_dev &lt;- function() {
-  counted_prevalence(registry_data$entrydate, 
-                     registry_data$eventdate, 
-                     registry_data$status, 
-                     indexdate = &quot;2013-01-30&quot;, 
-                     start=&quot;2005-01-30&quot;, 8)
-}</code></pre>
 <pre class="r"><code>test_output(countprev_current_output, countprev_dev)</code></pre>
-<pre><code>## Failure...</code></pre>
-<pre><code>## Expected:</code></pre>
-<pre><code>## [1]  97  97  88  83 100 111 109 107</code></pre>
-<pre><code>## Actual:</code></pre>
-<pre><code>## [1]  16  24  26  22  34  35 108 107</code></pre>
+<pre><code>## Success!</code></pre>
 </div>
 </div>
 

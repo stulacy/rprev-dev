@@ -19,7 +19,6 @@ library(knitr)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
-devtools::load_all()
 ```
 
 ```{r data}
@@ -51,12 +50,24 @@ test_output <- function(old_func, new_func) {
 
 ## Adapted counted_prevalence to create indicator censored at index
 
+```{r counted_prevalence}
+countprev_dev <- function() {
+  counted_prevalence(registry_data$entrydate, 
+                     registry_data$eventdate, 
+                     registry_data$status, 
+                     indexdate = "2013-01-30", 
+                     start="2004-01-30", 9)
+}
+```
+
 ```{r counted_prevalence_current}
 countprev_current_output <- function() {
   registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
                       "2009-01-30", "2010-01-30", "2011-01-30", "2012-01-30", "2013-01-30")
-  registry_start_year <- 3
+  registry_start_year <- 2
   registry_end_year <- 10
+  
+  registry_data$status2 <- ifelse(registry_data$eventdate > "2013-01-30", 0, registry_data$status)
   
   registry_data$indicator_censored_at_index <- registry_data$status2
   registry_data$date_initial <- registry_data$entrydate
@@ -68,15 +79,7 @@ countprev_current_output <- function() {
 }
 ```
 
-```{r counted_prevalence}
-countprev_dev <- function() {
-  counted_prevalence(registry_data$entrydate, 
-                     registry_data$eventdate, 
-                     registry_data$status, 
-                     indexdate = "2013-01-30", 
-                     start="2005-01-30", 8)
-}
-```
+
 
 ```{r counted_prevalence_comp, message=T}
 test_output(countprev_current_output, countprev_dev)
