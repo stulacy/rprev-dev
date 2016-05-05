@@ -1,0 +1,83 @@
+---
+title: "changes_sjl"
+author: "S J Lax"
+date: "5 May 2016"
+output: html_document
+---
+
+# Steph does unit testing!
+
+```{r setup, echo=FALSE, message = FALSE, warning=FALSE}
+library(devtools)
+devtools::load_all()
+
+library(dplyr)
+library(abind)
+library(rms)
+library(survival)
+library(knitr)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+devtools::load_all()
+```
+
+```{r data}
+load("H:/Repos/prevR/data/prevsim.rda")
+registry_data <- prevsim
+
+summary(registry_data)
+```
+
+Using Stuart's custom function:
+
+```{r test}
+test_output <- function(old_func, new_func) {
+    expected <- old_func()
+    actual <- new_func()
+    test <- tryCatch(all(expected == actual),
+                     error=function(cond) FALSE)
+    if (test) {
+        message("Success!")
+    } else {
+        message("Failure...")
+        message("Expected:")
+        print(expected)
+        message("Actual:") 
+        print(actual)
+    }
+}
+```
+
+## Adapted counted_prevalence to create indicator censored at index
+
+```{r counted_prevalence_current}
+countprev_current_output <- function() {
+  registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
+                      "2009-01-30", "2010-01-30", "2011-01-30", "2012-01-30", "2013-01-30")
+  registry_start_year <- 3
+  registry_end_year <- 10
+  
+  registry_data$indicator_censored_at_index <- registry_data$status2
+  registry_data$date_initial <- registry_data$entrydate
+  registry_data$date_event <- registry_data$eventdate
+  registry_data$indicator <- registry_data$status
+  
+  counted_prevalence_current(registry_data, registry_years, 
+                             registry_start_year, registry_end_year)
+}
+```
+
+```{r counted_prevalence}
+countprev_dev <- function() {
+  counted_prevalence(registry_data$entrydate, 
+                     registry_data$eventdate, 
+                     registry_data$status, 
+                     indexdate = "2013-01-30", 
+                     start="2005-01-30", 8)
+}
+```
+
+```{r counted_prevalence_comp, message=T}
+test_output(countprev_current_output, countprev_dev)
+```
