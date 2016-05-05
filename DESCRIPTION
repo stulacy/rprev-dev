@@ -21,5 +21,7 @@ Imports:
     survival (>= 2.37-7)
 RoxygenNote: 5.0.1
 Suggests: knitr,
-    rmarkdown
+    rmarkdown,
+    testthat,
+    doParallel
 VignetteBuilder: knitr

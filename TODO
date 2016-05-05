@@ -1,3 +1,1 @@
-  - Allow the user to provide additional covariates to prevalence to calculate survival rates. Problem here is how to combine priors, i.e. what if there's an interaction between age and the new covariate? If assume fully independent then can sample posterior distributions independently, but this is unlikely to be the case
-  - Get parallelisation working
   - Write unit tests for the simulated dataset
