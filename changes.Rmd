@@ -148,16 +148,16 @@ Changes:
   
 ```{r}
 current_survival_rates <- function(x) {
-  data(population_data_mx_mat)
-  daily_survival_rate_males <- daily_survival_rate_current(population_data_mx_mat, sex = "Males")
+  data(UKmortality)
+  daily_survival_rate_males <- daily_survival_rate_current(UKmortality, sex = "Males")
   daily_survival_males <- cumprod(1 - daily_survival_rate_males)
 }
 ```
 
 ```{r}
 new_survival_rates <- function(x) {
-  data(population_data_mx)
-  daily_survival_males <- population_survival_rate(rate ~ age, subset(population_data_mx, sex==0))
+  data(UKmortality)
+  daily_survival_males <- population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
 }
 ```
 
@@ -284,12 +284,12 @@ Since the order in which the RNG is called has been changed, the results from th
 
 ```{r}
 prev_current_output <- function() {
-  data(population_data_mx_mat)
+  data(UKmortality)
   set.seed(17)
-  daily_survival_rate_males <- daily_survival_rate_current(population_data_mx_mat, sex = "Males")
+  daily_survival_rate_males <- daily_survival_rate_current(UKmortality, sex = "Males")
   daily_survival_males <- cumprod(1 - daily_survival_rate_males)
   
-  daily_survival_rate_females <- daily_survival_rate_current(population_data_mx_mat, sex = "Females")
+  daily_survival_rate_females <- daily_survival_rate_current(UKmortality, sex = "Females")
   daily_survival_females <- cumprod(1 - daily_survival_rate_females)
   
   registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01",
@@ -572,8 +572,6 @@ bar
 
 There are still several areas that can be improved:
 
-  + Are there any actual differences between population_data and population_data_mx?
-  + It could be worth further optimising the bootstrapping function, although this would be challenging as it would require the pre-processing currently done in `survreg.fit` to be implemented in C++. Maybe just parallelise it instead?
   + The package doesn't load dependent libraries (such as survival, dplyr etc...), despite being listed in the DESCRIPTION file. Is there another file where libraries to be loaded should be specified?
   + Improve the `print` and `summary` methods of `prevalence` after receiving feedback
   + I haven't looked at the functions in `diagnostics.R` yet

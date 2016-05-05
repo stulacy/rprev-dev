@@ -120,14 +120,19 @@ prevalence <- function(form, data, N_years,
     #prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
     #
     #registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
+    #form = Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag)
+    #start='2007-09-01' 
+    #
+    #num_years=8
     #N_years <- 10
-    #names <- list(age='age', status='status', entry_date='DateOfDiag', sex='sex', time='stime')
     #cure <- 3
     #cure_time = cure * 365
     #N_boot = 1000
     #pop_vers = 1
     #max_yearly_incidence = 500
     #data = prelim_r
+    #n_cores = 1
+    #population_data = NULL
     #############################################
     
     if (n_cores > 1) {
@@ -178,8 +183,8 @@ prevalence <- function(form, data, N_years,
     
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
-        data(population_data)
-        population_data <- population_data_mx
+        data(UKmortality)
+        population_data <- UKmortality
     } else {
         # Obtain population data, and ensure it has the correct columns
         req_pop_names <- c('rate', 'age', 'sex')
@@ -270,24 +275,30 @@ prevalence <- function(form, data, N_years,
     }
     
     num_diag <- rpois(1, rate)
-    boot_age_dist <- sample(prior, num_diag, replace=T)
-    time_since_diag <- year * 365 + runif(num_diag, 0, 365)
     
-    # Combine data into a matrix
-    bootstrapped_data <- matrix(c(rep(1, num_diag), boot_age_dist), nrow=num_diag)
-    if (include_sex) {
-        bootstrapped_data <- cbind(bootstrapped_data, rep(sex, num_diag))
+    if (num_diag > 0) {
+        boot_age_dist <- sample(prior, num_diag, replace=T)
+        time_since_diag <- year * 365 + runif(num_diag, 0, 365)
+        
+        # Combine data into a matrix
+        bootstrapped_data <- matrix(c(rep(1, num_diag), boot_age_dist), nrow=num_diag)
+        if (include_sex) {
+            bootstrapped_data <- cbind(bootstrapped_data, rep(sex, num_diag))
+        }
+        
+        is_dead <- as.logical(rbinom(num_diag, 1,
+                                      1 - prob_alive(time_since_diag, bootstrapped_data,
+                                                     curetime, boot_coefs=coefs_bs, 
+                                                     pop_surv_rate=daily_surv)))
+        num_alive <- sum(!is_dead)
+    } else {
+        num_alive <- as.integer(0)
     }
     
-    is_alive <- as.logical(rbinom(num_diag, 1,
-                                  1 - prob_death(time_since_diag, bootstrapped_data,
-                                                 curetime, boot_coefs=coefs_bs, 
-                                                 pop_surv_rate=daily_surv)))
-    num_dead <- sum(!is_alive)
-    if(num_dead > 0)
-        post_age_dist[1:num_dead] <- time_since_diag[!is_alive]/365 + boot_age_dist[!is_alive]
-    pred_cases <- num_diag - sum(is_alive)
-    return(list(cases=pred_cases, post=post_age_dist))
+    if (num_alive > 0)
+        post_age_dist[1:num_alive] <- time_since_diag[!is_dead]/365 + boot_age_dist[!is_dead]
+    
+    return(list(cases=num_alive, post=post_age_dist))
 }
 
 #' Predict prevalence for a given number of years.
@@ -362,11 +373,11 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
                 diag_time <- year_no * 365 + runif(no_diag, 0, 365)
                 
                 if(mean(data$sex) == 0){
-                    d_or_a <- rbinom(no_diag, 1, 1 - prob_death(diag_time, boot_age_dist, sex = 0,
+                    d_or_a <- rbinom(no_diag, 1, 1 - prob_alive_current(diag_time, boot_age_dist, sex = 0,
                                                                 cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
                 }else{
-                    d_or_a <- rbinom(no_diag, 1, 1 - prob_death(diag_time, boot_age_dist, sex = 1,
-                                                                cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
+                    d_or_a <- rbinom(no_diag, 1, 1 - prob_alive_current(diag_time, boot_age_dist, sex = 1,
+                                                                        cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
                 }
                 
                 K_ages <- length(diag_time[d_or_a == 0])
@@ -415,10 +426,10 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
                 diag_time_male <- year_no * 365 + runif(no_diag_male, 0, 365)
                 diag_time_female <- year_no * 365 + runif(no_diag_female, 0, 365)
                 d_or_a_male <- rbinom(no_diag_male, 1,
-                                      1 - prob_death_current(diag_time_male, boot_age_dist_male, sex = 0,
+                                      1 - prob_alive_current(diag_time_male, boot_age_dist_male, sex = 0,
                                                              cure_time, boot = wb_boot[i,], daily_survival = daily_survival_males))
                 d_or_a_female <- rbinom(no_diag_female, 1,
-                                        1 - prob_death_current(diag_time_female, boot_age_dist_female, sex = 1,
+                                        1 - prob_alive_current(diag_time_female, boot_age_dist_female, sex = 1,
                                                                cure_time, boot = wb_boot[i,], daily_survival = daily_survival_females))
                 K_ages_m <- length(diag_time_male[d_or_a_male == 0])
                 K_ages_f <- length(diag_time_female[d_or_a_female == 0])

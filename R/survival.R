@@ -72,7 +72,6 @@ population_survival_rate <- function(form, data, max_age=100){
 daily_survival_rate_current <- function(data, sex){
     
     if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
-    data <- as.data.frame(data)
     if(sex == "Males") data = filter(data, sex == 0)
     if(sex == "Females") data = filter(data, sex == 1)
     data <- data %>%
@@ -217,7 +216,7 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-prob_death <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age=100){
+prob_alive <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age=100){
     scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot_coefs[length(boot_coefs)]
     age <- data[, 2]  # hardcoded I know, but it will always be first after intercept
@@ -228,7 +227,7 @@ prob_death <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age
                   (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
 }
 
-prob_death_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
+prob_alive_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
     scale <- exp(boot[1] + age * boot[2] + sex * boot[3]) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot[4]
     ifelse(age*365 + time > (max_age * 365),
