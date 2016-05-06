@@ -41,8 +41,6 @@ legend(1040, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 
 *prevsim.rda* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the maximum number of years for which prevalence is predicted. 
 
-There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. Therefore, whilst we can use all the survival data for the available incident cases for modelling, we must choose an index date at which we are confident the number of incident cases is complete for estimating prevalence. We choose 30th January 2013 as an index date for this synthetic dataset, and create an additional indicator variable where all cases alive after this date are censored. This is created and used within `counted_prevalence()`.
-
 ## Elementary Calculations
 
 The following code calculates absolute incidence of disease for each selected year of the registry:
@@ -78,13 +76,12 @@ meanIR(registry_data$entrydate, population_size = 3500000,
                           start = "2004-01-30", num_years = 9)
 ```
 
-An estimate of prevalence can be counted from the data:
+Prevalence can be counted from the data. There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, 30th January 2013 is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the detected index date are censored. The user is permitted to specify their desired index date if required, but `counted_prevalence()` will no longer be comparable to `prevalence()` and the user will be warned about this if they try to do so.
 
 ```{r survival, error = TRUE}
 counted_prevalence(registry_data$entrydate, 
                      registry_data$eventdate, 
                      registry_data$status, 
-                     indexdate = "2013-01-30", 
                      start="2004-01-30", 9)
 ```
 
