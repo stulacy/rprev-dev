@@ -226,22 +226,18 @@ smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=
 
 #' Plot the age distribution of incident cases in the registry data.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @param agedata Vector of age at diagnosis for each patient in the registry.
 #' @param df Degrees of freedom for the smooth.
 #' @return Plot of the raw data and smoothed age distribution function.
 #' @examples
-#' incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
-#' registry_end_year = registry_end_year)
-incidence_age_distribution <- function(data, registry_years, registry_start_year, registry_end_year, df=10){
+#' incidence_age_distribution(registry_data_r$age)
+incidence_age_distribution <- function(agedata, df=10){
 
   ages <- rep(0, 100)
-  for (i in 1:dim(data)[1]){
-    ages[1 + floor(data$age_initial[i])] <- ages[1 + floor(data$age_initial[i])] + 1
+  for (i in 1:length(agedata)){
+    ages[1 + floor(agedata[i])] <- ages[1 + floor(agedata[i])] + 1
   }
-  plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases per year")
+  plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
   smage <- smooth.spline(0:99, ages[1:100], df=df)
   lines(smage, col="blue", lwd=2)
 

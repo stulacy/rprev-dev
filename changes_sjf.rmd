@@ -116,12 +116,16 @@ test_output(prevchisq_current_output, prevchisq_dev)
 ## incidence_age_distribution
 
 ```{r check_incidence_age_distribution}
+registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30",]
+
 incidence_age_distribution_dev <- function() {
-  incidence_age_distribution
+  incidence_age_distribution(registry_data_r$age)
 }
 ```
 
 ```{r check_incidence_age_distribution_current}
+registry_data$age_initial <- registry_data$age
+
 incidence_age_distribution_current_output <- function() {
   incidence_age_distribution_current(registry_data, registry_years, registry_start_year, registry_end_year)
 }
