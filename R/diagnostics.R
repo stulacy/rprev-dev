@@ -498,19 +498,48 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 
 #' Chi squared test between prevalence prediction and observed values in the registry.
 #'
+#' @param entry Vector of diagnosis dates for each patient in the registry.
+#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param start Date from which incident cases are included.
+#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
+#' @return Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
+#' @examples
+#' prev_chisq(entry = registry_data$entrydate,
+#'            registry_data$eventdate, 
+#'            registry_data$status, 
+#'            indexdate = "2013-01-30", 
+#'            start="2004-01-30", 9,
+#'            by_year = by_year_total)
+prev_chisq <- function(entry, events, status, 
+           indexdate, start=NULL, num_years=NULL,
+           by_year = by_year_total){
+
+  observed <- counted_prevalence(entry, events, status,
+                                 indexdate, start, num_years)
+  predicted <- rev(by_year[1:num_years])
+  chi <- sum(((observed - predicted)^2)/predicted)
+  1 - pchisq(chi, num_years)
+  
+  # needs correcting sjf 05/05/2016
+
+}
+
+#' Chi squared test between prevalence prediction and observed values in the registry.
+#'
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param registry_years A vector of dates delineating years of the registry.
 #' @param registry_start_year Ordinal defining the first year of the registry data to be used.
 #' @param registry_end_year Ordinal defining the last year of the registry data to be used.
 #' @return Plots of the smoothed incidence function and corresponding deviations.
 #' @examples
-#' prev_chisq(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
-prev_chisq <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
-
-  observed <- counted_prevalence(data, registry_years, registry_start_year, registry_end_year)
-  predicted <- rev(by_year[1:(registry_end_year - registry_start_year + 1)])
-  chi <- sum(((observed - predicted)^2)/predicted)
-  result <- 1 - pchisq(chi, (registry_end_year - registry_start_year))
-  return(result)
-
+#' prev_chisq_current(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
+prev_chisq_current <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
+    
+    observed <- counted_prevalence_current(data, registry_years, registry_start_year, registry_end_year)
+    predicted <- rev(by_year[1:(registry_end_year - registry_start_year + 1)])
+    chi <- sum(((observed - predicted)^2)/predicted)
+    result <- 1 - pchisq(chi, (registry_end_year - registry_start_year))
+    return(result)
+    
 }

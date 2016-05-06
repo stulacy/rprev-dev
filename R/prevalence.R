@@ -1,13 +1,19 @@
 #' Count prevalence from registry data.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry.
-#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param events Vector of dates corresponding to the indicator variable.
+#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param indexdate Index date at which to estimate prevalence.
 #' @param start Date from which incident cases are included.
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
-#' counted_prevalence(registry_data$DateOfDiag, registry_data$status2, start="2005-09-01", 8)
-counted_prevalence <- function(entry, status_at_index, start=NULL, num_years=NULL) {
+#' counted_prevalence(registry_data$entrydate, 
+#'                    registry_data$eventdate, 
+#'                    registry_data$status, 
+#'                    indexdate = "2013-01-30", 
+#'                    start="2004-01-30", num_years=8)
+counted_prevalence <- function(entry, events, status, indexdate, start=NULL, num_years=NULL) {
     
     if (is.null(start))
         start <- min(entry)
@@ -18,9 +24,12 @@ counted_prevalence <- function(entry, status_at_index, start=NULL, num_years=NUL
     registry_years <- .determine_registry_years(start, num_years)
     
     # Need no NAs for this!
-    clean <- complete.cases(entry) & complete.cases(status_at_index)
+    clean <- complete.cases(entry) & complete.cases(events) & complete.cases(status)
     entry <- entry[clean]
-    status_at_index <- status_at_index[clean]
+    events <- events[clean]
+    status <- status[clean]
+    
+    status_at_index <- ifelse(events > indexdate, 0, status)
     
     per_year <- incidence(entry, start=start, num_years=num_years)
     num_cens <- vapply(seq(num_years), function(i)
