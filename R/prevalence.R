@@ -13,7 +13,7 @@
 #'                    registry_data$status, 
 #'                    indexdate = "2013-01-30", 
 #'                    start="2004-01-30", num_years=8)
-counted_prevalence <- function(entry, events, status, indexdate, start=NULL, num_years=NULL) {
+counted_prevalence <- function(entry, eventdate, status, start=NULL, num_years=NULL, indexdate=NULL) {
     
     if (is.null(start))
         start <- min(entry)
@@ -23,13 +23,16 @@ counted_prevalence <- function(entry, events, status, indexdate, start=NULL, num
     
     registry_years <- .determine_registry_years(start, num_years)
     
+    if (is.null(indexdate))
+        indexdate <- registry_years[length(registry_years)]
+    
     # Need no NAs for this!
-    clean <- complete.cases(entry) & complete.cases(events) & complete.cases(status)
+    clean <- complete.cases(entry) & complete.cases(eventdate) & complete.cases(status)
     entry <- entry[clean]
-    events <- events[clean]
+    eventdate <- eventdate[clean]
     status <- status[clean]
     
-    status_at_index <- ifelse(events > indexdate, 0, status)
+    status_at_index <- ifelse(eventdate > indexdate, 0, status)
     
     per_year <- incidence(entry, start=start, num_years=num_years)
     num_cens <- vapply(seq(num_years), function(i)
