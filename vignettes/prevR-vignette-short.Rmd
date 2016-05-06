@@ -99,8 +99,7 @@ Firstly, we can inspect the survival data for consistency between years of the r
 
 ```{r ageform2, fig.width = 7, fig.height = 4, error = TRUE}
 #par(mfrow=c(1,2))
-#functional_form_age(load_data(registry_data), registry_years, registry_start_year, 
-#                    registry_end_year)
+#functional_form_age(registry_data_r)
 ```
 
 ### Population survival
