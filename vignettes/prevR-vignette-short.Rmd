@@ -1,5 +1,5 @@
 ---
-title: "rprev Vignette (Short)"
+title: "prevR Vignette (Short)"
 author: "Stephanie J. Lax"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -26,20 +26,21 @@ library(knitr)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
-devtools::load_all()
 load("H:/Repos/prevR/data/prevsim.rda")
 registry_data <- prevsim
 N_years <- 10
 cure <- 3
 
 summary(registry_data)
-
-survf <- survfit(Surv(time, status) ~ sex, data=registry_data)
-plot(survf, lwd=2, col = c(1:2), xlab="survival (days)", ylab="probability")
-legend(1040, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 ```
 
-*prevsim.rda* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the maximum number of years for which prevalence is predicted. 
+```{r basicsurvival, fig.height=4, fig.width=7}
+survf <- survfit(Surv(time, status) ~ sex, data=registry_data)
+plot(survf, lwd=2, col = c(1:2), xlab="survival (days)", ylab="probability")
+legend(3000, 1, c("Males", "Females"), lty = 1, col=c(1:2))
+```
+
+*prevsim* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the number of preceding years for which prevalence is predicted. 
 
 ## Elementary Calculations
 
@@ -76,7 +77,7 @@ meanIR(registry_data$entrydate, population_size = 3500000,
                           start = "2004-01-30", num_years = 9)
 ```
 
-Prevalence can be counted from the data. There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, 30th January 2013 is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the detected index date are censored. The user is permitted to specify their desired index date if required, but `counted_prevalence()` will no longer be comparable to `prevalence()` and the user will be warned about this if they try to do so.
+Prevalence can be counted from the data. There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, `r max(registry_data$entrydate)` is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the index date are censored. The user is permitted to specify their desired index date if require, but `counted_prevalence()` will no longer be comparable to `prevalence()` and the user will be warned about this if they try to do so.
 
 ```{r survival, error = TRUE}
 counted_prevalence(registry_data$entrydate, 
@@ -110,13 +111,13 @@ Firstly, we can inspect the survival data for consistency between years of the r
 #                    registry_end_year)
 ```
 
-Next, general population period survival data for the region is loaded and yearly rates are translated into daily rates using linear interpolation using `population_survival_rate()`.
+Next, general population period survival data for the UK is loaded and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`.
 
 ```{r popsurv, fig.width = 6, fig.height = 4, error = TRUE}
-load("../data/population_data.rda")
+load("../data/UKmortality.rda")
 
-daily_survival_males <- population_survival_rate(rate ~ age, subset(population_data, sex == 0))
-daily_survival_females <- population_survival_rate(rate ~ age, subset(population_data, sex == 1))
+daily_survival_males <- population_survival_rate(rate ~ age, subset(UKmortality, sex == 0))
+daily_survival_females <- population_survival_rate(rate ~ age, subset(UKmortality, sex == 1))
 
 plot(daily_survival_males, type="l", col="blue", xlab="days", ylab="survival")
 lines(daily_survival_females, col="red")
@@ -148,30 +149,39 @@ by_year_total
 `by_year_total` is a vector of raw prevalence per year of the registry. Whether the model is predicting good numbers for the recent years for which we have actual prevalence can be assessed using a chi squared test:
 
 ```{r test, error = TRUE}
-#prev_chisq(registry_data$entrydate, 
-#           registry_data$eventdate, 
-#           registry_data$status, 
-#           indexdate = "2013-01-30", 
-#           start="2004-01-30", 9,
-#           by_year = by_year_total)
-```
-
-The age distribution of prevalent cases can be viewed as a histogram:
-
-```{r output, fig.width = 6, fig.height = 4, error = TRUE} 
-post_age_dist_total <- prevalence_total[[2]]
-hist(post_age_dist_total, prob = TRUE)
+prev_chisq(registry_data$entrydate, 
+           registry_data$eventdate, 
+           registry_data$status, 
+           start="2004-01-30", 9,
+           by_year = by_year_total)
 ```
 
 Up until now, the simulated values of prevalent cases for the first years before the index date have been used. Here we replace these with the actual observed values:
 
 ```{r hist1, fig.width = 6, fig.height = 4, error = TRUE}
-#observed <- counted_prevalence(load_data(registry_data), registry_years, registry_start_year, 
-                               registry_end_year)
-#by_year_total[1:(registry_end_year - registry_start_year + 1)] <- rev(observed)
-#observed_post_age_dist_total <- 
-#  registry_data_r$age_initial[registry_data_r$indicator_censored_at_index == 0]
-#hist(observed_post_age_dist_total, prob = TRUE)
+observed <- counted_prevalence(entry, events, status, start, num_years)
+predicted <- rev(by_year[1:num_years])
+by_year_total[1:num_years] <- rev(observed)
+```
+
+The age distribution of simulated prevalent cases can be viewed as a histogram and compared with counted prevalent cases:
+
+```{r, fig.height = 4, fig.width = 7}
+registry_data_r$status2 <- ifelse(registry_data_r$eventdate > "2013-01-30", 
+                                  0, registry_data_r$status)
+observed_post_age_dist_total <- 
+  registry_data_r$age[registry_data_r$status2 == 0]
+
+post_age_dist_total <- prevalence_total[[2]]
+
+hist(observed_post_age_dist_total, 
+     col=rgb(0.1, 0.1, 0.1, 0.5), xlim=c(0,100), ylim=c(0,0.045), 
+     main = "", xlab = "age", prob = TRUE)
+hist(post_age_dist_total, 
+     col=rgb(0.8, 0.8, 0.8, 0.5), prob = TRUE, add=T)
+legend("topleft", legend = c("Observed", "Predicted"), bty = "n", lty = 1, 
+       col = c(rgb(0.1, 0.1, 0.1, 0.5),
+               rgb(0.8, 0.8, 0.8, 0.5)))
 ```
 
 The age distribution of prevalent cases in the predicted years only can also be retrieved using `ageoutput`:
