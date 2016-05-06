@@ -15,7 +15,7 @@ library(devtools)
 devtools::load_all()
 ```
 
-## Basic Experimental Setup
+# Basic experimental setup:
 
 ```{r setup, message = FALSE, warning = FALSE}
 library(dplyr)
@@ -42,7 +42,7 @@ legend(3000, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 
 *prevsim* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the number of preceding years for which prevalence is predicted. 
 
-## Elementary Calculations
+## Incidence:
 
 The following code calculates absolute incidence of disease for each selected year of the registry:
 
@@ -77,16 +77,7 @@ meanIR(registry_data$entrydate, population_size = 3500000,
                           start = "2004-01-30", num_years = 9)
 ```
 
-Prevalence can be counted from the data. There is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, `r max(registry_data$entrydate)` is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the index date are censored. The user is permitted to specify their desired index date if require, but `counted_prevalence()` will no longer be comparable to `prevalence()` and the user will be warned about this if they try to do so.
-
-```{r survival, error = TRUE}
-counted_prevalence(registry_data$entrydate, 
-                     registry_data$eventdate, 
-                     registry_data$status, 
-                     start="2004-01-30", 9)
-```
-
-## Survival Modelling
+## Survival modelling
 
 Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `survival_modelling_diagnostics`:
 
@@ -103,13 +94,15 @@ Firstly, we can inspect the survival data for consistency between years of the r
 #output[[5]]
 ```
 
-### Check Functional Form of Age:
+### Functional form of age:
 
 ```{r ageform2, fig.width = 7, fig.height = 4, error = TRUE}
 #par(mfrow=c(1,2))
 #functional_form_age(load_data(registry_data), registry_years, registry_start_year, 
 #                    registry_end_year)
 ```
+
+### Population survival:
 
 Next, general population period survival data for the UK is loaded and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`.
 
@@ -125,6 +118,8 @@ legend("topright", legend = c("Males", "Females"),
                bty = "n", lty = 1, col = c(4,2))
 ```
 
+### Weibull model:
+
 We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` for diagnostic information and to assess the model fit. 
 
 ```{r weibull, error = TRUE}
@@ -133,22 +128,38 @@ wb <- survreg(Surv(time, status) ~ age + sex, data=registry_data_r)
 summary(wb)
 ```
 
-## Prevalence Calculations
+## Prevalence estimates:
 
-Prevalence can now be calculated:
+### Counts:
+
+In the first instance, prevalence can be estimated by counting from the registry data. When doing this using the supplied synthetic dataset, it is important to note that there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection, micking the process at HMRN. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, `r max(registry_data$entrydate)` is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the index date are censored. The user is permitted to specify their desired index date if require, but `counted_prevalence()` will no longer be comparable to `prevalence()` and the user will be warned about this if they try to do so.
+
+```{r survival, error = TRUE}
+counted_prevalence(registry_data$entrydate, 
+                     registry_data$eventdate, 
+                     registry_data$status, 
+                     start="2004-01-30", 9)
+```
+
+### Simulation:
+
+Prevalence can now be estimated using simulation:
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                registry_data, N_years = N_years, cure_time = cure*365, 
                                start='2004-01-30', num_years=9)
 
-by_year_total <- prevalence_total[[1]]
-by_year_total
+print(prevalence_total)
+
+summary(prevalence_total)
 ```
 
-`by_year_total` is a vector of raw prevalence per year of the registry. Whether the model is predicting good numbers for the recent years for which we have actual prevalence can be assessed using a chi squared test:
+Whether the model is predicting good numbers for the recent years for which we have actual prevalence can be assessed using a chi squared test. It uses `by_year_total`, which is a vector of absolute prevalence per year of the registry:
 
 ```{r test, error = TRUE}
+by_year_total <- prevalence_total[[1]]
+
 prev_chisq(registry_data$entrydate, 
            registry_data$eventdate, 
            registry_data$status, 
@@ -159,9 +170,24 @@ prev_chisq(registry_data$entrydate,
 Up until now, the simulated values of prevalent cases for the first years before the index date have been used. Here we replace these with the actual observed values:
 
 ```{r hist1, fig.width = 6, fig.height = 4, error = TRUE}
-observed <- counted_prevalence(entry, events, status, start, num_years)
+observed <- counted_prevalence(registry_data$entrydate, 
+                               registry_data$eventdate, 
+                               registry_data$status, 
+                               start='2004-01-30', num_years=9)
 predicted <- rev(by_year[1:num_years])
 by_year_total[1:num_years] <- rev(observed)
+```
+
+The total absolute prevalence at the index date is as follows:
+
+```{r}
+sum(by_year_total)
+```
+
+Prevalent cases subdivided by year of diagnosis:
+
+```{r}
+by_year_total
 ```
 
 The age distribution of simulated prevalent cases can be viewed as a histogram and compared with counted prevalent cases:
@@ -187,23 +213,26 @@ legend("topleft", legend = c("Observed", "Predicted"), bty = "n", lty = 1,
 The age distribution of prevalent cases in the predicted years only can also be retrieved using `ageoutput`:
 
 ```{r output2, error = TRUE}
-#age_props <- prevalence_by_age(dist = post_age_dist_total, registry_end_year, N_years)
-#age_props
+prevalence_by_age(prevalence_total, age_intervals=seq(10, 100, by=10))
 ```
 
-As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `by_year_samples_total` contains the raw prevalence data for each bootstrapped sample:
-
-```{r bysample, error = TRUE}
-#by_year_samples_total <- prevalence_total[[3]]
-#by_sample_total <- apply(by_year_samples_total, 2, sum)
-```
-
-`n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n*. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and 95% confidence intervals for the prevalence proportion. 
+As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n*. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion. `by_year_samples_total` contains the raw prevalence data for each bootstrapped sample:
 
 ```{r nyrest3, error = TRUE} 
-#total3yr <- n_year_estimates(N_years = 3, registry_start_year = registry_start_year, 
-#                             registry_end_year = registry_end_year, 
-#                             the_samples = by_year_samples_total, by_year = by_year_total,
-#                             population_size = 3500000)
-#total3yr
+by_year_samples_total <- prevalence_total[[3]]
+
+total3yr <- n_year_estimates(N_years = 3, num_reg_years = 9,
+                             the_samples = by_year_samples_total,
+                             by_year = by_year_total, population_size = 3500000)
+total3yr
+
+total5yr <- n_year_estimates(N_years = 5, num_reg_years = 9,
+                             the_samples = by_year_samples_total,
+                             by_year = by_year_total, population_size = 3500000)
+total5yr
+
+total10yr <- n_year_estimates(N_years = 10, num_reg_years = 9,
+                             the_samples = by_year_samples_total,
+                             by_year = by_year_total, population_size = 3500000)
+total10yr
 ```
