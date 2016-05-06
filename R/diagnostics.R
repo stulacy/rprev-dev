@@ -499,29 +499,23 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' Chi squared test between prevalence prediction and observed values in the registry.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry.
-#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param events Vector of event or censorship dates for each patient in the registry.
+#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @param start Date from which incident cases are included.
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @return Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 #' @examples
 #' prev_chisq(entry = registry_data$entrydate,
-#'            registry_data$eventdate, 
-#'            registry_data$status, 
-#'            indexdate = "2013-01-30", 
-#'            start="2004-01-30", 9,
+#'            events = registry_data$eventdate, 
+#'            status = registry_data$status, 
+#'            start="2004-01-30", num_years = 9,
 #'            by_year = by_year_total)
-prev_chisq <- function(entry, events, status, 
-           indexdate, start=NULL, num_years=NULL,
-           by_year = by_year_total){
-
-  observed <- counted_prevalence(entry, events, status,
-                                 indexdate, start, num_years)
+prev_chisq <- function(entry, events, status, by_year, start=NULL, num_years=NULL){
+  observed <- counted_prevalence(entry, events, status, start, num_years)
   predicted <- rev(by_year[1:num_years])
   chi <- sum(((observed - predicted)^2)/predicted)
-  1 - pchisq(chi, num_years)
-  
-  # needs correcting sjf 05/05/2016
+  1 - pchisq(chi, num_years - 1)
 
 }
 

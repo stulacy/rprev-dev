@@ -123,13 +123,13 @@ $(document).ready(function () {
 registry_data &lt;- prevsim
 
 summary(registry_data)</code></pre>
-<pre><code>##       time            status          age        sex    
-##  Min.   :   1.0   Min.   :0.00   Min.   :36.43   0:508  
-##  1st Qu.:  87.0   1st Qu.:0.00   1st Qu.:58.16   1:492  
-##  Median : 242.0   Median :1.00   Median :64.56          
-##  Mean   : 370.9   Mean   :0.65   Mean   :64.95          
-##  3rd Qu.: 614.2   3rd Qu.:1.00   3rd Qu.:71.88          
-##  Max.   :1153.0   Max.   :1.00   Max.   :95.32          
+<pre><code>##       time            status           age        sex    
+##  Min.   :   1.0   Min.   :0.000   Min.   :36.43   0:508  
+##  1st Qu.: 235.0   1st Qu.:0.000   1st Qu.:58.16   1:492  
+##  Median : 893.5   Median :1.000   Median :64.56          
+##  Mean   :1236.0   Mean   :0.558   Mean   :64.95          
+##  3rd Qu.:1868.2   3rd Qu.:1.000   3rd Qu.:71.88          
+##  Max.   :4444.0   Max.   :1.000   Max.   :95.32          
 ##   entrydate          eventdate        
 ##  Length:1000        Length:1000       
 ##  Class :character   Class :character  
@@ -160,7 +160,6 @@ summary(registry_data)</code></pre>
   counted_prevalence(registry_data$entrydate, 
                      registry_data$eventdate, 
                      registry_data$status, 
-                     indexdate = &quot;2013-01-30&quot;, 
                      start=&quot;2004-01-30&quot;, 9)
 }</code></pre>
 <pre class="r"><code>registry_years &lt;- c(&quot;2003-01-30&quot;, &quot;2004-01-30&quot;, &quot;2005-01-30&quot;, &quot;2006-01-30&quot;, &quot;2007-01-30&quot;, &quot;2008-01-30&quot;,
@@ -195,7 +194,6 @@ prevchisq_dev &lt;- function() {
   prev_chisq(registry_data$entrydate,
             registry_data$eventdate, 
             registry_data$status, 
-            indexdate = &quot;2013-01-30&quot;, 
             start=&quot;2004-01-30&quot;, 9,
             by_year = by_year_total)
 }</code></pre>
