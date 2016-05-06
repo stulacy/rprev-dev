@@ -165,7 +165,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 }
 
 .row_any_error <- function(matrix) {
-    # Matrix is a N row matrix, this function calculates which rows of this matrix have all NA values
+    # Matrix is a N row matrix, this function calculates which rows of this matrix contain errors 
     # Returns a logical vector of N length
     # 3 types of errors:
     #   - NA
