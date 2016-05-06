@@ -232,11 +232,10 @@ smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=
 #' @examples
 #' incidence_age_distribution(registry_data_r$age)
 incidence_age_distribution <- function(agedata, df=10){
-
-  ages <- rep(0, 100)
-  for (i in 1:length(agedata)){
-    ages[1 + floor(agedata[i])] <- ages[1 + floor(agedata[i])] + 1
-  }
+  
+  agedata <- floor(agedata) + 1
+  ages <- vapply(seq(100), function(i) length(agedata[agedata == i]), numeric(1))
+  
   plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
   smage <- smooth.spline(0:99, ages[1:100], df=df)
   lines(smage, col="blue", lwd=2)
