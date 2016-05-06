@@ -112,3 +112,21 @@ prevchisq_current_output <- function() {
 ```{r check_prevalence_comp, message=T}
 test_output(prevchisq_current_output, prevchisq_dev)
 ```
+
+## incidence_age_distribution
+
+```{r check_incidence_age_distribution}
+incidence_age_distribution_dev <- function() {
+  incidence_age_distribution
+}
+```
+
+```{r check_incidence_age_distribution_current}
+incidence_age_distribution_current_output <- function() {
+  incidence_age_distribution_current(registry_data, registry_years, registry_start_year, registry_end_year)
+}
+```
+
+```{r check_incidence_age_distribution_comp, message=T}
+test_output(incidence_age_distribution_current_output, incidence_age_distribution_dev)
+```
