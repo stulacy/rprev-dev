@@ -64,10 +64,11 @@ smoothed_incidence(registry_data$entrydate, start_date="2004-01-30", num_years=9
 
 The age distribution of incident cases can also be inspected:
 
-```{r incidenceage, fig.width = 4, fig.height = 4, error = TRUE}
-#par(mfrow=c(1,1))
-#incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year, 
-#                           registry_end_year)
+```{r incidenceage, fig.width = 7, fig.height = 4, error = TRUE}
+registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30", ]
+
+par(mfrow=c(1,1))
+incidence_age_distribution(registry_data_r$age)
 ```
 
 To calculate the mean incidence rate per 100,000 within the study population `meanIR` is used, which requires an estimate of the size of the population at risk:
@@ -123,7 +124,6 @@ legend("topright", legend = c("Males", "Females"),
 We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` for diagnostic information and to assess the model fit. 
 
 ```{r weibull, error = TRUE}
-registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30", ]
 wb <- survreg(Surv(time, status) ~ age + sex, data=registry_data_r)
 summary(wb)
 ```
