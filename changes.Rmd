@@ -111,13 +111,13 @@ meanIR_test_curr <- function() {
   registry_start_year <- 2
   registry_end_year <- 9
   meanIR_current(load_data(registry_data), registry_years, registry_start_year, 
-                 registry_end_year, population_size=3500000)
+                 registry_end_year, population_size=35e5)
 }
 ```
 
 ```{r}
 meanIR_test_dev <- function() {
-  meanIR(registry_data$DateOfDiag, population_size=3500000, start='2005-09-01', num_years=8)
+  meanIR(registry_data$DateOfDiag, population_size=35e5, start='2005-09-01', num_years=8)
 }
 ```
 
@@ -312,7 +312,7 @@ prev_dev <- function() {
   N_years = 10
   prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
              registry_data, N_years = N_years,
-             start='2005-09-01', num_years=8,
+             start='2005-09-01', num_reg_years=8,
              cure_time = cure*365)
 }
 ```
@@ -323,7 +323,7 @@ prev_male <- function() {
   N_years = 10
   prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
              subset(registry_data, sex==0), N_years = 10,
-             start='2005-09-01', num_years=8,
+             start='2005-09-01', num_reg_years=8,
              cure_time = cure*365)
 }
 ```
@@ -417,7 +417,7 @@ countprev_current_output <- function() {
 
 ```{r}
 countprev_dev <- function() {
-  counted_prevalence(registry_data$DateOfDiag, registry_data$status2, start='2005-09-01', num_years=8)
+  counted_prevalence(registry_data$DateOfDiag, registry_data$status2, start='2005-09-01', num_reg_years=8)
 }
 ```
 
@@ -435,6 +435,7 @@ Changes:
   + Likewise added a keyword argument for the user to specify the level of precision, as with `meanIR`
   + Refactored the duplicated code calculating the SE, so that the condition on num_reg_years < N_year now only calculates the differing standard errors, as this is more precisely the behaviour defined by the condition
   + Removed the use of the *<<-* operator, as I can't see the benefits of looking for a variable with this name in a higher scope
+  + Made the function accept an object of class `prevalence` rather than three of the attributes which are already contained within it
 
 ```{r}
 nyear_test_curr <- function() {
@@ -447,7 +448,7 @@ nyear_test_curr <- function() {
   n_year_estimates_current(N_years = 3, registry_start_year = registry_start_year, 
                            registry_end_year = registry_end_year, 
                            the_samples = by_year_samples_total, by_year = by_year_total,
-                           population_size = 3500000)
+                           population_size = 35e5)
     
 }
 ```
@@ -455,10 +456,8 @@ nyear_test_curr <- function() {
 ```{r}
 nyear_test_dev <- function() {
   prevalence_d <- prev_dev()
-  n_year_estimates(N_years = 3, num_reg_years=8,
-                       the_samples = prevalence_d$cases_total, 
-                       by_year = prevalence_d$cases_avg,
-                       population_size = 3500000)
+  n_year_estimates(prevalence_d, N_years = 3,
+                   population_size = 35e5)
 }
 ```
 
@@ -540,7 +539,7 @@ test_nlphl <- function() {
     set.seed(17)
     
     prevalence(Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag),
-               prelim_r, start='2007-09-01', num_years=8,
+               prelim_r, start='2007-09-01', num_reg_years=8,
                N_years = N_years,
                cure_time = cure*365)
 }

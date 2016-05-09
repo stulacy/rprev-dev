@@ -13,15 +13,15 @@
 #'                    registry_data$status, 
 #'                    indexdate = "2013-01-30", 
 #'                    start="2004-01-30", num_years=8)
-counted_prevalence <- function(entry, eventdate, status, start=NULL, num_years=NULL, indexdate=NULL) {
+counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL, indexdate=NULL) {
     
     if (is.null(start))
         start <- min(entry)
     
-    if (is.null(num_years)) 
-        num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+    if (is.null(num_reg_years)) 
+        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
     
-    registry_years <- .determine_registry_years(start, num_years)
+    registry_years <- .determine_registry_years(start, num_reg_years)
     
     if (is.null(indexdate))
         indexdate <- registry_years[length(registry_years)]
@@ -34,8 +34,8 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_years=N
     
     status_at_index <- ifelse(eventdate > indexdate, 0, status)
     
-    per_year <- incidence(entry, start=start, num_years=num_years)
-    num_cens <- vapply(seq(num_years), function(i)
+    per_year <- incidence(entry, start=start, num_years=num_reg_years)
+    num_cens <- vapply(seq(num_reg_years), function(i)
                             sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
                        numeric(1))
     per_year - num_cens
@@ -102,7 +102,7 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                            
 #' TODO Rename N_years and num_years and make cure_time a number of years
 prevalence <- function(form, data, N_years,
-                       cure_time=NULL, start=NULL, num_years=NULL,
+                       cure_time=NULL, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
     
@@ -116,7 +116,7 @@ prevalence <- function(form, data, N_years,
     #N_years = N_years
     #cure_time = cure*365
     #start = '2005-09-01'
-    #num_years = 8
+    #num_reg_years = 8
     #N_boot = 1000
     #max_yearly_incidence = 500
     #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
@@ -135,7 +135,7 @@ prevalence <- function(form, data, N_years,
     #form = Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag)
     #start='2007-09-01' 
     #
-    #num_years=8
+    #num_reg_years=8
     #N_years <- 10
     #cure <- 3
     #cure_time = cure * 365
@@ -190,8 +190,8 @@ prevalence <- function(form, data, N_years,
     if (is.null(start))
         start <- min(data[, entry_var])
     
-    if (is.null(num_years)) 
-        num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+    if (is.null(num_reg_years)) 
+        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
     
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
@@ -204,6 +204,13 @@ prevalence <- function(form, data, N_years,
            stop("Error: The supplied population data frame must contain columns 'rate', 'age', 'sex'.") 
         }
     }
+    
+    if (num_reg_years > N_years) {
+        msg = paste("More registry years provided than prevalence is predicted for. Prevalence will be predicted for", N_years, "years using survival models built on", num_reg_years, "years of data.")
+        message(msg)
+    }
+    
+    population_data$sex <- as.factor(population_data$sex)
     
     if (!all(levels(population_data$sex) == levels(data[, sex_var])))
         stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
@@ -223,7 +230,7 @@ prevalence <- function(form, data, N_years,
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(data_r[, sex_var]), function(x) {
         sub_data <- data_r[data_r[sex_var]==x, ]
-        .prevalence_subgroup(sub_data[, age_var], sub_data[, entry_var], start, wb_boot, num_years,
+        .prevalence_subgroup(sub_data[, age_var], sub_data[, entry_var], start, wb_boot, num_reg_years,
                              surv_functions[[x]], cure_time, as.numeric(x), max_yearly_incidence, N_years,
                              include_sex=length(levels(data_r[, sex_var])) == 2)
     })
@@ -243,19 +250,19 @@ prevalence <- function(form, data, N_years,
     by_year_avg <- rowMeans(by_year_samples)
     
     prev_out <- list(cases_avg=by_year_avg, post=post_age_dist, cases_total=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions, nyears=N_years, nregyears=num_years, nbootstraps=N_boot)
+                     popsurv=surv_functions, nyears=N_years, nregyears=num_reg_years, nbootstraps=N_boot)
     attr(prev_out, 'class') <- 'prevalence'
     prev_out
 }
 
 
-.prevalence_subgroup <- function(prior_age_d, entry_dates, start_date, wboot, estyears, survfunc,
-                                 cure, sex, max_year_inc, num_years, include_sex) {
-    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_years=estyears))
+.prevalence_subgroup <- function(prior_age_d, entry_dates, start_date, wboot, nregyears, survfunc,
+                                 cure, sex, max_year_inc, nprevyears, include_sex) {
+    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
     
     #  This is the new implementation of calculating the yearly predicted prevalence
-    yearly_rates = lapply(1:num_years, .yearly_prevalence, wboot, mean_rate, estyears, fix_rate_rev,
+    yearly_rates = lapply(1:nprevyears, .yearly_prevalence, wboot, mean_rate, nregyears, fix_rate_rev,
                           prior_age_d, survfunc, cure, sex, max_year_inc, include_sex)
     # Unflatten by_year samples
     by_year_samples = do.call(rbind, lapply(yearly_rates, function(x) x$cases))
@@ -264,10 +271,10 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.yearly_prevalence <- function(year, bootwb, meanrate, estyears, fixrate, prior, dailysurv, cure, sex, max_inc, include_sex) {
+.yearly_prevalence <- function(year, bootwb, meanrate, nregyears, fixrate, prior, dailysurv, cure, sex, max_inc, include_sex) {
     # Run the bootstrapping to obtain posterior distributions and # cases for this year
-    post_results = apply(bootwb, 1, .post_age_bs, meanrate, estyears, year-1, fixrate[year], prior, dailysurv,
-                         cure, sex, max_inc, inreg=year<=estyears, include_sex=include_sex)
+    post_results = apply(bootwb, 1, .post_age_bs, meanrate, nregyears, year-1, fixrate[year], prior, dailysurv,
+                         cure, sex, max_inc, inreg=year<=nregyears, include_sex=include_sex)
     
     # Post_age_bs returns a list with 'cases' and 'post' values for the number of cases and posterior age distribution
     # Need to flatten this into single array for boot_out and 2D array for post_age_dist
@@ -277,13 +284,13 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.post_age_bs <- function(coefs_bs, meanrate, estyears, year, fixrate, prior, daily_surv, curetime,
+.post_age_bs <- function(coefs_bs, meanrate, nregyears, year, fixrate, prior, daily_surv, curetime,
                          sex, maxyearinc, inreg=TRUE, include_sex=TRUE) {
     post_age_dist <- rep(NA, maxyearinc)
     if (inreg){
         rate <- fixrate
     } else{
-        rate <- max(0, rnorm(1, meanrate, sqrt(meanrate)/estyears))
+        rate <- max(0, rnorm(1, meanrate, sqrt(meanrate) / nregyears))
     }
     
     num_diag <- rpois(1, rate)
@@ -482,24 +489,28 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
 #' n_year_estimates(N_years = 3, num_reg_years = 8,
 #'                  the_samples = by_year_male_samples,
 #'                  by_year = by_year_male, population_size = 1700000)
-n_year_estimates <- function(N_years, num_reg_years, 
-                             the_samples, by_year, population_size,
+n_year_estimates <- function(object, N_years, 
+                             population_size,
                              level=0.95, precision=2){
-    if (N_years > length(by_year)) stop("error: too many years for the data.")
+    
+    if (N_years > object$nyears)
+        stop("Error: Can't calculate prevalence for more years than present in the prevalence object.")
+    
+    num_reg_years <- object$nregyears
     
     z_level <- qnorm((1+level)/2)
     
-    the_samples <- the_samples[(num_reg_years + 1):N_years, , drop=F]
+    the_samples <- object$cases_total[(num_reg_years + 1):N_years, , drop=F]
     by_sample_estimate <- colSums(the_samples)
     
-    the_estimate <- sum(by_year[1:N_years])
+    the_estimate <- sum(object$cases_avg[1:N_years])
     raw_proportion <- the_estimate / population_size
     the_proportion <- 100000 * raw_proportion
     
     if (N_years <= num_reg_years) {
         se <- (raw_proportion * (1 - raw_proportion)) / population_size
     } else {
-        the_estimate_n <- sum(by_year[1:num_reg_years])
+        the_estimate_n <- sum(object$cases_avg[1:num_reg_years])
         raw_proportion_n <- the_estimate_n / population_size
         std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
         std_err_2 <- sd(by_sample_estimate)/population_size
@@ -566,6 +577,10 @@ n_year_estimates_current <- function(N_years, registry_start_year, registry_end_
 #' prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
 #'                  N_years = N_years)
 prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
+    
+    if (object$nregyears >= object$nyears) 
+        stop("")
+    
     if (! all(age_intervals >= 0)) 
         stop("Must have positive ages")
     
