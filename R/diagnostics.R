@@ -334,7 +334,8 @@ functional_form_age <- function(form, data, df=4){
   
   ### TO DO/discuss:
   # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
-  # How to neaten up the output; control side effects, do we need both plots etc?
+  # ?How to neaten up the output; control side effects, do we need both plots etc
+  # ?Too much duplication of code here with prevalence()
   ###
     
   # Extract required column names from formula
