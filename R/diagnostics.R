@@ -6,12 +6,9 @@
 #' @param N_sim Integer to specify number of simulations.
 #' @return Vector of p values for over- and under-dispersion based on the position of the observed sequence variance in the distribution.
 #' @examples
-#' sim_check(raw_incidence)
+#' sim_check(incidence(registry_data$entrydate))
 sim_check <- function(data, N_sim = 100000){
-  var_sim <- rep(NA, N_sim)
-  set.seed(17)
-  var_sim <- vapply(seq(N_sim), function() var(rpois(length(data), mean(data))), numeric(1))
-  
+  var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
   c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
 
@@ -28,7 +25,6 @@ sim_check_current <- function(data, N_sim = 100000){
     the_mean_rate <-  mean(data)
     var_sim <- rep(NA, N_sim)
     M <- length(data)
-    set.seed(17)
     for (i in 1:N_sim){
         thesims <- rpois(M, the_mean_rate)
         var_sim[i] <- var(thesims)

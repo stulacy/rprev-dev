@@ -200,6 +200,8 @@ sim_check_current_output <- function() {
 }
 ```
 
-```{r check_sim_check_comp, message=T}
+```{r check_sim_check_comp, message=T, cache=TRUE}
 test_output(sim_check_current_output, sim_check_dev)
 ```
+
+Success was achieved, then seed fixing was removed.
