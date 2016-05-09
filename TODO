@@ -1,7 +1,5 @@
-  - Write unit tests for the simulated dataset
   - Error handling when index date (as determined by start_date + num_years) is far greater than last incident case. How to know if this is an error or just due to chance with a really low incidence rate? Could just be a warning instead? This is used in several functions across incidence and prevalence
-  - Include unit tests to test when errors or warnings are raised?
-  - Is it necessary to include type and length checks, or are these tested for with expect_equal_to_reference?
   - Change registry_survival_bootstrapped to work with datasets with only one sex, by adding the fake sex level to the data passed to this function rather than using the hack at the moment to remove the coefficients
-  - Rename num_years and N_years to more specifically describe the differences, i.e. N_years -> num_estimated_years, num_years -> num_registry_years
-  - Guard when trying to estimate prevalence for more years than registry, or warning at least and truncate it?
+  - Sort importing packages issue, if use "imports" in DESCRIPTION then how to actually import functions? I.e. if run library(prevR) then survival doesn't get loaded
+  - How should prevalence_by_age (and possibly others, n_years_estimate?) behave when num_registry_years >= num_prevalent_years? Currently, prevalence_by_age only calculates age distribution of the simulated years, should it be renamed to reflect this? Should it incorporate the prior age distribution? At the very least this needs to be highlighted in the documentation.
+  - Test on linux (make separate repo on Linux or move this onto share?!)
