@@ -205,3 +205,23 @@ test_output(sim_check_current_output, sim_check_dev)
 ```
 
 Success was achieved, then seed fixing was removed.
+
+## smoothed_incidence
+
+```{r check_smo}
+smo_dev <- function() {
+  smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+}
+```
+
+```{r check_smo_current}
+smo_current_output <- function() {
+  smoothed_incidence_current(registry_data$entrydate, start_date = "2004-01-30", num_years = 9)
+}
+```
+
+```{r check_smo_comp, message=T, cache=TRUE}
+test_output(smo_current_output, smo_dev)
+```
+
+Success was achieved, then seed fixing was removed.
