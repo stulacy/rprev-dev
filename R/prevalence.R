@@ -579,7 +579,7 @@ n_year_estimates_current <- function(N_years, registry_start_year, registry_end_
 prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
     
     if (object$nregyears >= object$nyears) 
-        stop("")
+        stop("Error: No simulated prevalent years as registry data was available.")
     
     if (! all(age_intervals >= 0)) 
         stop("Must have positive ages")
