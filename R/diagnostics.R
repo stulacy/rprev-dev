@@ -226,6 +226,24 @@ smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=
 
 #' Plot the age distribution of incident cases in the registry data.
 #'
+#' @param agedata Vector of age at diagnosis for each patient in the registry.
+#' @param df Degrees of freedom for the smooth.
+#' @return Plot of the raw data and smoothed age distribution function.
+#' @examples
+#' incidence_age_distribution(registry_data_r$age)
+incidence_age_distribution <- function(agedata, df=10){
+  
+  agedata <- floor(agedata) + 1
+  ages <- vapply(seq(100), function(i) length(agedata[agedata == i]), numeric(1))
+  
+  plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
+  smage <- smooth.spline(0:99, ages[1:100], df=df)
+  lines(smage, col="blue", lwd=2)
+
+}
+
+#' Plot the age distribution of incident cases in the registry data.
+#'
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param registry_years A vector of dates delineating years of the registry.
 #' @param registry_start_year Ordinal defining the first year of the registry data to be used.
@@ -233,18 +251,18 @@ smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=
 #' @param df Degrees of freedom for the smooth.
 #' @return Plot of the raw data and smoothed age distribution function.
 #' @examples
-#' incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
+#' incidence_age_distribution_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
 #' registry_end_year = registry_end_year)
-incidence_age_distribution <- function(data, registry_years, registry_start_year, registry_end_year, df=10){
-
-  ages <- rep(0, 100)
-  for (i in 1:dim(data)[1]){
-    ages[1 + floor(data$age_initial[i])] <- ages[1 + floor(data$age_initial[i])] + 1
-  }
-  plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases per year")
-  smage <- smooth.spline(0:99, ages[1:100], df=df)
-  lines(smage, col="blue", lwd=2)
-
+incidence_age_distribution_current <- function(data, registry_years, registry_start_year, registry_end_year, df=10){
+    
+    ages <- rep(0, 100)
+    for (i in 1:dim(data)[1]){
+        ages[1 + floor(data$age_initial[i])] <- ages[1 + floor(data$age_initial[i])] + 1
+    }
+    plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases per year")
+    smage <- smooth.spline(0:99, ages[1:100], df=df)
+    lines(smage, col="blue", lwd=2)
+    
 }
 
 #' Inspect consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
@@ -307,27 +325,28 @@ survival_modelling_diagnostics <- function(data, ages, registry_years, registry_
 
 #' Inspect functional form of age.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @param data A registry dataset of patient cases.
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.
 #' @examples
-#' functional_form_age(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year)
-functional_form_age <- function(data, registry_years, registry_start_year, registry_end_year, df=4){
-
-  data_r <- data[data$date_initial >= registry_years[registry_start_year] & data$date_initial < registry_years[registry_end_year], ]
-
-  cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data=data_r)
+#' functional_form_age(registry_data_r)
+functional_form_age <- function(data, df=4){
+    
+  ### TO DO
+  # Parse formula for survival object and tweak all the variable names
+  # Figure out how to do a good unit test with the previous version - setting seed before calling coxph didn't work
+  ###
+    
+  set.seed(17)
+  cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data)
   output1 <- summary(cxnl)
 
   plt1 <- termplot(cxnl)
 
-  f <<- datadist(data_r)
+  f <<- datadist(data)
   options(datadist="f")
 
-  mod_rms <- cph(Surv(survival_time, indicator) ~ rcs(age_initial, df), data=data_r, x=TRUE, y=TRUE, surv=T, time.inc=1)
+  mod_rms <- cph(Surv(survival_time, indicator) ~ rcs(age_initial, df), data, x=TRUE, y=TRUE, surv=T, time.inc=1)
   output2 <- anova(mod_rms)
   output3 <- summary(mod_rms)
 
@@ -335,6 +354,38 @@ functional_form_age <- function(data, registry_years, registry_start_year, regis
 
   return(list(plt1, plt2, output1, output2, output3))
 
+}
+
+#' Inspect functional form of age.
+#'
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param registry_years A vector of dates delineating years of the registry.
+#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
+#' @param df Degrees of freedom for the smooth.
+#' @return Plots of the functional form of age.
+#' @examples
+#' functional_form_age_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year)
+functional_form_age_current <- function(data, registry_years, registry_start_year, registry_end_year, df=4){
+    
+    data_r <- data[data$date_initial >= registry_years[registry_start_year] & data$date_initial < registry_years[registry_end_year], ]
+    set.seed(17)    
+    cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data=data_r)
+    output1 <- summary(cxnl)
+    
+    plt1 <- termplot(cxnl)
+    
+    f <<- datadist(data_r)
+    options(datadist="f")
+    
+    mod_rms <- cph(Surv(survival_time, indicator) ~ rcs(age_initial, df), data=data_r, x=TRUE, y=TRUE, surv=T, time.inc=1)
+    output2 <- anova(mod_rms)
+    output3 <- summary(mod_rms)
+    
+    plt2 <- plot(Predict(mod_rms, age_initial), lwd=3, adj.subtitle=T)
+    
+    return(list(plt1, plt2, output1, output2, output3))
+    
 }
 
 #' ?
@@ -499,29 +550,23 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' Chi squared test between prevalence prediction and observed values in the registry.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry.
-#' @param status_at_index Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param events Vector of event or censorship dates for each patient in the registry.
+#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @param start Date from which incident cases are included.
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @return Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 #' @examples
 #' prev_chisq(entry = registry_data$entrydate,
-#'            registry_data$eventdate, 
-#'            registry_data$status, 
-#'            indexdate = "2013-01-30", 
-#'            start="2004-01-30", 9,
+#'            events = registry_data$eventdate, 
+#'            status = registry_data$status, 
+#'            start="2004-01-30", num_years = 9,
 #'            by_year = by_year_total)
-prev_chisq <- function(entry, events, status, 
-           indexdate, start=NULL, num_years=NULL,
-           by_year = by_year_total){
-
-  observed <- counted_prevalence(entry, events, status,
-                                 indexdate, start, num_years)
+prev_chisq <- function(entry, events, status, by_year, start=NULL, num_years=NULL){
+  observed <- counted_prevalence(entry, events, status, start, num_years)
   predicted <- rev(by_year[1:num_years])
   chi <- sum(((observed - predicted)^2)/predicted)
-  1 - pchisq(chi, num_years)
-  
-  # needs correcting sjf 05/05/2016
+  1 - pchisq(chi, num_years - 1)
 
 }
 

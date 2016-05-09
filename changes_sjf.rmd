@@ -57,7 +57,6 @@ countprev_dev <- function() {
   counted_prevalence(registry_data$entrydate, 
                      registry_data$eventdate, 
                      registry_data$status, 
-                     indexdate = "2013-01-30", 
                      start="2004-01-30", 9)
 }
 ```
@@ -69,11 +68,12 @@ registry_start_year <- 2
 registry_end_year <- 10
 
 registry_data$status2 <- ifelse(registry_data$eventdate > "2013-01-30", 0, registry_data$status)
-  
 registry_data$indicator_censored_at_index <- registry_data$status2
 registry_data$date_initial <- registry_data$entrydate
 registry_data$date_event <- registry_data$eventdate
 registry_data$indicator <- registry_data$status
+registry_data$survival_time <- registry_data$time
+registry_data$age_initial <- registry_data$age
   
 countprev_current_output <- function() {
   
@@ -99,7 +99,6 @@ prevchisq_dev <- function() {
   prev_chisq(registry_data$entrydate,
             registry_data$eventdate, 
             registry_data$status, 
-            indexdate = "2013-01-30", 
             start="2004-01-30", 9,
             by_year = by_year_total)
 }
@@ -113,4 +112,42 @@ prevchisq_current_output <- function() {
 
 ```{r check_prevalence_comp, message=T}
 test_output(prevchisq_current_output, prevchisq_dev)
+```
+
+## incidence_age_distribution
+
+```{r check_incidence_age_distribution}
+registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30",]
+
+incidence_age_distribution_dev <- function() {
+  incidence_age_distribution(registry_data_r$age)
+}
+```
+
+```{r check_incidence_age_distribution_current}
+incidence_age_distribution_current_output <- function() {
+  incidence_age_distribution_current(registry_data, registry_years, registry_start_year, registry_end_year)
+}
+```
+
+```{r check_incidence_age_distribution_comp, message=T}
+test_output(incidence_age_distribution_current_output, incidence_age_distribution_dev)
+```
+
+## functional_form_age
+
+```{r check_functional_form_age}
+functional_form_age_dev <- function() {
+  functional_form_age(registry_data_r)
+}
+```
+
+```{r check_functional_form_age_current}
+functional_form_age_current_output <- function() {
+  functional_form_age_current(registry_data, registry_years, registry_start_year, registry_end_year)
+}
+```
+
+```{r check_functional_form_age_comp, message=T}
+test_output(functional_form_age_current_output, functional_form_age_dev)
 ```
