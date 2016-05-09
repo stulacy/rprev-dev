@@ -170,13 +170,17 @@ survival_modelling_diagnostics_dev <- function() {
 
 ```{r check_survival_modelling_diagnostics_current}
 survival_modelling_diagnostics_current_output <- function() {
+  registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
+                      "2009-01-30", "2010-01-30", "2011-01-30", "2012-01-30", "2013-01-30")
+  registry_start_year <- 2
+  registry_end_year <- 10
   par(mfrow=c(2,2))
   survival_modelling_diagnostics_current(registry_data, ages = c(55, 65, 75, 85, 100), 
                                          registry_years, registry_start_year, registry_end_year)
 }
 ```
 
-```{r check_survival_modelling_diagnostics_comp, message=T, cache=TRUE}
+```{r check_survival_modelling_diagnostics_comp, message=T}
 test_output(survival_modelling_diagnostics_current_output, survival_modelling_diagnostics_dev)
 ```
 

@@ -313,10 +313,10 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
     
   # Determine the registry years of interest from assessing the code
   if (is.null(start))
-      start <- min(data[, entry])
+      start <- min(data[, entry_var])
     
   if (is.null(num_years)) 
-      num_years <- floor(as.numeric(difftime(max(data[, entry]), start) / 365.25))
+      num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
   # Check ages input is correct
   if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
@@ -333,27 +333,30 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
                                 age_var, ', breaks = ages)', sep='')), data_r), 
        lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
   cx <- coxph(as.formula(paste(deparse(resp), '~ ', age_var, sep='')), data_r)
-  cxp <- survfit(cx, newdata=data.frame(assign(age_var, 
-                                               vapply(seq(length(ages) - 1), 
-                                                      function(i) 
-                                                          mean(c(ages[i], ages[i + 1])), 
-                                                      numeric(1)))))
+  cxp <- survfit(cx, 
+                 newdata=data.frame(assign(age_var, 
+                                           vapply(seq(length(ages) - 1), 
+                                                  function(i) mean(c(ages[i], ages[i + 1])), 
+                                                  numeric(1)))))
   lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
 
   # Plot coxph residuals
   plt3 <- plot(cox.zph(cx))
+  output <- cox.zph(cx)
 
   # Plot KM stratified by year of diagnosis
   plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
   registry_years <- .determine_registry_years(start, num_years)
   sapply(seq(num_years),
         function(i) lines(survfit(surv_form_1, 
-                                  data=data_r[data_r$entry >= registry_years[i] & 
-                                                  data_r$entry < registry_years[i + 1], ]), 
+                                  data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]), 
                           mark.time = F, conf.int = F)) 
-
-  # Output test of proportionality assumption
-  return(list(plt1, plt2, plt3, plt4, cox.zph(cx)))
+  
+  sapply(seq(num_years),
+         function(i) length(data$entrydate[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1]]))
+  
+  # Output plots and test of proportionality assumption
+  return(list(plt1, plt2, plt3, plt4, output))
 
 }
 
