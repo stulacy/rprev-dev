@@ -48,6 +48,7 @@ population_survival_rate <- function(form, data, max_age=100){
     # Does this function need to have "population in its name?" Could it be more generally applied?
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
+    data[, age_var] <- floor(data[, age_var])
     
     rate <- vapply(seq(0, max_age-1),
                    function(x) mean(data[data[,age_var]==x, rate_var]),
