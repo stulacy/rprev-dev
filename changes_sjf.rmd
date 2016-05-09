@@ -23,7 +23,7 @@ library(ggplot2)
 library(dplyr)
 ```
 
-```{r data}
+```{r data, cache=TRUE}
 load("H:/Repos/prevR/data/prevsim.rda")
 registry_data <- prevsim
 
@@ -61,7 +61,7 @@ countprev_dev <- function() {
 }
 ```
 
-```{r counted_prevalence_current}
+```{r counted_prevalence_current, cache=TRUE}
 registry_years <- c("2003-01-30", "2004-01-30", "2005-01-30", "2006-01-30", "2007-01-30", "2008-01-30",
                       "2009-01-30", "2010-01-30", "2011-01-30", "2012-01-30", "2013-01-30")
 registry_start_year <- 2
@@ -82,13 +82,13 @@ countprev_current_output <- function() {
 }
 ```
 
-```{r counted_prevalence_comp, message=T}
+```{r counted_prevalence_comp, message=T, cache=TRUE}
 test_output(countprev_current_output, countprev_dev)
 ```
 
 ## prev_chisq
 
-```{r check_prevalence}
+```{r check_prevalence, cache=TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                registry_data, N_years = 10, cure_time = 10*365, 
                                start='2004-01-30', num_years=9)
@@ -110,7 +110,7 @@ prevchisq_current_output <- function() {
 }
 ```
 
-```{r check_prevalence_comp, message=T}
+```{r check_prevalence_comp, message=T, cache=TRUE}
 test_output(prevchisq_current_output, prevchisq_dev)
 ```
 
@@ -130,7 +130,7 @@ incidence_age_distribution_current_output <- function() {
 }
 ```
 
-```{r check_incidence_age_distribution_comp, message=T}
+```{r check_incidence_age_distribution_comp, message=T, cache=TRUE}
 test_output(incidence_age_distribution_current_output, incidence_age_distribution_dev)
 ```
 
@@ -138,7 +138,10 @@ test_output(incidence_age_distribution_current_output, incidence_age_distributio
 
 ```{r check_functional_form_age}
 functional_form_age_dev <- function() {
-  functional_form_age(registry_data_r)
+  registry_data_r <- registry_data[registry_data$date_initial >= 
+                                         registry_years[registry_start_year] & 
+                                         registry_data$date_initial < registry_years[registry_end_year], ]
+  functional_form_age(Surv(time, status) ~ age(age), registry_data_r)
 }
 ```
 
@@ -148,6 +151,8 @@ functional_form_age_current_output <- function() {
 }
 ```
 
-```{r check_functional_form_age_comp, message=T}
+```{r check_functional_form_age_comp, message=T, cache=TRUE}
 test_output(functional_form_age_current_output, functional_form_age_dev)
 ```
+
+Although there is a failure here, the output from coxph looks exactly the same. 

@@ -324,20 +324,38 @@ survival_modelling_diagnostics <- function(data, ages, registry_years, registry_
 
 #' Inspect functional form of age.
 #'
+#' @param form 
 #' @param data A registry dataset of patient cases.
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.
 #' @examples
 #' functional_form_age(registry_data_r)
-functional_form_age <- function(data, df=4){
-    
-  ### TO DO
-  # Parse formula for survival object and tweak all the variable names
-  # Figure out how to do a good unit test with the previous version - setting seed before calling coxph didn't work
+functional_form_age <- function(form, data, df=4){
+  
+  ### TO DO/discuss:
+  # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
+  # How to neaten up the output; control side effects, do we need both plots etc?
   ###
     
-  set.seed(17)
-  cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data)
+  # Extract required column names from formula
+  terms <- terms(form, 'age')
+  special_indices <- attr(terms, 'specials')
+    
+  if (any(sapply(special_indices, is.null)))
+    stop("Error: Provide function term for age.")
+    
+  v <- as.list(attr(terms, 'variables'))[-1]
+  var_names <- unlist(lapply(special_indices, function(i) v[i]))
+  age_var <- .extract_var_name(var_names$age)
+    
+  # Extract survival formula
+  response_index <- attr(terms, 'response')
+  resp <- v[response_index][[1]]
+  
+  psp_surv_form <- as.formula(paste(deparse(resp), '~ pspline(', 
+                                    age_var, ', ', df, ')', sep=''))
+  
+  cxnl <- coxph(psp_surv_form, data)
   output1 <- summary(cxnl)
 
   plt1 <- termplot(cxnl)
@@ -345,13 +363,16 @@ functional_form_age <- function(data, df=4){
   f <<- datadist(data)
   options(datadist="f")
 
-  mod_rms <- cph(Surv(survival_time, indicator) ~ rcs(age_initial, df), data, x=TRUE, y=TRUE, surv=T, time.inc=1)
+  rcs_surv_form <- as.formula(paste(deparse(resp), '~ rcs(', 
+                                    age_var, ', ', df, ')', sep=''))
+  
+  mod_rms <- cph(rcs_surv_form, data, x=TRUE, y=TRUE, surv=T, time.inc=1)
   output2 <- anova(mod_rms)
   output3 <- summary(mod_rms)
+  
+  plt2 <- plot(eval(parse(text=paste('Predict(mod_rms, ', age_var,')', sep = ''))), lwd=3, adj.subtitle=T)
 
-  plt2 <- plot(Predict(mod_rms, age_initial), lwd=3, adj.subtitle=T)
-
-  return(list(plt1, plt2, output1, output2, output3))
+  list(plt1, plt2, output1, output2, output3)
 
 }
 
@@ -368,7 +389,6 @@ functional_form_age <- function(data, df=4){
 functional_form_age_current <- function(data, registry_years, registry_start_year, registry_end_year, df=4){
     
     data_r <- data[data$date_initial >= registry_years[registry_start_year] & data$date_initial < registry_years[registry_end_year], ]
-    set.seed(17)    
     cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data=data_r)
     output1 <- summary(cxnl)
     

@@ -1,0 +1,14 @@
+base
+devtools
+prevR
+dplyr
+abind
+lattice
+survival
+Formula
+ggplot2
+Hmisc
+SparseM
+rms
+knitr
+tidyr
