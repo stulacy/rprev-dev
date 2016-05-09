@@ -162,7 +162,7 @@ Although there is a failure here, the output from coxph looks exactly the same.
 ```{r check_survival_modelling_diagnostics_age}
 survival_modelling_diagnostics_dev <- function() {
   par(mfrow=c(2,2))
-  survival_modelling_diagnostics(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+  survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate),
                                  registry_data, ages = c(55, 65, 75, 85, 100), 
                                  start = "2004-09-01", num_years = 9)
 }

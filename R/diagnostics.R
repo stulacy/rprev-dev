@@ -280,26 +280,26 @@ incidence_age_distribution_current <- function(data, registry_years, registry_st
 #' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
 #' @examples
-#' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate), registry_data,
+#' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
 #' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_years = 9)
 survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_years = NULL){
     
   ### TO DO/discuss:
   # ?Too much duplicated code with prevalence() to extract variables from formula
+  # Make generic to not just age cuts
     
   # Extract required column names from formula
-  spec <- c('age', 'sex', 'entry')
+  spec <- c('age', 'entry')
   terms <- terms(form, spec)
   special_indices <- attr(terms, 'specials')
     
   if (any(sapply(special_indices, is.null)))
-    stop("Error: Provide function terms for age, sex, and entry date.")
+    stop("Error: Provide function terms for age and entry date.")
     
   v <- as.list(attr(terms, 'variables'))[-1]
   var_names <- unlist(lapply(special_indices, function(i) v[i]))
     
   age_var <- .extract_var_name(var_names$age)
-  sex_var <- .extract_var_name(var_names$sex)
   entry_var <- .extract_var_name(var_names$entry)
     
   # Extract survival formula
@@ -311,10 +311,6 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
   if (length(covar_names) > 0)
     stop("Error: Functionality isn't currently provided for additional covariates.")
     
-  data[, sex_var] <- as.factor(data[, sex_var])
-  if (length(levels(data[, sex_var])) > 2)
-    stop("Error: function can't currently function with more than two levels of sex.")
-    
   # Determine the registry years of interest from assessing the code
   if (is.null(start))
       start <- min(data[, entry])
@@ -322,47 +318,42 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
   if (is.null(num_years)) 
       num_years <- floor(as.numeric(difftime(max(data[, entry]), start) / 365.25))
 
-  if (is.numeric(ages) != TRUE) stop("error: ages is not numeric.")
-  if (is.vector(ages) != TRUE) stop("error: ages is not a vector.")
+  # Check ages input is correct
+  if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
+  if (is.vector(ages) != TRUE) stop("Error: ages is not a vector.")
   
+  # Plot KM overall
   data_r <- data[data[, entry_var] >= start, ]
-  req_covariate <- ifelse(length(levels(data_r[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
   surv_form_1 <- as.formula(paste(deparse(resp), '~ 1'))
-  
-  km <- survfit(surv_form_1, data=data_r)
-  plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
+  km <- survfit(surv_form_1, data_r)
+  plt1 <- plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
 
-  surv_form_cut <- as.formula(paste(deparse(resp), '~ cut(', 
-                                    age_var, ', breaks =', ages, ')', sep=''))
-  
-  km2 <- survfit(surv_form_cut, data=data_r)
-  plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+  # Plot KM stratified by age
+  plt2 <- plot(survfit(as.formula(paste(deparse(resp), '~ cut(', 
+                                age_var, ', breaks = ages)', sep='')), data_r), 
+       lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+  cx <- coxph(as.formula(paste(deparse(resp), '~ ', age_var, sep='')), data_r)
+  cxp <- survfit(cx, newdata=data.frame(assign(age_var, 
+                                               vapply(seq(length(ages) - 1), 
+                                                      function(i) 
+                                                          mean(c(ages[i], ages[i + 1])), 
+                                                      numeric(1)))))
+  lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
 
-  surv_form_age <- as.formula(paste(deparse(resp), '~ ', age_var, sep=''))
-  
-  cx <- coxph(surv_form_age, data=data_r)
+  # Plot coxph residuals
+  plt3 <- plot(cox.zph(cx))
 
-  halves <- rep(0, length(ages) - 1)
-  for(i in 1:length(halves)){
-    halves[i] <- mean(c(ages[i], ages[i + 1]))
-  }
-
-  cxp <- survfit(cx, newdata=data.frame(assign(age_var, halves)))
-  lines(cxp, lwd=2, col=1:6, lty=2, mark.time=F)
-
-  plot(cox.zph(cx))
-
-  plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-
+  # Plot KM stratified by year of diagnosis
+  plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
   registry_years <- .determine_registry_years(start, num_years)
-  
   sapply(seq(num_years),
         function(i) lines(survfit(surv_form_1, 
                                   data=data_r[data_r$entry >= registry_years[i] & 
                                                   data_r$entry < registry_years[i + 1], ]), 
                           mark.time = F, conf.int = F)) 
 
-  return(cox.zph(cx))
+  # Output test of proportionality assumption
+  return(list(plt1, plt2, plt3, plt4, cox.zph(cx)))
 
 }
 
