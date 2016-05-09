@@ -108,17 +108,13 @@ smoothed_incidence <- function(entry_date, start = NULL, num_years = NULL, N=100
     boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
   }
   
-  plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-20,20), xlab="days", ylab="deviation from smooth")
+  plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-0.8*max(boot_out),0.8*max(boot_out)), xlab="days", ylab="deviation from smooth")
   sapply(seq(1000),
          function(i) lines(x, boot_out[i,], col="grey")) 
 
   lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
-
-  upper_lim <- apply(boot_out, 2, quantile, probs=0.975)
-  lower_lim <- apply(boot_out, 2, quantile, probs=0.025)
-
-  lines(x, upper_lim, col="blue")
-  lines(x, lower_lim, col="blue")
+  lines(x, apply(boot_out, 2, quantile, probs=0.975), col="blue")
+  lines(x, apply(boot_out, 2, quantile, probs=0.025), col="blue")
 
 }
 

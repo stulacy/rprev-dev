@@ -216,6 +216,7 @@ smo_dev <- function() {
 
 ```{r check_smo_current}
 smo_current_output <- function() {
+  par(mfrow=c(2,2))
   smoothed_incidence_current(registry_data$entrydate, start_date = "2004-01-30", num_years = 9)
 }
 ```

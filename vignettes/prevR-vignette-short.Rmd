@@ -58,8 +58,7 @@ sim_check(raw_incidence)
 ```
 
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
-#par(mfrow=c(2,2))
-smoothed_incidence(registry_data$entrydate, start_date="2004-01-30", num_years=9)
+smoothed_incidence(registry_data$entrydate, start="2004-01-30", num_years=9)
 ```
 
 The age distribution of incident cases can also be inspected:
@@ -67,7 +66,6 @@ The age distribution of incident cases can also be inspected:
 ```{r incidenceage, fig.width = 7, fig.height = 4, error = TRUE}
 registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30", ]
 
-par(mfrow=c(1,1))
 incidence_age_distribution(registry_data_r$age)
 ```
 
@@ -83,7 +81,6 @@ meanIR(registry_data$entrydate, population_size = 3500000,
 Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `survival_modelling_diagnostics`:
 
 ```{r survivaldiag, fig.width = 7, fig.height = 7}
-#par(mfrow=c(2,2))
 survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate),
                                registry_data, ages = c(55, 65, 75, 85, 100), 
                                start = "2004-09-01", num_years = 9)
@@ -92,7 +89,6 @@ survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate),
 ### Functional form of age
 
 ```{r ageform2, fig.width = 7, fig.height = 4, error = TRUE}
-par(mfrow=c(1,2))
 functional_form_age(Surv(time, status) ~ age(age), registry_data_r)
 ```
 
