@@ -83,16 +83,10 @@ meanIR(registry_data$entrydate, population_size = 3500000,
 Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `survival_modelling_diagnostics`:
 
 ```{r survivaldiag, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
-#par(mfrow=c(2,2))
-#survival_modelling_diagnostics(load_data(registry_data), ages = c(55, 65, 75, 85, 100), 
-#                               registry_years, registry_start_year, registry_end_year)
-```
-
-```{r survivaldiag2, echo = FALSE, fig.show="hide"}
-#output <- survival_modelling_diagnostics(load_data(registry_data), 
-#                                         ages = c(55, 65, 75, 85, 100), registry_years, 
-#                                         registry_start_year, registry_end_year)
-#output[[5]]
+par(mfrow=c(2,2))
+survival_modelling_diagnostics(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+                               registry_data, ages = c(55, 65, 75, 85, 100), 
+                               start = "2004-09-01", num_years = 9)
 ```
 
 ### Functional form of age

@@ -273,6 +273,108 @@ incidence_age_distribution_current <- function(data, registry_years, registry_st
 #' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
 #' cases shown in blue.
 #'
+#' @param form
+#' @param data A registry dataset of patient cases generated using load_data().
+#' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
+#' @param start Date from which incident cases are included.
+#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
+#' @examples
+#' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate), registry_data,
+#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_years = 9)
+survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_years = NULL){
+    
+  ### TO DO/discuss:
+  # ?Too much duplicated code with prevalence() to extract variables from formula
+    
+  # Extract required column names from formula
+  spec <- c('age', 'sex', 'entry')
+  terms <- terms(form, spec)
+  special_indices <- attr(terms, 'specials')
+    
+  if (any(sapply(special_indices, is.null)))
+    stop("Error: Provide function terms for age, sex, and entry date.")
+    
+  v <- as.list(attr(terms, 'variables'))[-1]
+  var_names <- unlist(lapply(special_indices, function(i) v[i]))
+    
+  age_var <- .extract_var_name(var_names$age)
+  sex_var <- .extract_var_name(var_names$sex)
+  entry_var <- .extract_var_name(var_names$entry)
+    
+  # Extract survival formula
+  response_index <- attr(terms, 'response')
+  resp <- v[response_index][[1]]
+  non_covariate_inds <- c(response_index, unlist(special_indices))
+  covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+    
+  if (length(covar_names) > 0)
+    stop("Error: Functionality isn't currently provided for additional covariates.")
+    
+  data[, sex_var] <- as.factor(data[, sex_var])
+  if (length(levels(data[, sex_var])) > 2)
+    stop("Error: function can't currently function with more than two levels of sex.")
+    
+  # Determine the registry years of interest from assessing the code
+  if (is.null(start))
+      start <- min(data[, entry])
+    
+  if (is.null(num_years)) 
+      num_years <- floor(as.numeric(difftime(max(data[, entry]), start) / 365.25))
+
+  if (is.numeric(ages) != TRUE) stop("error: ages is not numeric.")
+  if (is.vector(ages) != TRUE) stop("error: ages is not a vector.")
+  
+  data_r <- data[data[, entry_var] >= start, ]
+  req_covariate <- ifelse(length(levels(data_r[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
+  surv_form_1 <- as.formula(paste(deparse(resp), '~ 1'))
+  
+  km <- survfit(surv_form_1, data=data_r)
+  plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
+
+  surv_form_cut <- as.formula(paste(deparse(resp), '~ cut(', 
+                                    age_var, ', breaks =', ages, ')', sep=''))
+  
+  km2 <- survfit(surv_form_cut, data=data_r)
+  plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+
+  surv_form_age <- as.formula(paste(deparse(resp), '~ ', age_var, sep=''))
+  
+  cx <- coxph(surv_form_age, data=data_r)
+
+  halves <- rep(0, length(ages) - 1)
+  for(i in 1:length(halves)){
+    halves[i] <- mean(c(ages[i], ages[i + 1]))
+  }
+
+  cxp <- survfit(cx, newdata=data.frame(assign(age_var, halves)))
+  lines(cxp, lwd=2, col=1:6, lty=2, mark.time=F)
+
+  plot(cox.zph(cx))
+
+  plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
+
+  registry_years <- .determine_registry_years(start, num_years)
+  
+  sapply(seq(num_years),
+        function(i) lines(survfit(surv_form_1, 
+                                  data=data_r[data_r$entry >= registry_years[i] & 
+                                                  data_r$entry < registry_years[i + 1], ]), 
+                          mark.time = F, conf.int = F)) 
+
+  return(cox.zph(cx))
+
+}
+
+#' Inspect consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
+#'
+#' The first plot is of the Kaplan-Meier survival curve on total cases in the registry. The second plot is the
+#' Kaplan-Meier survival curve for each age group, as delineated by the user using the "ages" argument. The third
+#' plot is of the residuals between the raw data and the fitted Cox Proportional Hazards model. If the model is
+#' a good representation of the data the line should be horizontal. The last plot is of Kaplain Meier survival
+#' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
+#' cases shown in blue.
+#'
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
 #' @param registry_years A vector of dates delineating years of the registry.
@@ -280,46 +382,46 @@ incidence_age_distribution_current <- function(data, registry_years, registry_st
 #' @param registry_end_year Ordinal defining the last year of the registry data to be used.
 #' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
 #' @examples
-#' survival_modelling_diagnostics(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, ages = c(55, 65, 75, 85, 100))
-survival_modelling_diagnostics <- function(data, ages, registry_years, registry_start_year,
-                      registry_end_year){
-
-  if (is.numeric(ages) != TRUE) stop("error: ages is not numeric.")
-  if (is.vector(ages) != TRUE) stop("error: ages is not a vector.")
-
-  years_estimated <- registry_end_year - registry_start_year + 1
-
-  dfr_r <- data[data$date_initial >= registry_years[registry_start_year], ]
-
-  km <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_r)
-  plt1 <- plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
-
-  km2 <- survfit(Surv(survival_time, indicator) ~ cut(age_initial, breaks=ages), data=dfr_r)
-  plt2 <- plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
-
-  cx <- coxph(Surv(survival_time, indicator) ~ age_initial, data=dfr_r)
-
-  halves <- rep(0, length(ages) - 1)
-  for(i in 1:length(halves)){
-    halves[i] <- mean(c(ages[i], ages[i + 1]))
-  }
-
-  cxp <- survfit(cx, newdata=data.frame(age_initial=halves))
-  lines(cxp, lwd=2, col=1:6, lty=2, mark.time=F)
-
-  output <- cox.zph(cx)
-  plt3 <- plot(cox.zph(cx))
-
-  plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-
-  for (i in registry_start_year:registry_end_year){
-    dfr_L <- dfr_r[dfr_r$date_initial >= registry_years[i] & dfr_r$date_initial < registry_years[i + 1], ]
-    kmlines <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_L)
-    lines(kmlines, mark.time=F, conf.int=F)
-  }
-
-  return(list(plt1, plt2, plt3, plt4, output))
-
+#' survival_modelling_diagnostics_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, ages = c(55, 65, 75, 85, 100))
+survival_modelling_diagnostics_current <- function(data, ages, registry_years, registry_start_year,
+                                           registry_end_year){
+    
+    if (is.numeric(ages) != TRUE) stop("error: ages is not numeric.")
+    if (is.vector(ages) != TRUE) stop("error: ages is not a vector.")
+    
+    years_estimated <- registry_end_year - registry_start_year + 1
+    
+    dfr_r <- data[data$date_initial >= registry_years[registry_start_year], ]
+    
+    km <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_r)
+    plt1 <- plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
+    
+    km2 <- survfit(Surv(survival_time, indicator) ~ cut(age_initial, breaks=ages), data=dfr_r)
+    plt2 <- plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+    
+    cx <- coxph(Surv(survival_time, indicator) ~ age_initial, data=dfr_r)
+    
+    halves <- rep(0, length(ages) - 1)
+    for(i in 1:length(halves)){
+        halves[i] <- mean(c(ages[i], ages[i + 1]))
+    }
+    
+    cxp <- survfit(cx, newdata=data.frame(age_initial=halves))
+    lines(cxp, lwd=2, col=1:6, lty=2, mark.time=F)
+    
+    output <- cox.zph(cx)
+    plt3 <- plot(cox.zph(cx))
+    
+    plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
+    
+    for (i in registry_start_year:registry_end_year){
+        dfr_L <- dfr_r[dfr_r$date_initial >= registry_years[i] & dfr_r$date_initial < registry_years[i + 1], ]
+        kmlines <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_L)
+        lines(kmlines, mark.time=F, conf.int=F)
+    }
+    
+    return(list(plt1, plt2, plt3, plt4, output))
+    
 }
 
 #' Inspect functional form of age.
