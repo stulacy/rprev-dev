@@ -182,7 +182,7 @@ Prevalence can now be estimated using simulation:
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               registry_data, num_years_to_estimate, cure_time = cure*365, 
+                               registry_data, num_years_to_estimate, cure, 
                                start='2004-01-30', num_reg_years=9)
 
 print(prevalence_total)

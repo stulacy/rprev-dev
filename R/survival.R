@@ -49,11 +49,11 @@ population_survival_rate <- function(form, data, max_age=100){
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
     data[, age_var] <- floor(data[, age_var])
-    
+
     rate <- vapply(seq(0, max_age-1),
                    function(x) mean(data[data[,age_var]==x, rate_var]),
                    numeric(1))
-    
+
     a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[max_age] - rate[max_age-1])
     base <- 183 + 365 * (1:max_age) # Where does 183/182 come from?
     base <- c(-182, 183, base)
@@ -71,13 +71,13 @@ population_survival_rate <- function(form, data, max_age=100){
 #' daily_survival_males <- daily_survival_rate(population_data_mx, sex = "Males")
 #' daily_survival_females <- daily_survival_rate(population_data_mx, sex = "Females")
 daily_survival_rate_current <- function(data, sex){
-    
+
     if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
     if(sex == "Males") data = filter(data, sex == 0)
     if(sex == "Females") data = filter(data, sex == 1)
     data <- data %>%
         select(age, rate)
-    
+
     rate <- rep(NA, 100)
     for (i in 0:99){
         rate[i + 1] <- mean(data$rate[data$age == i])
@@ -90,7 +90,7 @@ daily_survival_rate_current <- function(data, sex){
     daily_rate <- daily_rate$y
     daily_rate <- daily_rate/365
     return(daily_rate)
-    
+
 }
 
 #' Calculate bootstrap survival coefficients as a way to estimate uncertainty
@@ -106,16 +106,16 @@ daily_survival_rate_current <- function(data, sex){
 registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1){
     data_trans <- .transform_registry_data(form, data) # df -> matrix, log transform stimes. Required for survreg.fit
     coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot, n_cores=n_cores)
-    
-    if (sum(.row_any_error(coefs)) > 1) 
+
+    if (sum(.row_any_error(coefs)) > 1)
         warning("Error in cox.ph, possibly due to small number of events in bootstrap sample. Replacing with a new sample.")
-    
+
     # Keep bootstrapping new samples to get non-NA coefficients
     while (sum(.row_any_error(coefs)) > 1) {
         is_error <- .row_any_error(coefs)
         coefs[is_error] <- .calculate_bootstrapped_coefficients(data_trans, sum(is_error))
     }
-    
+
     # Need to transform scale back from log scale
     coefs[, ncol(coefs)] <- exp(coefs[, ncol(coefs)])
     coefs
@@ -124,11 +124,11 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 .calculate_bootstrapped_coefficients <- function(data, N, n_cores=1) {
     n_obs <- nrow(data)
     n_coef <- ncol(data) - 1  # minus 2 for time + status, + 1 for shape
-    
+
     if (n_cores > 1) {
         cl <- makeCluster(n_cores)
         registerDoParallel(cl)
-        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind', 
+        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind',
                 .inorder=F, .export='.calculate_coefficients') %dopar% {
             .calculate_coefficients(data, n_obs, n_coef)
         }
@@ -166,7 +166,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 }
 
 .row_any_error <- function(matrix) {
-    # Matrix is a N row matrix, this function calculates which rows of this matrix contain errors 
+    # Matrix is a N row matrix, this function calculates which rows of this matrix contain errors
     # Returns a logical vector of N length
     # 3 types of errors:
     #   - NA
@@ -194,7 +194,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 #' @examples
 #' registry_survival_bootstrapped_current(data, N_boot = 1000)
 registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
-    
+
     boot <- matrix(0, nrow=N_boot, ncol=4)
     for (i in 1:N_boot){
         ith_sample <- sample(1:(dim(data)[1]), dim(data)[1], replace=T)
@@ -202,38 +202,38 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
         wbb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data=ith_data)
         boot[i, ] <- c(wbb$coe, wbb$scale)
     }
-    
+
     return(boot)
-    
+
 }
 
-#' Survival function for males or females, modelled on patient data until cure_time, then
+#' Survival function for males or females, modelled on patient data until cure_days, then
 #' population data for the remaining time.
 #'
 #' @param time Time in days.
 #' @param age Age of the patient in years.
 #' @param sex Sex of the patient (0 for males, 1 for females).
-#' @param cure_time A number representing time in days corresponding to the cure model assumption for the calculation.
+#' @param cure_days A number representing time in days corresponding to the cure model assumption for the calculation.
 #' @param boot Selected bootstrapped dataset.
 #' @param daily_survival Population survival function in days.
 #' @return A survival curve on which to base prevalence predictions.
-prob_alive <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age=100){
+prob_alive <- function(time, data, cure_days, boot_coefs, pop_surv_rate, max_age=100){
     scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot_coefs[length(boot_coefs)]
     age <- data[, 2]  # hardcoded I know, but it will always be first after intercept
     ifelse(age*365 + time > (max_age * 365),
            0,
-           ifelse(time < cure_time,
+           ifelse(time < cure_days,
                   1 - pweibull(time, scale=scale, shape=shape),
-                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
+                  (1 - pweibull(cure_days, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_days]))
 }
 
-prob_alive_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
+prob_alive_current <- function(time, age, sex, cure_days, boot, daily_survival, max_age=100){
     scale <- exp(boot[1] + age * boot[2] + sex * boot[3]) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot[4]
     ifelse(age*365 + time > (max_age * 365),
            0,
-           ifelse(time < cure_time,
+           ifelse(time < cure_days,
                   1 - pweibull(time, scale=scale, shape=shape),
-                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
+                  (1 - pweibull(cure_days, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_days]))
 }

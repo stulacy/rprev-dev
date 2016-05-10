@@ -91,7 +91,7 @@ test_output(countprev_current_output, countprev_dev)
 
 ```{r check_prevalence, cache=TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               registry_data, num_years_to_estimate = 10, cure_time = 10*365, 
+                               registry_data, num_years_to_estimate = 10, cure = 10, 
                                start='2004-01-30', num_reg_years=9)
 
 by_year_total <- prevalence_total$simulated_cases
