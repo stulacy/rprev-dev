@@ -12,3 +12,4 @@ SparseM
 rms
 knitr
 tidyr
+testthat

@@ -21,6 +21,7 @@ library(knitr)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
+library(testthat)
 ```
 
 ```{r data, cache=TRUE}
@@ -151,11 +152,49 @@ functional_form_age_current_output <- function() {
 }
 ```
 
-```{r check_functional_form_age_comp, message=T, cache=TRUE}
+```{r check_functional_form_age_comp, message=T, include=TRUE, fig.show=FALSE, cache=TRUE}
 test_output(functional_form_age_current_output, functional_form_age_dev)
 ```
 
-Although there is a failure here, the output from coxph looks exactly the same. 
+Although there is a failure here, the output from coxph looks exactly the same. A more detailed manual check shows this to be the case:
+
+```{r manual, message=T, include=TRUE, fig.show=FALSE, cache=TRUE}
+dev <- functional_form_age_dev()
+cur <- functional_form_age_current_output()
+
+dev[[1]] == cur[[1]]
+dev[[4]] == cur[[4]]
+dev[[5]] == cur[[5]]
+```
+
+The list elements were compared by inspection and were the same. I also tried comparisons with `testthat`:
+
+```{r testthat, message=T, error=TRUE, include=TRUE, fig.show=FALSE, cache=TRUE}
+test_that("functional form dev matches functional form cur",{
+    expect_equal(dev, cur)
+})
+```
+
+```{r testthat_detailed, message=T, error=TRUE, include=TRUE, fig.show=FALSE, cache=TRUE}
+
+test_that("functional form dev matches functional form cur [[2]]",{
+    expect_equal(dev[[2]], cur[[2]])
+})
+
+test_that("functional form dev matches functional form cur [[3]]",{
+    expect_equal(dev[[3]], cur[[3]])
+})
+
+test_that("functional form dev matches functional form cur [[4]]",{
+    expect_equal(dev[[4]], cur[[4]])
+})
+
+test_that("functional form dev matches functional form cur [[5]]",{
+    expect_equal(dev[[5]], cur[[5]])
+})
+```
+
+I need to get to the bottom of why these errors occur, and at some point I need to control the plotting side effects.
 
 ## survival_modelling_diagnostics
 
@@ -184,7 +223,7 @@ survival_modelling_diagnostics_current_output <- function() {
 test_output(survival_modelling_diagnostics_current_output, survival_modelling_diagnostics_dev)
 ```
 
-Here the output looks different; we seem to have lost a year of survival data.
+Here the output looks different; we seem to have lost a year of survival data. Next we will break the function up into smaller ones to generate each plot individually.
 
 ## sim_check
 
@@ -225,4 +264,4 @@ smo_current_output <- function() {
 test_output(smo_current_output, smo_dev)
 ```
 
-Success was achieved, then seed fixing was removed.
+Success was achieved, then seed fixing was removed. Next we will break the function up into smaller ones to generate each plot individually.
