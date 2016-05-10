@@ -1,76 +1,19 @@
 #' Synthetic patient dataset.
 #'
-#' A dataset synthesised to resemble a disease registry where patient cases are
-#' represented by a unique identifier. Demographic and disease-specific data
-#' required for prevalence estimations are included, such as sex, age, and dates
-#' of diagnosis and death or censorship. Deceased patients have \code{status = 1}, and the
-#' entry in \code{EventDate} is the date of their death. Patients censored at some point
-#' have \code{status = 0}, and the entry in \code{EventDate} is the date of their
-#' censorship. The counted prevalence calculation requires a specified index date after
-#' which all patient cases who are not deceased are censored, in this case 31st August 2013.
-#' The corresponding recoded indicator variable is \code{status2}.
+#' A dataset synthesised to resemble a disease registry of patient cases. Demographic and
+#' disease-specific variables required for prevalence estimation are included, such as sex, age,
+#' and dates of diagnosis, death and the corresponding indicator.
 #'
-#' @format A data frame with 1908 rows and 8 variables:
+#' @format A data frame with 1000 rows and 6 variables:
 #' \describe{
-#'  \item{ID}{ID, a unique identifier for the patient}
-#'  \item{sex}{sex, "0" for males or "1" for females}
-#'  \item{age}{age, in years}
-#'  \item{DateOfDiag}{date of diagnosis}
+#'  \item{time}{time between date of diagnosis and death or censorship, in days}
 #'  \item{status}{binary variable, 1 if patient is deceased and 0 if alive or censored}
-#'  \item{EventDate}{date of death or censorship}
-#'  \item{stime}{time between date of diagnosis and death or censorship, in days}
-#'  \item{status2}{numeric variable, 1 if deceased and 0 if censored at index date, otherwise NA}
+#'  \item{age}{age, in years}
+#'  \item{sex}{sex, "0" for males and "1" for females}
+#'  \item{entrydate}{date of diagnosis}
+#'  \item{eventdate}{date of death or censorship, corresponding to \code{status}}
 #' }
-"registry_data"
-
-#' Load registry data.
-#'
-#' @param data A registry dataset of patient cases. Cases with missing values will be removed.
-#' @param age_cut A number to define age cut-off in adult or paediatric analyses.
-#' @param age_initial The column name representing age at data_initial.
-#' @param date_initial The column name representing the date cases are added to the registry.
-#' @param indicator The column name representing a binary variable where 1 is event has occurred and 0 is event has not occurred, or the case is censored.
-#' @param survival_time The column representing time to event or censorship in days.
-#' @param date_event The column name representing the date an event or censorship has occurred.
-#' @param indicator_censored_at_index The column name representing a binary variable where 1 is event has occurred and 0 is event has not occurred, or the case is censored, by an index date of interest.
-#' @param sex Can be "Both" for all cases, "Males" or "Females". Please note that the column name must be exactly "sex" to enable correct filtering.
-#' @param age_division Can be "None", "Adult" or "Paediatric".
-#' @return A dataset restricted to a population of desired age and sex. Selected age, sex, date and indicator columns are named appropriately for use in subsequent functions within this package.
-#' @examples
-#' load("../data/registry_data.rda")
-#' summary(load_data(registry_data))
-load_data <- function(data,
-                      age_initial = "age",
-                      date_initial = "DateOfDiag",
-                      indicator = "status",
-                      survival_time = "stime",
-                      date_event = "EventDate",
-                      indicator_censored_at_index = "status2",
-                      sex = "Both",
-                      age_division = "None",
-                      age_cut = 20){
-
-    if(!sex %in% c('Both', 'Males', 'Females')) stop("error: incorrect sex.")
-    if(sex == "Males") data = filter(data, sex == 0)
-    if( sex == "Females") data = filter(data, sex == 1)
-
-    if(!age_division %in% c('None', 'Adult', 'Paediatric')) stop("error: incorrect age_division.")
-    if(age_division == "Adult") data = filter(data, age >= age_cut)
-    if(age_division == "Paediatric") data = filter(data, age < age_cut)
-
-    myCols <- c(age_initial, "sex", date_initial, indicator, survival_time, date_event, indicator_censored_at_index)
-    data <- data %>%
-        select(match(myCols, names(.)))
-
-    names(data) <- c("age_initial",
-                     "sex",
-                     "date_initial",
-                     "indicator",
-                     "survival_time",
-                     "date_event",
-                     "indicator_censored_at_index")
-    return(data)
-}
+"prevsim"
 
 #' Calculate absolute incidence from registry data.
 #'
