@@ -101,52 +101,10 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                                num_years = 8,
 #'                                colnames = names)
 #'
-#' TODO Rename N_years and num_years and make cure_time a number of years
 prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
-
-    ############################################
-    #
-    # TODO Remove when finished debugging
-    #set.seed(17)
-    #N_years = 10
-    ##data = subset(registry_data, sex==0)
-    #data = registry_data
-    #N_years = N_years
-    #cure_time = cure*365
-    #start = '2005-09-01'
-    #num_reg_years = 8
-    #N_boot = 1000
-    #max_yearly_incidence = 500
-    #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
-    #population_data = NULL
-    #parallel = F
-    ############################################
-    #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
-    #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
-    #prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
-    #prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
-    #prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime)
-    #prelim <- prelim[!is.na(prelim$sex), ]
-    #prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
-    #
-    #registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
-    #form = Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag)
-    #start='2007-09-01'
-    #
-    #num_reg_years=8
-    #N_years <- 10
-    #cure <- 3
-    #cure_time = cure * 365
-    #N_boot = 1000
-    #pop_vers = 1
-    #max_yearly_incidence = 500
-    #data = prelim_r
-    #n_cores = 1
-    #population_data = NULL
-    #############################################
 
     if (n_cores > 1) {
         if (!require(doParallel)) {
@@ -213,7 +171,7 @@ prevalence <- function(form, data, N_years,
 
     population_data$sex <- as.factor(population_data$sex)
 
-    if (!all(levels(population_data$sex) == levels(data[, sex_var])))
+    if (!all(levels(data[, sex_var]) %in% levels(population_data$sex)))
         stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
 
     surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])),
@@ -221,6 +179,8 @@ prevalence <- function(form, data, N_years,
 
     # Calculate bootstrapped weibull coefficients for registry data
     data_r <- data[data[, entry_var] >= start, ]
+
+    # Specify whether to include sex as a survival variable or not, this should be included within the formula!
     req_covariate <- ifelse(length(levels(data_r[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
     surv_form <- as.formula(paste(deparse(resp), '~',
                                   req_covariate,
@@ -585,7 +545,6 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
     if (! all(age_intervals >= 0))
         stop("Must have positive ages")
 
-    # TODO Can this not be refactored somewhat?
     the_dist <- object$post[, , (object$nregyears + 1):object$nyears]
     the_dist <- the_dist[!is.na(the_dist)]
 
