@@ -1,38 +1,19 @@
 #' General population survival data.
 #'
-#' A dataset containing basic mortality rates of males and females of different ages from
+#' A dataset containing basic mortality rates stratified by sex and age (yearly from 0 to 100) from
 #' the UK population, obtained from:
 #' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
 #' Adapted from public sector information licensed under the Open Government Licence v3.0.
 #' Data were relabelled according to the mean year of the three-year birth window.
-#' The user is advised to select "population_data" or "population_data_mx" according to their needs.
 #'
-#' @format A data frame with 6666 rows and 4 variables:
+#' @format A data frame with 6666 rows and 4 columns:
 #' \describe{
-#'  \item{calendar_year}{year}
-#'  \item{sex}{sex, "Males" or "Females"}
-#'  \item{age}{age, in years}
-#'  \item{rate}{death rate, by year}
+#'  \item{calendar_year}{(double) year}
+#'  \item{sex}{(integer) sex encoded as 0 for males and 1 for females}
+#'  \item{age}{(double) age in years}
+#'  \item{rate}{(double) death rate}
 #' }
-"population_data"
-
-#' General population survival data.
-#'
-#' A dataset containing central rates of mortality of males and females of different ages from
-#' the UK population, obtained from:
-#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
-#' Adapted from public sector information licensed under the Open Government Licence v3.0.
-#' Data were relabelled according to the mean year of the three-year birth window.
-#' The user is advised to select "population_data" or "population_data_mx" according to their needs.
-#'
-#' @format A data frame with 6666 rows and 4 variables:
-#' \describe{
-#'  \item{calendar_year}{year}
-#'  \item{sex}{sex, "Males" or "Females"}
-#'  \item{age}{age, in years}
-#'  \item{rate}{death rate, by year}
-#' }
-"population_data_mx"
+"UKmortality"
 
 #' Population survival rate.
 #'
@@ -49,48 +30,17 @@ population_survival_rate <- function(form, data, max_age=100){
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
     data[, age_var] <- floor(data[, age_var])
-    
+
     rate <- vapply(seq(0, max_age-1),
                    function(x) mean(data[data[,age_var]==x, rate_var]),
                    numeric(1))
-    
+
     a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[max_age] - rate[max_age-1])
     base <- 183 + 365 * (1:max_age) # Where does 183/182 come from?
     base <- c(-182, 183, base)
     daily_rate <- approx(base, a_rate, 1:(max_age * 365))
     daily_rate <- daily_rate$y / 365
     cumprod(1 - daily_rate)
-}
-
-#' Population survival rate.
-#'
-#' @param data A dataset of population survival data by year.
-#' @param sex Can be "Males" or "Females".
-#' @return An estimate of the survival rate by day for ages <=100 years.
-#' @examples
-#' daily_survival_males <- daily_survival_rate(population_data_mx, sex = "Males")
-#' daily_survival_females <- daily_survival_rate(population_data_mx, sex = "Females")
-daily_survival_rate_current <- function(data, sex){
-    
-    if(sex != "Males" & sex != "Females") stop("error: incorrect sex.")
-    if(sex == "Males") data = filter(data, sex == 0)
-    if(sex == "Females") data = filter(data, sex == 1)
-    data <- data %>%
-        select(age, rate)
-    
-    rate <- rep(NA, 100)
-    for (i in 0:99){
-        rate[i + 1] <- mean(data$rate[data$age == i])
-    }
-    a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[100] - rate[99])
-    daily_rate <- rep(0, 365 * 100)
-    base <- 183 + 365 * (1:100)
-    base <- c(-182, 183, base)
-    daily_rate <- approx(base, a_rate, 1:(100 * 365))
-    daily_rate <- daily_rate$y
-    daily_rate <- daily_rate/365
-    return(daily_rate)
-    
 }
 
 #' Calculate bootstrap survival coefficients as a way to estimate uncertainty
@@ -106,16 +56,16 @@ daily_survival_rate_current <- function(data, sex){
 registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1){
     data_trans <- .transform_registry_data(form, data) # df -> matrix, log transform stimes. Required for survreg.fit
     coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot, n_cores=n_cores)
-    
-    if (sum(.row_any_error(coefs)) > 1) 
+
+    if (sum(.row_any_error(coefs)) > 1)
         warning("Error in cox.ph, possibly due to small number of events in bootstrap sample. Replacing with a new sample.")
-    
+
     # Keep bootstrapping new samples to get non-NA coefficients
     while (sum(.row_any_error(coefs)) > 1) {
         is_error <- .row_any_error(coefs)
         coefs[is_error] <- .calculate_bootstrapped_coefficients(data_trans, sum(is_error))
     }
-    
+
     # Need to transform scale back from log scale
     coefs[, ncol(coefs)] <- exp(coefs[, ncol(coefs)])
     coefs
@@ -124,11 +74,11 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 .calculate_bootstrapped_coefficients <- function(data, N, n_cores=1) {
     n_obs <- nrow(data)
     n_coef <- ncol(data) - 1  # minus 2 for time + status, + 1 for shape
-    
+
     if (n_cores > 1) {
         cl <- makeCluster(n_cores)
         registerDoParallel(cl)
-        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind', 
+        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind',
                 .inorder=F, .export='.calculate_coefficients') %dopar% {
             .calculate_coefficients(data, n_obs, n_coef)
         }
@@ -166,7 +116,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
 }
 
 .row_any_error <- function(matrix) {
-    # Matrix is a N row matrix, this function calculates which rows of this matrix contain errors 
+    # Matrix is a N row matrix, this function calculates which rows of this matrix contain errors
     # Returns a logical vector of N length
     # 3 types of errors:
     #   - NA
@@ -183,28 +133,6 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
     survobj <- with(complete, eval(form[[2]]))
     Y <- cbind(log(survobj[, 1]), survobj[, 2])
     cbind(Y, X)
-}
-
-#' Calculate bootstrap survival coefficients as a way to estimate uncertainty
-#' of the survival model.
-#' @param data Dataset of patient cases generated by load_data(), restricted to the first complete year
-#'        of the registry.
-#' @param N_boot Number of replicates.
-#' @return The coefficients from a Weibull survival model fitted to each bootrapped sample.
-#' @examples
-#' registry_survival_bootstrapped_current(data, N_boot = 1000)
-registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
-    
-    boot <- matrix(0, nrow=N_boot, ncol=4)
-    for (i in 1:N_boot){
-        ith_sample <- sample(1:(dim(data)[1]), dim(data)[1], replace=T)
-        ith_data <- data[ith_sample, ]
-        wbb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data=ith_data)
-        boot[i, ] <- c(wbb$coe, wbb$scale)
-    }
-    
-    return(boot)
-    
 }
 
 #' Survival function for males or females, modelled on patient data until cure_time, then
@@ -226,14 +154,4 @@ prob_alive <- function(time, data, cure_time, boot_coefs, pop_surv_rate, max_age
            ifelse(time < cure_time,
                   1 - pweibull(time, scale=scale, shape=shape),
                   (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
-}
-
-prob_alive_current <- function(time, age, sex, cure_time, boot, daily_survival, max_age=100){
-    scale <- exp(boot[1] + age * boot[2] + sex * boot[3]) + 0.000001  # Hack to ensure scale != 0
-    shape <- 1 / boot[4]
-    ifelse(age*365 + time > (max_age * 365),
-           0,
-           ifelse(time < cure_time,
-                  1 - pweibull(time, scale=scale, shape=shape),
-                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_time]))
 }
