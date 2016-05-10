@@ -19,17 +19,18 @@ This document lists the changes made to the prevalence code in the current devel
 **NB: Required packages aren't being loaded with the package, i.e. `survival` and `dplyr`. The DESCRIPTION file isn't loading them despite listing them as required. Do they need to be told to be explicitly loaded somewhere else, and DEPENDENCIES just lists those which must be installed?**
 
 ```{r, message=F, output=F, warning=F}
-library(dplyr)
-library(abind)
-library(rms)
-library(survival)
 library(devtools)
+devtools::load_all()
+library(prevR)
+#library(abind)
+#library(rms)
+#library(survival)
+
+library(dplyr)
 library(knitr)
 library(tidyr)
 library(ggplot2)
-library(dplyr)
 library(doParallel)
-devtools::load_all()
 registry_data <- readRDS("data/registry_data.rds")
 N_years <- 10
 cure <- 3
@@ -334,7 +335,7 @@ I'll compare the functions on their average predicted prevalence rates.
 
 ```{r, message=T}
 test_output(function() prev_current_output()[[1]], 
-            function() prev_dev()$cases_avg)
+            function() prev_dev()$simulated_cases)
 ```
 
 This indicates that while the exact same average predicted prevalence rates aren't being calculated, but they are similar enough. 
@@ -349,8 +350,8 @@ f_dev <- prev_dev()
 cases_curr <- data.frame(lapply(setNames(seq(dim(f_cur[[3]])[1]), seq(dim(f_cur[[3]])[1])), 
                                 function(x) f_cur[[3]][x, ]),
                          method='current')
-cases_dev <- data.frame(lapply(setNames(seq(dim(f_dev$cases_total)[1]), seq(dim(f_dev$cases_total)[1])), 
-                               function(x) f_dev$cases_total[x, ]),
+cases_dev <- data.frame(lapply(setNames(seq(dim(f_dev$samples)[1]), seq(dim(f_dev$samples)[1])), 
+                               function(x) f_dev$samples[x, ]),
                         method='new')
 cases_comb <- rbind(cases_curr, cases_dev)
 
@@ -384,8 +385,8 @@ Another diagnostic is looking at the posterior age distributions of the people a
 The plot below indicates they are extremely similar, and so it doesn't seem worthwhile running a significance test on it.
 
 ```{r, message=F, warning=F}
-post_cmp <- data.frame(age=c(as.vector(f_cur[[2]]), as.vector(f_dev$post)),
-                       method=rep(c('current', 'dev'), c(length(f_cur[[2]]), length(f_dev$post))))
+post_cmp <- data.frame(age=c(as.vector(f_cur[[2]]), as.vector(f_dev$post_covar)),
+                       method=rep(c('current', 'dev'), c(length(f_cur[[2]]), length(f_dev$post_covar))))
 ggplot(post_cmp, aes(age, fill=method)) +
     geom_histogram(position='identity', alpha=0.7) +
     scale_fill_discrete("prevalence version") +
