@@ -75,6 +75,10 @@ plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(smooth, ordered
 inspect_incidence(c_inc)
 
 poisson_incidence_sim(c_inc)
+
+print.incidence(c_inc)
+
+summary.incidence(c_inc)
 ```
 
 The age distribution of incident cases can also be inspected:
