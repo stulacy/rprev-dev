@@ -1,10 +1,12 @@
-#' Estimate consistency of incidence data with a homogeneous Poisson process.
+#' Estimate consistency of incidence data with an homogeneous Poisson process.
 #'
-#' This function compares the actual variance of the yearly incidence rates with rates simulated from a Poisson process with overall rate equal to the overall mean rate.
+#' This function compares the actual variance of the yearly incidence rates with rates
+#' simulated from a Poisson process with overall rate equal to the overall mean rate.
 #'
 #' @param data Vector of absolute incidence for each complete year of the registry.
 #' @param N_sim Integer to specify number of simulations.
-#' @return Vector of p values for over- and under-dispersion based on the position of the observed sequence variance in the distribution.
+#' @return Vector of p values for over- and under-dispersion based on the position of the
+#' observed sequence variance in the distribution.
 #' @examples
 #' sim_check(incidence(registry_data$entrydate))
 sim_check <- function(data, N_sim = 100000){
@@ -12,13 +14,15 @@ sim_check <- function(data, N_sim = 100000){
   c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
 
-#' Estimate consistency of incidence data with a homogeneous Poisson process.
+#' Estimate consistency of incidence data with aN homogeneous Poisson process.
 #'
-#' This function compares the actual variance of the yearly incidence rates with rates simulated from a Poisson process with overall rate equal to the overall mean rate.
+#' This function compares the actual variance of the yearly incidence rates with rates
+#' simulated from a Poisson process with overall rate equal to the overall mean rate.
 #'
 #' @param data Vector of absolute incidence for each complete year of the registry.
 #' @param N_sim Integer to specify number of simulations.
-#' @return Vector of p values for over- and under-dispersion based on the position of the observed sequence variance in the distribution.
+#' @return Vector of p values for over- and under-dispersion based on the position of the
+#' observed sequence variance in the distribution.
 #' @examples
 #' sim_check(raw_incidence)
 sim_check_current <- function(data, N_sim = 100000){
@@ -30,209 +34,6 @@ sim_check_current <- function(data, N_sim = 100000){
         var_sim[i] <- var(thesims)
     }
     return(c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim))
-}
-
-#' Estimate smoothed incidence functions and inspect deviations in the registry data.
-#'
-#' The first plot shows the cumulative number of diagnoses in the registry by day in black.
-#' This is compared to the red line, which indicates what cumulative diagnosis would look
-#' like if the rate of diagnosis was constant. The green line is a smooth fitted to the
-#' actual cumulative diagnosis data. The second plot shows the deviation of the raw data from
-#' the fitted smooth by day.
-#'
-#' The third plot shows the incidence rate per year of the registry, plotted in red. Mean
-#' incidence rate is shown as a dashed black line, with the 95\% confidence interval shown with
-#' dashed blue lines. A smooth fitted to the incidence data is shown in green. In the final
-#' plot, the red line is the deviation of cumulative diagnoses from the fitted smooth (the same
-#' as the black line in plot 2). In order to ascertain if the deviation is within reasonable
-#' bounds, simulation is used. The grey lines represent N draws from a uniform distribution
-#' between 0 and the last day of diagnosis, where N is the number of incident cases, plotted
-#' as deviations from the smooth of cumulative diagnoses. The blue lines are 95\% confidence
-#' intervals drawn from the simulated data.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param N Number of draws from a homogeneous Poisson process.
-#' @param df Degrees of freedom for the smoothening function.
-#' @return Plots of the smoothed incidence function and corresponding deviations.
-#' @examples
-#' smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
-smoothed_incidence <- function(entry, start = NULL, num_reg_years = NULL, N=1000, df=6){
-
-  if (is.null(start))
-      start <- min(entry)
-
-  if (is.null(num_reg_years))
-      num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
-
-  raw_incidence <- incidence(entry, start, num_reg_years)
-
-  # Slightly confused that the following are not all integers:
-  dfr_diags <- sort(as.numeric(difftime(entry, min(entry), units='days')))
-  cum_inc <- seq(length(dfr_diags))
-  smo <- smooth.spline(dfr_diags, cum_inc, df=df)
-
-  par(mfrow=c(2,2))
-
-  plot(dfr_diags, cum_inc, pch=20, cex=0.7, xlab="days", ylab="cumulative diagnoses")
-  abline(a=0, b=length(dfr_diags)/dfr_diags[length(dfr_diags)], col="red", lwd=2)
-  lines(smo, col="green", lwd=2)
-
-  plot(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, type="l", xlab="days", ylab="deviation from smooth")
-  mean_rate <- mean(raw_incidence)
-  day_mean_rate <- mean_rate/365
-  CI_lim <- 1.96 * sqrt(mean_rate)/365
-  pl_lim <- CI_lim * 2.0
-
-  plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
-       xlab="days", ylab="incidence rate",
-       ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-  lines(predict(smo, 1:(365*num_reg_years), deriv=1), type="l", lwd=2, col="green")
-
-  abline(h = day_mean_rate, lty=2)
-  abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
-  abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
-
-  N <- length(dfr_diags)
-  M <- 1000
-  boot_out <- matrix(NA, nrow = M, ncol = N)
-
-  for (i in 1:M){
-    x <- sort(runif(N, 0, max(dfr_diags)))
-    the_smo <- smooth.spline(x, 1:N, df=4)
-    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
-  }
-
-  plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-0.8*max(boot_out),0.8*max(boot_out)), xlab="days", ylab="deviation from smooth")
-  sapply(seq(1000),
-         function(i) lines(x, boot_out[i,], col="grey"))
-
-  lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
-  lines(x, apply(boot_out, 2, quantile, probs=0.975), col="blue")
-  lines(x, apply(boot_out, 2, quantile, probs=0.025), col="blue")
-
-}
-
-smoothed_incidence_current <- function(entry, start, num_reg_years, N=1000, df=6){
-
-  raw_incidence <- incidence(entry, start, num_reg_years=num_reg_years)
-
-  dg <- as.numeric(difftime(entry, min(entry), units='days'))
-
-  dfr_diags <- sort(dg)
-  cum_inc <- 1:length(dfr_diags)
-  smo <- smooth.spline(dfr_diags, cum_inc, df=df)
-
-  plt1 <- plot(dfr_diags, cum_inc, pch=20, cex=0.7, xlab="days", ylab="cumulative diagnoses")
-  abline(a=0, b=length(dfr_diags)/dfr_diags[length(dfr_diags)], col="red", lwd=2)
-  lines(smo, col="green", lwd=2)
-
-  plt2 <- plot(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, type="l", xlab="days", ylab="deviation from smooth")
-  mean_rate <- mean(raw_incidence)
-  day_mean_rate <- mean_rate/365
-  CI_lim <- 1.96 * sqrt(mean_rate)/365
-  pl_lim <- CI_lim * 2.0
-  pre_smo <- predict(smo, 1:(365*num_reg_years), deriv=1)
-
-  plt3 <- plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
-       xlab="days", ylab="incidence rate",
-       ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-  lines(pre_smo, type="l", lwd=2, col="green")
-
-  abline(h = day_mean_rate, lty=2)
-  abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
-  abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
-
-  N <- length(dfr_diags)
-  M <- 1000
-  boot_out <- matrix(NA, nrow = M, ncol = N)
-
-  for (i in 1:M){
-    x <- sort(runif(N, 0, max(dfr_diags)))
-    the_smo <- smooth.spline(x, 1:N, df=4)
-    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
-  }
-
-  plt4 <- plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-20,20), xlab="days", ylab="deviation from smooth")
-  for (i in 1:M){
-    lines(x, boot_out[i,], col="grey")
-  }
-
-  lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
-
-  upper_lim <- apply(boot_out, 2, quantile, probs=0.975)
-  lower_lim <- apply(boot_out, 2, quantile, probs=0.025)
-
-  lines(x, upper_lim, col="blue")
-  lines(x, lower_lim, col="blue")
-
-  return(list(plt1, plt2, plt3, plt4))
-
-}
-
-smoothed_incidence_gg <- function(entry, start, num_reg_years, N=1000, df=6){
-
-  raw_incidence <- incidence(entry, start, num_reg_years=num_reg_years)
-
-  dg <- as.numeric(difftime(entry, min(entry), units='days'))
-
-  dfr_diags <- sort(dg)
-  cum_inc <- 1:length(dfr_diags)
-  smo <- smooth.spline(dfr_diags, cum_inc, df=df)
-
-  plt1 <- plot(dfr_diags, cum_inc, pch=20, cex=0.7, xlab="days", ylab="cumulative diagnoses")
-  abline(a=0, b=length(dfr_diags)/dfr_diags[length(dfr_diags)], col="red", lwd=2)
-  lines(smo, col="green", lwd=2)
-
-  plt2 <- plot(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, type="l", xlab="days", ylab="deviation from smooth")
-  mean_rate <- mean(raw_incidence)
-  day_mean_rate <- mean_rate/365
-  CI_lim <- 1.96 * sqrt(mean_rate)/365
-  pl_lim <- CI_lim * 2.0
-  pre_smo <- predict(smo, 1:(365*num_reg_years), deriv=1)
-
-  plt3 <- plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
-       xlab="days", ylab="incidence rate",
-       ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-  lines(pre_smo, type="l", lwd=2, col="green")
-
-  abline(h = day_mean_rate, lty=2)
-  abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
-  abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
-
-  N <- length(dfr_diags)
-  M <- 1000
-  boot_out <- matrix(NA, nrow = M, ncol = N)
-
-  for (i in 1:M){
-    x <- sort(runif(N, 0, max(dfr_diags)))
-    the_smo <- smooth.spline(x, 1:N, df=4)
-    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
-  }
-
-  plt4 <- plot(NA, xlim=c(0,max(dfr_diags)), ylim=c(-20,20), xlab="days", ylab="deviation from smooth")
-  for (i in 1:M){
-    lines(x, boot_out[i,], col="grey")
-  }
-
-  lines(dfr_diags, cum_inc - predict(smo, dfr_diags)$y, col="red")
-
-  upper_lim <- apply(boot_out, 2, quantile, probs=0.975)
-  lower_lim <- apply(boot_out, 2, quantile, probs=0.025)
-
-  lines(x, upper_lim, col="blue")
-  lines(x, lower_lim, col="blue")
-
-  return(list(plt1, plt2, plt3, plt4))
-
 }
 
 #' Plot the age distribution of incident cases in the registry data.
@@ -284,106 +85,14 @@ incidence_age_distribution_current <- function(data, registry_years, registry_st
 #' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
 #' cases shown in blue.
 #'
-#' @param form
+#' @param form ...
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
 #' @param start Date from which incident cases are included.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
-#' @examples
-#' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
-#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_reg_years = 9)
-survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_reg_years = NULL){
-
-    ### TO DO/discuss:
-    # ?Too much duplicated code with prevalence() to extract variables from formula
-    # Make generic to not just age cuts
-
-    # Extract required column names from formula
-    spec <- c('age', 'entry')
-    terms <- terms(form, spec)
-    special_indices <- attr(terms, 'specials')
-
-    if (any(sapply(special_indices, is.null)))
-        stop("Error: Provide function terms for age and entry date.")
-
-    v <- as.list(attr(terms, 'variables'))[-1]
-    var_names <- unlist(lapply(special_indices, function(i) v[i]))
-
-    age_var <- .extract_var_name(var_names$age)
-    entry_var <- .extract_var_name(var_names$entry)
-
-    # Extract survival formula
-    response_index <- attr(terms, 'response')
-    resp <- v[response_index][[1]]
-    non_covariate_inds <- c(response_index, unlist(special_indices))
-    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
-
-    if (length(covar_names) > 0)
-        stop("Error: Functionality isn't currently provided for additional covariates.")
-
-    # Determine the registry years of interest from assessing the code
-    if (is.null(start))
-        start <- min(data[, entry_var])
-
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
-
-    # Check ages input is correct
-    if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
-    if (is.vector(ages) != TRUE) stop("Error: ages is not a vector.")
-
-    par(mfrow=c(2,2))
-
-    # Plot KM overall
-    data_r <- data[data[, entry_var] >= start, ]
-    surv_form_1 <- as.formula(paste(deparse(resp), '~ 1'))
-    km <- survfit(surv_form_1, data_r)
-    plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
-
-    # Plot KM stratified by age
-    plot(survfit(as.formula(paste(deparse(resp), '~ cut(',
-                                          age_var, ', breaks = ages)', sep='')), data_r),
-                 lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
-    cx <- coxph(as.formula(paste(deparse(resp), '~ ', age_var, sep='')), data_r)
-    cxp <- survfit(cx,
-                   newdata=data.frame(assign(age_var,
-                                             vapply(seq(length(ages) - 1),
-                                                    function(i) mean(c(ages[i], ages[i + 1])),
-                                                    numeric(1)))))
-    lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
-
-    # Plot coxph residuals
-    plot(cox.zph(cx))
-
-    # Plot KM stratified by year of diagnosis
-    plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-    registry_years <- .determine_registry_years(start, num_reg_years)
-    sapply(seq(num_reg_years),
-           function(i) lines(survfit(surv_form_1,
-                                     data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]),
-                             mark.time = F, conf.int = F))
-
-    # Output plots and test of proportionality assumption
-    return(cox.zph(cx))
-
-}
-
-#' Inspect consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
-#'
-#' The first plot is of the Kaplan-Meier survival curve on total cases in the registry. The second plot is the
-#' Kaplan-Meier survival curve for each age group, as delineated by the user using the "ages" argument. The third
-#' plot is of the residuals between the raw data and the fitted Cox Proportional Hazards model. If the model is
-#' a good representation of the data the line should be horizontal. The last plot is of Kaplain Meier survival
-#' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
-#' cases shown in blue.
-#'
-#' @param form
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
-#' @param start Date from which incident cases are included.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence
+#' is to be calculated.
+#' @return A sequence of plots indicated the consistency of survival data between years of the registry
+#' and with a Cox Proportional Hazards model.
 #' @examples
 #' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
 #' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_reg_years = 9)
@@ -456,9 +165,6 @@ survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, n
         function(i) lines(survfit(surv_form_1,
                                   data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]),
                           mark.time = F, conf.int = F))
-
-  sapply(seq(num_reg_years),
-         function(i) length(data$entrydate[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1]]))
 
   # Output plots and test of proportionality assumption
   return(list(plt1, plt2, plt3, plt4, output))
@@ -587,7 +293,8 @@ functional_form_age <- function(form, data, df=4){
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.
 #' @examples
-#' functional_form_age_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year)
+#' functional_form_age_current(load_data(registry_data), registry_years,
+#' registry_start_year = registry_start_year, registry_end_year = registry_end_year)
 functional_form_age_current <- function(data, registry_years, registry_start_year, registry_end_year, df=4){
 
     data_r <- data[data$date_initial >= registry_years[registry_start_year] & data$date_initial < registry_years[registry_end_year], ]
@@ -799,7 +506,8 @@ prev_chisq <- function(entry, events, status, by_year, start=NULL, num_reg_years
 #' @param registry_end_year Ordinal defining the last year of the registry data to be used.
 #' @return Plots of the smoothed incidence function and corresponding deviations.
 #' @examples
-#' prev_chisq_current(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
+#' prev_chisq_current(load_data(registry_data), registry_years = registry_years,
+#' registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
 prev_chisq_current <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
 
     observed <- counted_prevalence_current(data, registry_years, registry_start_year, registry_end_year)
