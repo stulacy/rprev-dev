@@ -1,3 +1,33 @@
+#' Print the current value of the incidence object.
+#'
+#' @param object ...
+#' @return ...
+#' @examples ...
+print.incidence <- function(object, ...) {
+    cat(paste("Mean incidence per year of the registry is ", round(mean(object$raw_incidence),2),
+              ", with standard deviation ", round(sd(object$raw_incidence),2), ".\n", sep=''))
+}
+
+#' Generate a summary of the prevalence object.
+#'
+#' @param object ...
+#' @return ...
+#' @examples ...
+summary.incidence <- function(object, ...) {
+    cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("Number of years:", length(object$raw_incidence), "\n")
+
+    cat("\n\nIncidence\n~~~~~~~~~\n")
+
+    cat("Known incidence by year:", object$raw_incidence, "\n")
+
+    cat("Diagnoses (time since registry began):\n")
+    print(summary(object$ordered_diagnoses))
+
+    cat("Fitted smooth:\n")
+    print(object$smooth)
+}
+
 #' Print the current value of the prevalence object.
 #'
 #' @param object ...
