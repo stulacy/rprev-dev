@@ -3,3 +3,4 @@
   - Sort importing packages issue, if use "imports" in DESCRIPTION then how to actually import functions? I.e. if run library(prevR) then survival doesn't get loaded
   - How should prevalence_by_age (and possibly others, n_years_estimate?) behave when num_registry_years >= num_prevalent_years? Currently, prevalence_by_age only calculates age distribution of the simulated years, should it be renamed to reflect this? Should it incorporate the prior age distribution? At the very least this needs to be highlighted in the documentation.
   - Rename prevalence attributes (i.e. 'samples' not very descriptive)
+  - Redo prev_chisq to apply to prevalence object
