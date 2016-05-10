@@ -58,7 +58,15 @@ sim_check(raw_incidence)
 ```
 
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
-smoothed_incidence(registry_data$entrydate, start="2004-01-30", num_years=9)
+par(mfrow=c(2,2))
+c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+ordered_diagnoses <- c_inc$ordered_diagnoses
+
+plot(ordered_diagnoses, c_inc$cumulative_incidence, pch=20, cex=0.7, xlab="days", 
+     ylab="cumulative diagnoses")
+abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)], 
+       col="red", lwd=2)
+lines(c_inc$smooth, col="green", lwd=2)
 ```
 
 The age distribution of incident cases can also be inspected:
