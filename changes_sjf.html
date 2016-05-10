@@ -186,10 +186,10 @@ countprev_current_output &lt;- function() {
 <div id="prev_chisq" class="section level2">
 <h2>prev_chisq</h2>
 <pre class="r"><code>prevalence_total &lt;- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               registry_data, N_years = 10, cure_time = 10*365, 
+                               registry_data, num_years_to_estimate = 10, cure_time = 10*365, 
                                start='2004-01-30', num_reg_years=9)
 
-by_year_total &lt;- prevalence_total[[1]]
+by_year_total &lt;- prevalence_total$simulated_cases
 
 prevchisq_dev &lt;- function() {
   prev_chisq(registry_data$entrydate,

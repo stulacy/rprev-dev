@@ -28,7 +28,7 @@ library(ggplot2)
 library(dplyr)
 load("H:/Repos/prevR/data/prevsim.rda")
 registry_data <- prevsim
-N_years <- 10
+num_years_to_estimate <- 10
 cure <- 3
 
 summary(registry_data)
@@ -40,7 +40,7 @@ plot(survf, lwd=2, col = c(1:2), xlab="survival (days)", ylab="probability")
 legend(3000, 1, c("Males", "Females"), lty = 1, col=c(1:2))
 ```
 
-*prevsim* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `N_years` corresponds to the number of preceding years for which prevalence is predicted. 
+*prevsim* is a synthesised dataset to resemble registry data, such as that found in HMRN. Incident cases are recorded from `r min(registry_data$entrydate)` to `r max(registry_data$entrydate)`, and events occur between `r min(registry_data$eventdate)` and `r max(registry_data$eventdate)`. `cure` represents the survival model used in the predictions, i.e. 3 means a patient can be considered cured 3 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. `num_years_to_estimate` corresponds to the number of preceding years for which prevalence is predicted. 
 
 ## Incidence
 
@@ -182,7 +182,7 @@ Prevalence can now be estimated using simulation:
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               registry_data, N_years = N_years, cure_time = cure*365, 
+                               registry_data, num_years_to_estimate, cure_time = cure*365, 
                                start='2004-01-30', num_reg_years=9)
 
 print(prevalence_total)
@@ -248,9 +248,9 @@ prevalence_by_age(prevalence_total, age_intervals=seq(10, 100, by=10))
 As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n*. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion. `by_year_samples_total` contains the raw prevalence data for each bootstrapped sample:
 
 ```{r nyrest3, error = TRUE} 
-n_year_estimates(prevalence_total, N_years = 3, population_size = 3500000)
+n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 3500000)
 
-n_year_estimates(prevalence_total, N_years = 5, population_size = 3500000)
+n_year_estimates(prevalence_total, num_years_to_estimate = 5, population_size = 3500000)
 
-n_year_estimates(prevalence_total, N_years = 10, population_size = 3500000)
+n_year_estimates(prevalence_total, num_years_to_estimate = 10, population_size = 3500000)
 ```
