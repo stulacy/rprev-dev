@@ -366,9 +366,6 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
                                      data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]), 
                              mark.time = F, conf.int = F)) 
     
-    sapply(seq(num_years),
-           function(i) length(data$entrydate[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1]]))
-    
     # Output plots and test of proportionality assumption
     return(cox.zph(cx))
     
