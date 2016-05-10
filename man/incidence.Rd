@@ -20,6 +20,11 @@ Vector of length num_reg_years of doubles, representing the number of absolute i
 Calculate absolute incidence from registry data.
 }
 \examples{
+data(prevsim)
+
 incidence(prevsim$entrydate, start="2004-01-01", 8)
+incidence(prevsim$entrydate)
+incidence(prevsim$entrydate, start="2005-05-01", 5)
+incidence(prevsim$entrydate, start="2005-05-01")
 }
 

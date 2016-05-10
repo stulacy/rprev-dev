@@ -28,6 +28,8 @@
 #' @param num_reg_years (integer): The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.
 #' @return Vector of length num_reg_years of doubles, representing the number of absolute incidence values for each included year of the registry.
 #' @examples
+#' data(prevsim)
+#'
 #' incidence(prevsim$entrydate, start="2004-01-01", 8)
 #' incidence(prevsim$entrydate)
 #' incidence(prevsim$entrydate, start="2005-05-01", 5)
@@ -66,10 +68,12 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' \item{per100K.upper}{Upper bounds of the specified confidence level on the per one hundred thousand estimate}
 #'
 #' @examples
-#' incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
-#' incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6)
-#' incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
-#' incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+#' data(prevsim)
+#'
+#' meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
+#' meanIR(prevsim$entrydate, population_size=3.5e6)
+#' meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
+#' meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 meanIR <- function(entry, population_size, start=NULL, num_reg_years=NULL, precision = 2, level=0.95){
 
     if (is.null(start))

@@ -32,9 +32,11 @@ A list with the following values:
 Convert absolute incidence values to per 100,000 population values.
 }
 \examples{
-incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
-incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6)
-incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
-incidence_rates <- meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+data(prevsim)
+
+meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
+meanIR(prevsim$entrydate, population_size=3.5e6)
+meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
+meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 }
 
