@@ -88,12 +88,12 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #' @param max_yearly_incidence Integer larger than the expected yearly incidence
 #'        to allow for variation in incidence between years.
 #' @param pop_vers ...
-#' @param colnames Vector of column names indicating required variables: age, sex, entry_date, status and time.
+#' @param colnames Vector of column names indicating required variables: age, sex, entry, status and time.
 #' @return Predicted number of prevalent cases for each year, the age distribution of the
 #'        prevalent cases, an indication of sampling variation and raw incidence data to
 #'        allow for crosschecking with previous calculations.
 #' @examples
-#' names = list(age = 'age', sex = 'sex', entry_date = 'DateOfDiag', status = 'status', time ='stime')
+#' names = list(age = 'age', sex = 'sex', entry = 'DateOfDiag', status = 'status', time ='stime')
 #' prevalence_total <- prevalence(registry_data,
 #'                                N_years = 10,
 #'                                cure_time = 10*365,
@@ -257,9 +257,9 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.prevalence_subgroup <- function(prior_age_d, entry_dates, start, wboot, nregyears, survfunc,
+.prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
                                  cure, sex, max_year_inc, nprevyears, include_sex) {
-    fix_rate_rev <- rev(incidence(entry_dates, start, num_reg_years=nregyears))
+    fix_rate_rev <- rev(incidence(entry, start, num_reg_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence

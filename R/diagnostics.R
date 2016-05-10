@@ -59,7 +59,7 @@ sim_check_current <- function(data, N_sim = 100000){
 #' @return Plots of the smoothed incidence function and corresponding deviations.
 #' @examples
 #' smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
-smoothed_incidence <- function(entry_date, start = NULL, num_reg_years = NULL, N=1000, df=6){
+smoothed_incidence <- function(entry, start = NULL, num_reg_years = NULL, N=1000, df=6){
 
   if (is.null(start))
       start <- min(entry)
@@ -67,10 +67,10 @@ smoothed_incidence <- function(entry_date, start = NULL, num_reg_years = NULL, N
   if (is.null(num_reg_years))
       num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-  raw_incidence <- incidence(entry_date, start, num_reg_years)
+  raw_incidence <- incidence(entry, start, num_reg_years)
 
   # Slightly confused that the following are not all integers:
-  dfr_diags <- sort(as.numeric(difftime(entry_date, min(entry_date), units='days')))
+  dfr_diags <- sort(as.numeric(difftime(entry, min(entry), units='days')))
   cum_inc <- seq(length(dfr_diags))
   smo <- smooth.spline(dfr_diags, cum_inc, df=df)
 
@@ -117,11 +117,11 @@ smoothed_incidence <- function(entry_date, start = NULL, num_reg_years = NULL, N
 
 }
 
-smoothed_incidence_current <- function(entry_date, start, num_reg_years, N=1000, df=6){
+smoothed_incidence_current <- function(entry, start, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start, num_reg_years=num_reg_years)
+  raw_incidence <- incidence(entry, start, num_reg_years=num_reg_years)
 
-  dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
+  dg <- as.numeric(difftime(entry, min(entry), units='days'))
 
   dfr_diags <- sort(dg)
   cum_inc <- 1:length(dfr_diags)
@@ -176,11 +176,11 @@ smoothed_incidence_current <- function(entry_date, start, num_reg_years, N=1000,
 
 }
 
-smoothed_incidence_gg <- function(entry_date, start, num_reg_years, N=1000, df=6){
+smoothed_incidence_gg <- function(entry, start, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start, num_reg_years=num_reg_years)
+  raw_incidence <- incidence(entry, start, num_reg_years=num_reg_years)
 
-  dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
+  dg <- as.numeric(difftime(entry, min(entry), units='days'))
 
   dfr_diags <- sort(dg)
   cum_inc <- 1:length(dfr_diags)
