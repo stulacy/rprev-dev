@@ -143,7 +143,7 @@ meanIR <- function(entry, population_size, start=NULL, num_reg_years=NULL, preci
 
     registry_years <- .determine_registry_years(start, num_reg_years)
 
-    mean_rate <- mean(incidence(entry, start=start, num_reg_years=num_reg_years))
+    mean_rate <- mean(incidence(entry, start, num_reg_years=num_reg_years))
     z_conf <- qnorm((1+level)/2)
 
     CI <- 100000 * (z_conf * sqrt(mean_rate) / num_reg_years) / population_size

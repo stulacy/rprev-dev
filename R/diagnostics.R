@@ -117,9 +117,9 @@ smoothed_incidence <- function(entry_date, start = NULL, num_reg_years = NULL, N
 
 }
 
-smoothed_incidence_current <- function(entry_date, start_date, num_reg_years, N=1000, df=6){
+smoothed_incidence_current <- function(entry_date, start, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start=start_date, num_reg_years=num_reg_years)
+  raw_incidence <- incidence(entry_date, start, num_reg_years=num_reg_years)
 
   dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
 
@@ -176,9 +176,9 @@ smoothed_incidence_current <- function(entry_date, start_date, num_reg_years, N=
 
 }
 
-smoothed_incidence_gg <- function(entry_date, start_date, num_reg_years, N=1000, df=6){
+smoothed_incidence_gg <- function(entry_date, start, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start=start_date, num_reg_years=num_reg_years)
+  raw_incidence <- incidence(entry_date, start, num_reg_years=num_reg_years)
 
   dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
 

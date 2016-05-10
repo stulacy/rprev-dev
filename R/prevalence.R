@@ -34,7 +34,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 
     status_at_index <- ifelse(eventdate > indexdate, 0, status)
 
-    per_year <- incidence(entry, start=start, num_reg_years=num_reg_years)
+    per_year <- incidence(entry, start, num_reg_years=num_reg_years)
     num_cens <- vapply(seq(num_reg_years), function(i)
                             sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
                        numeric(1))
@@ -257,9 +257,9 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.prevalence_subgroup <- function(prior_age_d, entry_dates, start_date, wboot, nregyears, survfunc,
+.prevalence_subgroup <- function(prior_age_d, entry_dates, start, wboot, nregyears, survfunc,
                                  cure, sex, max_year_inc, nprevyears, include_sex) {
-    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_reg_years=nregyears))
+    fix_rate_rev <- rev(incidence(entry_dates, start, num_reg_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence
