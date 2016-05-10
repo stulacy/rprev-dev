@@ -149,7 +149,7 @@ summary(prevalence_total)
 Whether the model is predicting good numbers for the recent years for which we have actual prevalence can be assessed using a chi squared test. It uses `by_year_total`, which is a vector of absolute prevalence per year of the registry:
 
 ```{r test, error = TRUE}
-by_year_total <- prevalence_total[[1]]
+by_year_total <- prevalence_total$simulated_cases
 
 prev_chisq(registry_data$entrydate, 
            registry_data$eventdate, 
@@ -169,18 +169,6 @@ predicted <- rev(by_year_total[1:9])
 by_year_total[1:9] <- rev(observed)
 ```
 
-The total absolute prevalence at the index date is as follows:
-
-```{r}
-sum(by_year_total)
-```
-
-Prevalent cases subdivided by year of diagnosis:
-
-```{r}
-by_year_total
-```
-
 ### Age distribution of prevalent cases
 
 The age distribution of simulated prevalent cases can be viewed as a histogram and compared with counted prevalent cases:
@@ -191,7 +179,7 @@ registry_data_r$status2 <- ifelse(registry_data_r$eventdate > "2013-01-30",
 observed_post_age_dist_total <- 
   registry_data_r$age[registry_data_r$status2 == 0]
 
-post_age_dist_total <- prevalence_total[[2]]
+post_age_dist_total <- prevalence_total$post_covar
 
 hist(observed_post_age_dist_total, 
      col=rgb(0.1, 0.1, 0.1, 0.5), xlim=c(0,100), ylim=c(0,0.045), 
@@ -214,7 +202,7 @@ prevalence_by_age(prevalence_total, age_intervals=seq(10, 100, by=10))
 As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n*. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion. `by_year_samples_total` contains the raw prevalence data for each bootstrapped sample:
 
 ```{r nyrest3, error = TRUE} 
-by_year_samples_total <- prevalence_total[[3]]
+by_year_samples_total <- prevalence_total$samples
 
 total3yr <- n_year_estimates(N_years = 3, num_reg_years = 9,
                              the_samples = by_year_samples_total,

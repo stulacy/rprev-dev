@@ -250,8 +250,8 @@ prevalence <- function(form, data, N_years,
     }
     by_year_avg <- rowMeans(by_year_samples)
     
-    prev_out <- list(cases_avg=by_year_avg, post=post_age_dist, cases_total=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions, nyears=N_years, nregyears=num_reg_years, nbootstraps=N_boot)
+    prev_out <- list(simulated_cases=by_year_avg, post_covar=post_age_dist, samples=by_year_samples, known_inc_rate=fix_rate,
+                     popsurv=surv_functions, N_years, num_reg_years, N_boot)
     attr(prev_out, 'class') <- 'prevalence'
     prev_out
 }
