@@ -101,10 +101,6 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                                num_reg_years = 8,
 #'                                colnames = names)
 #'
-<<<<<<< HEAD
-=======
-#' TODO Rename N_years and num_reg_years and make cure_time a number of years
->>>>>>> d222229a8832a48c7fc279087168af9260bec1eb
 prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
