@@ -582,17 +582,16 @@ incidence_age_distribution_dev &lt;- function() {
 <pre class="r"><code>smo_dev2 &lt;- function() {
     par(mfrow=c(2,2))
     c_inc &lt;- cumulative_incidence(registry_data$entrydate, start = &quot;2004-01-30&quot;, num_years = 9)
-    ordered_diagnoses &lt;- c_inc$ordered_diagnoses
     cum_inc &lt;- c_inc$cumulative_incidence
     smooth &lt;- c_inc$smooth
 
-    plot(ordered_diagnoses, cum_inc, pch=20, 
+    plot(ordered_diagnoses, seq(length(ordered_diagnoses)), pch=20, 
      cex=0.7, xlab=&quot;days&quot;, ylab=&quot;cumulative diagnoses&quot;)
     abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)], 
        col=&quot;red&quot;, lwd=2)
     lines(smooth, col=&quot;green&quot;, lwd=2)
 
-    plot(ordered_diagnoses, cum_inc - predict(smooth, ordered_diagnoses)$y, 
+    plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(smooth, ordered_diagnoses)$y, 
      type=&quot;l&quot;, xlab=&quot;days&quot;, ylab=&quot;deviation from smooth&quot;)
 
     inspect_incidence(c_inc)
