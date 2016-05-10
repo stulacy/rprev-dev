@@ -1,15 +1,15 @@
 ---
-title: "rprev Survival Vignette"
+title: "prevR Survival Vignette"
 author: "Stephanie J. Lax"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{rprev Vignette Comp}
+  %\VignetteIndexEntry{prevR Vignette Comp}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-This document tests the ability of the rprev package to predict survival from a synthetic patient dataset. 
+This document tests the ability of the prevR package to predict survival from a synthetic patient dataset. 
 
 ```{r backgroundsetup, echo = FALSE, message = FALSE, warning = FALSE}
 library(devtools)
