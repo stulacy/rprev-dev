@@ -5,14 +5,14 @@
 #' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
 #' @param indexdate Index date at which to estimate prevalence.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
 #' @examples
 #' counted_prevalence(registry_data$entrydate,
 #'                    registry_data$eventdate,
 #'                    registry_data$status,
 #'                    indexdate = "2013-01-30",
-#'                    start="2004-01-30", num_years=8)
+#'                    start="2004-01-30", num_reg_years=8)
 counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL, indexdate=NULL) {
 
     if (is.null(start))
@@ -34,7 +34,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 
     status_at_index <- ifelse(eventdate > indexdate, 0, status)
 
-    per_year <- incidence(entry, start=start, num_years=num_reg_years)
+    per_year <- incidence(entry, start=start, num_reg_years=num_reg_years)
     num_cens <- vapply(seq(num_reg_years), function(i)
                             sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
                        numeric(1))
@@ -83,7 +83,7 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #' @param N_years Integer representing number of years to model.
 #' @param cure_time Integer defining cure model assumption for the calculation.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @param N_boot Integer for number of bootstrapped calculations to perform.
 #' @param max_yearly_incidence Integer larger than the expected yearly incidence
 #'        to allow for variation in incidence between years.
@@ -98,9 +98,13 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'                                N_years = 10,
 #'                                cure_time = 10*365,
 #'                                start = "2005-09-01",
-#'                                num_years = 8,
+#'                                num_reg_years = 8,
 #'                                colnames = names)
 #'
+<<<<<<< HEAD
+=======
+#' TODO Rename N_years and num_reg_years and make cure_time a number of years
+>>>>>>> d222229a8832a48c7fc279087168af9260bec1eb
 prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
@@ -219,7 +223,7 @@ prevalence <- function(form, data, N_years,
 
 .prevalence_subgroup <- function(prior_age_d, entry_dates, start_date, wboot, nregyears, survfunc,
                                  cure, sex, max_year_inc, nprevyears, include_sex) {
-    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_years=nregyears))
+    fix_rate_rev <- rev(incidence(entry_dates, start=start_date, num_reg_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence

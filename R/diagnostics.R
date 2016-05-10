@@ -58,16 +58,16 @@ sim_check_current <- function(data, N_sim = 100000){
 #' @param df Degrees of freedom for the smoothening function.
 #' @return Plots of the smoothed incidence function and corresponding deviations.
 #' @examples
-#' smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
-smoothed_incidence <- function(entry_date, start = NULL, num_years = NULL, N=1000, df=6){
+#' smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
+smoothed_incidence <- function(entry_date, start = NULL, num_reg_years = NULL, N=1000, df=6){
 
   if (is.null(start))
       start <- min(entry)
 
-  if (is.null(num_years))
-      num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+  if (is.null(num_reg_years))
+      num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-  raw_incidence <- incidence(entry_date, start, num_years)
+  raw_incidence <- incidence(entry_date, start, num_reg_years)
 
   # Slightly confused that the following are not all integers:
   dfr_diags <- sort(as.numeric(difftime(entry_date, min(entry_date), units='days')))
@@ -86,16 +86,16 @@ smoothed_incidence <- function(entry_date, start = NULL, num_years = NULL, N=100
   CI_lim <- 1.96 * sqrt(mean_rate)/365
   pl_lim <- CI_lim * 2.0
 
-  plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+  plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
        xlab="days", ylab="incidence rate",
        ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-  lines(predict(smo, 1:(365*num_years), deriv=1), type="l", lwd=2, col="green")
+  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(predict(smo, 1:(365*num_reg_years), deriv=1), type="l", lwd=2, col="green")
 
   abline(h = day_mean_rate, lty=2)
   abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
   abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_years)*365, col="pink", lty=2)
+  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
 
   N <- length(dfr_diags)
   M <- 1000
@@ -117,9 +117,9 @@ smoothed_incidence <- function(entry_date, start = NULL, num_years = NULL, N=100
 
 }
 
-smoothed_incidence_current <- function(entry_date, start_date, num_years, N=1000, df=6){
+smoothed_incidence_current <- function(entry_date, start_date, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start=start_date, num_years=num_years)
+  raw_incidence <- incidence(entry_date, start=start_date, num_reg_years=num_reg_years)
 
   dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
 
@@ -136,18 +136,18 @@ smoothed_incidence_current <- function(entry_date, start_date, num_years, N=1000
   day_mean_rate <- mean_rate/365
   CI_lim <- 1.96 * sqrt(mean_rate)/365
   pl_lim <- CI_lim * 2.0
-  pre_smo <- predict(smo, 1:(365*num_years), deriv=1)
+  pre_smo <- predict(smo, 1:(365*num_reg_years), deriv=1)
 
-  plt3 <- plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+  plt3 <- plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
        xlab="days", ylab="incidence rate",
        ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
   lines(pre_smo, type="l", lwd=2, col="green")
 
   abline(h = day_mean_rate, lty=2)
   abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
   abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_years)*365, col="pink", lty=2)
+  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
 
   N <- length(dfr_diags)
   M <- 1000
@@ -176,9 +176,9 @@ smoothed_incidence_current <- function(entry_date, start_date, num_years, N=1000
 
 }
 
-smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=6){
+smoothed_incidence_gg <- function(entry_date, start_date, num_reg_years, N=1000, df=6){
 
-  raw_incidence <- incidence(entry_date, start=start_date, num_years=num_years)
+  raw_incidence <- incidence(entry_date, start=start_date, num_reg_years=num_reg_years)
 
   dg <- as.numeric(difftime(entry_date, min(entry_date), units='days'))
 
@@ -195,18 +195,18 @@ smoothed_incidence_gg <- function(entry_date, start_date, num_years, N=1000, df=
   day_mean_rate <- mean_rate/365
   CI_lim <- 1.96 * sqrt(mean_rate)/365
   pl_lim <- CI_lim * 2.0
-  pre_smo <- predict(smo, 1:(365*num_years), deriv=1)
+  pre_smo <- predict(smo, 1:(365*num_reg_years), deriv=1)
 
-  plt3 <- plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+  plt3 <- plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
        xlab="days", ylab="incidence rate",
        ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-  lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+  lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
   lines(pre_smo, type="l", lwd=2, col="green")
 
   abline(h = day_mean_rate, lty=2)
   abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
   abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-  abline(v=(1:num_years)*365, col="pink", lty=2)
+  abline(v=(1:num_reg_years)*365, col="pink", lty=2)
 
   N <- length(dfr_diags)
   M <- 1000
@@ -288,12 +288,12 @@ incidence_age_distribution_current <- function(data, registry_years, registry_st
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
 #' @examples
 #' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
-#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_years = 9)
-survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_years = NULL){
+#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_reg_years = 9)
+survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_reg_years = NULL){
 
     ### TO DO/discuss:
     # ?Too much duplicated code with prevalence() to extract variables from formula
@@ -326,8 +326,8 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
     if (is.null(start))
         start <- min(data[, entry_var])
 
-    if (is.null(num_years))
-        num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+    if (is.null(num_reg_years))
+        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
     # Check ages input is correct
     if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
@@ -358,8 +358,8 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
 
     # Plot KM stratified by year of diagnosis
     plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-    registry_years <- .determine_registry_years(start, num_years)
-    sapply(seq(num_years),
+    registry_years <- .determine_registry_years(start, num_reg_years)
+    sapply(seq(num_reg_years),
            function(i) lines(survfit(surv_form_1,
                                      data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]),
                              mark.time = F, conf.int = F))
@@ -382,12 +382,12 @@ survival_modelling_diagnostics <- function(form, data, ages, start = NULL, num_y
 #' @param data A registry dataset of patient cases generated using load_data().
 #' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
 #' @examples
 #' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
-#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_years = 9)
-survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, num_years = NULL){
+#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_reg_years = 9)
+survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, num_reg_years = NULL){
 
   ### TO DO/discuss:
   # ?Too much duplicated code with prevalence() to extract variables from formula
@@ -420,8 +420,8 @@ survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, n
   if (is.null(start))
       start <- min(data[, entry_var])
 
-  if (is.null(num_years))
-      num_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+  if (is.null(num_reg_years))
+      num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
   # Check ages input is correct
   if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
@@ -451,13 +451,13 @@ survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, n
 
   # Plot KM stratified by year of diagnosis
   plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-  registry_years <- .determine_registry_years(start, num_years)
-  sapply(seq(num_years),
+  registry_years <- .determine_registry_years(start, num_reg_years)
+  sapply(seq(num_reg_years),
         function(i) lines(survfit(surv_form_1,
                                   data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]),
                           mark.time = F, conf.int = F))
 
-  sapply(seq(num_years),
+  sapply(seq(num_reg_years),
          function(i) length(data$entrydate[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1]]))
 
   # Output plots and test of proportionality assumption
@@ -775,19 +775,19 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
 #' @param by_year Vector of predicted number of prevalent cases by each year of diagnosis.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @return Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 #' @examples
 #' prev_chisq(entry = registry_data$entrydate,
 #'            events = registry_data$eventdate,
 #'            status = registry_data$status,
-#'            start="2004-01-30", num_years = 9,
+#'            start="2004-01-30", num_reg_years = 9,
 #'            by_year = by_year_total)
-prev_chisq <- function(entry, events, status, by_year, start=NULL, num_years=NULL){
-  observed <- counted_prevalence(entry, events, status, start, num_years)
-  predicted <- rev(by_year[1:num_years])
+prev_chisq <- function(entry, events, status, by_year, start=NULL, num_reg_years=NULL){
+  observed <- counted_prevalence(entry, events, status, start, num_reg_years)
+  predicted <- rev(by_year[1:num_reg_years])
   chi <- sum(((observed - predicted)^2)/predicted)
-  1 - pchisq(chi, num_years - 1)
+  1 - pchisq(chi, num_reg_years - 1)
 
 }
 

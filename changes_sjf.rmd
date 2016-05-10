@@ -92,7 +92,7 @@ test_output(countprev_current_output, countprev_dev)
 ```{r check_prevalence, cache=TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                registry_data, N_years = 10, cure_time = 10*365, 
-                               start='2004-01-30', num_years=9)
+                               start='2004-01-30', num_reg_years=9)
 
 by_year_total <- prevalence_total[[1]]
 
@@ -203,7 +203,7 @@ survival_modelling_diagnostics_dev <- function() {
   par(mfrow=c(2,2))
   survival_modelling_diagnostics_sim(Surv(time, status) ~ age(age) + entry(entrydate),
                                  registry_data, ages = c(55, 65, 75, 85, 100), 
-                                 start = "2004-09-01", num_years = 9)
+                                 start = "2004-09-01", num_reg_years = 9)
 }
 ```
 
@@ -247,9 +247,9 @@ survival_modelling_diagnostics_dev <- function() {
     plot(cox.zph(cx))
 
     plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-    num_years <- 9
-    registry_years <- .determine_registry_years(start='2004-01-30', num_years=num_years)
-    sapply(seq(num_years),
+    num_reg_years <- 9
+    registry_years <- .determine_registry_years(start='2004-01-30', num_reg_years=num_reg_years)
+    sapply(seq(num_reg_years),
            function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=registry_data_r[registry_data_r$entrydate >= 
                                                           registry_years[i] & 
@@ -299,14 +299,14 @@ Success was achieved, then seed fixing was removed.
 ```{r check_smo}
 smo_dev <- function() {
   par(mfrow=c(2,2))
-  smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+  smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
 }
 ```
 
 ```{r check_smo_current}
 smo_current_output <- function() {
   par(mfrow=c(2,2))
-  smoothed_incidence_current(registry_data$entrydate, start_date = "2004-01-30", num_years = 9)
+  smoothed_incidence_current(registry_data$entrydate, start_date = "2004-01-30", num_reg_years = 9)
 }
 ```
 
@@ -319,7 +319,7 @@ Success was achieved. Next we will break the function up into smaller ones to ge
 ```{r check_smo2}
 smo_dev2 <- function() {
     par(mfrow=c(2,2))
-    c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+    c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
     cum_inc <- c_inc$cumulative_incidence
     smooth <- c_inc$smooth
 
@@ -340,7 +340,7 @@ smo_dev2 <- function() {
 ```{r check_smo_current2}
 smo_current_output2 <- function() {
   par(mfrow=c(2,2))
-  smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+  smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
 }
 ```
 

@@ -8,11 +8,11 @@
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry.
 #' @param start Date from which incident cases are included.
-#' @param num_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' @param df Integer representing degrees of freedom for the smoothening function.
 #' @return Object containing incidence for each year of the registry, the cumulative incidence functions and corresponding deviations.
 #' @examples
-#' c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+#' c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
 #' ordered_diagnoses <- c_inc$ordered_diagnoses
 #' cum_inc <- c_inc$cumulative_incidence
 #' smooth <- c_inc$smooth
@@ -28,19 +28,19 @@
 #' # The following plot shows the deviation of the raw data from the fitted smooth by day:
 #' plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(smooth, ordered_diagnoses)$y,
 #' type="l", xlab="days", ylab="deviation from smooth")
-cumulative_incidence <- function(entry, start = NULL, num_years = NULL, df=6){
+cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6){
 
     if (is.null(start))
         start <- min(entry)
 
-    if (is.null(num_years))
-        num_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+    if (is.null(num_reg_years))
+        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
     # Slightly confused that the following are not all integers:
     diags <- sort(as.numeric(difftime(entry, min(entry), units='days')))
     smo <- smooth.spline(diags, seq(length(diags)), df=df)
 
-    cumulative_inc_out <- list(raw_incidence = incidence(entry, start, num_years),
+    cumulative_inc_out <- list(raw_incidence = incidence(entry, start, num_reg_years),
                                 ordered_diagnoses = diags,
                                 smooth = smo)
     attr(cumulative_inc_out, 'class') <- 'incidence'
@@ -66,18 +66,18 @@ inspect_incidence <- function(object, level=0.95){
     z_conf <- qnorm((1+level)/2)
     CI_lim <- z_conf * sqrt(mean_rate)/365
     pl_lim <- CI_lim * 2.0
-    num_years <- length(raw_incidence)
+    num_reg_years <- length(raw_incidence)
 
-    plot(365*(1:num_years) - 182.5, raw_incidence/365, pch=20, col="red",
+    plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
          xlab="days", ylab="incidence rate",
          ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-    lines(365*(1:num_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-    lines(predict(object$smooth, 1:(365*num_years), deriv=1), type="l", lwd=2, col="green")
+    lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
+    lines(predict(object$smooth, 1:(365*num_reg_years), deriv=1), type="l", lwd=2, col="green")
 
     abline(h = day_mean_rate, lty=2)
     abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
     abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-    abline(v=(1:num_years)*365, col="pink", lty=2)
+    abline(v=(1:num_reg_years)*365, col="pink", lty=2)
 
 }
 
