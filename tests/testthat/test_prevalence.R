@@ -110,10 +110,10 @@ test_that("Error is raised when levels for sex aren't the same in registry and p
 })
 
 test_that("Prevalence messages the user when the number of registry years are greater than the number of years asked to predict prevalence for", {
-    expect_msg <- function(Nyears, start, regyears) {
+    expect_msg <- function(Nyears, start, regyears=NULL) {
         expect_message(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                   prevsim, N_years=Nyears,
-                                  start=start, num_reg_years=years,
+                                  start=start, num_reg_years=regyears,
                                   cure_time=5*365, N_boot=10))
     }
     expect_msg(Nyears=5, start='2003-01-01', regyears=10)
