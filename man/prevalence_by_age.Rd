@@ -2,25 +2,23 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence_by_age}
 \alias{prevalence_by_age}
-\title{Output extrapolated number of prevalent cases per 10-year age group.}
+\title{Output extrapolated number of prevalent cases for specified age bands.}
 \usage{
-prevalence_by_age(dist, registry_end_year, N_years)
+prevalence_by_age(object, age_intervals = seq(10, 80, by = 10))
 }
 \arguments{
-\item{dist}{The age distribution of prevalent cases following simulation.}
+\item{object}{Object returned by prevalence\(\) from which to extrapolate.}
 
-\item{registry_end_year}{The last complete year of registry data.}
-
-\item{N_years}{The year to make predictions until.}
+\item{age_intervals}{Vector of integers to delineate age bands.}
 }
 \value{
-Predicted number of prevalent cases per 10-year age group.
+Vector of predicted number of prevalent cases for specified age bands.
 }
 \description{
-Output extrapolated number of prevalent cases per 10-year age group.
+Output extrapolated number of prevalent cases for specified age bands.
 }
 \examples{
-result <- prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
+prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
                  N_years = N_years)
 }
 

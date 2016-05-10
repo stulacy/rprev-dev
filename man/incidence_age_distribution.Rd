@@ -4,17 +4,10 @@
 \alias{incidence_age_distribution}
 \title{Plot the age distribution of incident cases in the registry data.}
 \usage{
-incidence_age_distribution(data, registry_years, registry_start_year,
-  registry_end_year, df = 10)
+incidence_age_distribution(agedata, df = 10)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
-
-\item{registry_years}{A vector of dates delineating years of the registry.}
-
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
-
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{agedata}{Vector of age at diagnosis for each patient in the registry.}
 
 \item{df}{Degrees of freedom for the smooth.}
 }
@@ -25,7 +18,6 @@ Plot of the raw data and smoothed age distribution function.
 Plot the age distribution of incident cases in the registry data.
 }
 \examples{
-incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
-registry_end_year = registry_end_year)
+incidence_age_distribution(registry_data_r$age)
 }
 

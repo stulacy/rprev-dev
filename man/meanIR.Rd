@@ -4,31 +4,39 @@
 \alias{meanIR}
 \title{Convert absolute incidence values to per 100,000 population values.}
 \usage{
-meanIR(data, registry_years, registry_start_year, registry_end_year,
-  population_size, precision = 2)
+meanIR(entry, population_size, start = NULL, num_reg_years = NULL,
+  precision = 2, level = 0.95)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{entry}{(character): Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+\item{population_size}{(integer): The size of the population at risk.}
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\item{start}{(character): Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.}
 
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{num_reg_years}{(integer): The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.}
 
-\item{population_size}{A number representing the size of the population at risk.}
+\item{precision}{(integer): The number of decimal places required.}
 
-\item{precision}{The number of decimal places required.}
+\item{level}{(double): The desired confidence interval width.}
 }
 \value{
-A vector containing mean incidence/year and incidence rate/100,000/year with confidence
-        intervals.
+A list with the following values:
+
+\item{absolute}{Overall incidence for the period of interest as a single double}
+\item{per100K}{Incidence for the period of interest per one hundred thousand}
+\item{per100K.lower}{Lower bounds of the specified confidence level on the per one hundred thousand estimate}
+\item{per100K.upper}{Upper bounds of the specified confidence level on the per one hundred thousand estimate}
 }
 \description{
 Convert absolute incidence values to per 100,000 population values.
 }
 \examples{
-incidence_rates <- meanIR(load_data(registry_data), registry_years, registry_start_year = 1,
-registry_end_year = 4, population_size = 3500000)
+data(prevsim)
+
+meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
+meanIR(prevsim$entrydate, population_size=3.5e6)
+meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
+meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 }
 

@@ -41,40 +41,6 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
     per_year - num_cens
 }
 
-#' Count prevalence from registry data.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal  defining the last year of the registry data to be used.
-#' @return A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
-#' @examples
-#' counted_prevalence_current(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
-counted_prevalence_current <- function(data, registry_years, registry_start_year, registry_end_year){
-
-    data <- data[!(is.na(data$date_event)), ]
-    events <- sum(data$indicator)
-    if (events < 30) warning("warning: low number of events.")
-
-    years_estimated <- registry_end_year - registry_start_year + 1
-    per_year <- rep(NA, years_estimated)
-
-    for (i in registry_start_year:registry_end_year){
-        per_year[i - registry_start_year + 1] <-
-            length(data$date_initial[data$date_initial >= registry_years[i] & data$date_initial < registry_years[i + 1]])
-    }
-
-    counted_prevalence <- rep(NA, years_estimated)
-    registry_years <- registry_years[registry_start_year:(registry_start_year + years_estimated)]
-
-    for (i in 1:years_estimated){
-        counted_prevalence[i] <- per_year[i] -
-            sum(data$indicator_censored_at_index[data$date_initial >= registry_years[i] & data$date_initial < registry_years[i + 1]])
-    }
-
-    return(counted_prevalence)
-
-}
 
 #' Predict prevalence for a given number of years.
 #'
@@ -93,6 +59,7 @@ counted_prevalence_current <- function(data, registry_years, registry_start_year
 #'        prevalent cases, an indication of sampling variation and raw incidence data to
 #'        allow for crosschecking with previous calculations.
 #' @examples
+<<<<<<< HEAD
 #' prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
 #' registry_data, num_years_to_estimate, cure, start='2004-01-30', num_reg_years=9)
 prevalence <- function(form, data, num_years_to_estimate,
@@ -141,6 +108,21 @@ prevalence <- function(form, data, num_years_to_estimate,
     #population_data = NULL
     #############################################
 
+=======
+#' names = list(age = 'age', sex = 'sex', entry_date = 'DateOfDiag', status = 'status', time ='stime')
+#' prevalence_total <- prevalence(registry_data,
+#'                                N_years = 10,
+#'                                cure_time = 10*365,
+#'                                start = "2005-09-01",
+#'                                num_reg_years = 8,
+#'                                colnames = names)
+#'
+prevalence <- function(form, data, N_years,
+                       cure_time=NULL, start=NULL, num_reg_years=NULL,
+                       N_boot=1000, max_yearly_incidence=500,
+                       population_data=NULL, n_cores=1) {
+
+>>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
     if (n_cores > 1) {
         if (!require(doParallel)) {
             warning("doParallel not installed. Running program serially instead.")
@@ -208,7 +190,7 @@ prevalence <- function(form, data, num_years_to_estimate,
 
     population_data$sex <- as.factor(population_data$sex)
 
-    if (!all(levels(population_data$sex) == levels(data[, sex_var])))
+    if (!all(levels(data[, sex_var]) %in% levels(population_data$sex)))
         stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
 
     surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])),
@@ -216,6 +198,8 @@ prevalence <- function(form, data, num_years_to_estimate,
 
     # Calculate bootstrapped weibull coefficients for registry data
     data_r <- data[data[, entry_var] >= start, ]
+
+    # Specify whether to include sex as a survival variable or not, this should be included within the formula!
     req_covariate <- ifelse(length(levels(data_r[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
     surv_form <- as.formula(paste(deparse(resp), '~',
                                   req_covariate,
@@ -316,6 +300,7 @@ prevalence <- function(form, data, num_years_to_estimate,
     return(list(cases=num_alive, post=post_age_dist))
 }
 
+<<<<<<< HEAD
 #' Predict prevalence for a given number of years.
 #'
 #' @param data A registry dataset of patient cases generated using load_data().
@@ -472,6 +457,8 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
 
 }
 
+=======
+>>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 #' Calculate predicted prevalence for a given number of years.
 #'
 #' @param object Object returned from prevalence\(\).
@@ -517,6 +504,7 @@ n_year_estimates <- function(object, num_years_to_estimate,
     lapply(object, round, precision)
 }
 
+<<<<<<< HEAD
 #' Calculate predicted prevalence for a given number of years.
 #'
 #' @param num_years_to_estimate Number of years prevalence is to be calculated for.
@@ -561,6 +549,8 @@ n_year_estimates_current <- function(num_years_to_estimate, registry_start_year,
     return(list(raw, prop))
 }
 
+=======
+>>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 #' Output extrapolated number of prevalent cases for specified age bands.
 #'
 #' @param object Object returned by prevalence\(\) from which to extrapolate.
@@ -577,7 +567,6 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
     if (! all(age_intervals >= 0))
         stop("Must have positive ages")
 
-    # TODO Can this not be refactored somewhat?
     the_dist <- object$post[, , (object$nregyears + 1):object$nyears]
     the_dist <- the_dist[!is.na(the_dist)]
 
@@ -586,6 +575,7 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
 
     sapply(seq(length(ages)-1),
            function(x) sum(the_dist >= ages[x] & the_dist < ages[x+1]) / length(the_dist))
+<<<<<<< HEAD
 }
 
 #' Output extrapolated number of prevalent cases per 10-year age group.
@@ -617,4 +607,6 @@ prevalence_by_age_current <- function(dist, registry_end_year, num_years_to_esti
 
     return(c(a_0_9,  a_10_19, a_20_29, a_30_39, a_40_49, a_50_59,
              a_60_69, a_70_79, a_80_plus))
+=======
+>>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 }

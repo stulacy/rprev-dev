@@ -4,17 +4,10 @@
 \alias{functional_form_age}
 \title{Inspect functional form of age.}
 \usage{
-functional_form_age(data, registry_years, registry_start_year,
-  registry_end_year, df = 4)
+functional_form_age(form, data, df = 4)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
-
-\item{registry_years}{A vector of dates delineating years of the registry.}
-
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
-
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{data}{A registry dataset of patient cases.}
 
 \item{df}{Degrees of freedom for the smooth.}
 }
@@ -25,6 +18,6 @@ Plots of the functional form of age.
 Inspect functional form of age.
 }
 \examples{
-functional_form_age(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year)
+functional_form_age(registry_data_r)
 }
 

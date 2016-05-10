@@ -4,25 +4,27 @@
 \alias{incidence}
 \title{Calculate absolute incidence from registry data.}
 \usage{
-incidence(data, registry_years, registry_start_year, registry_end_year)
+incidence(entry, start = NULL, num_reg_years = NULL)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{entry}{(character): Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{registry_years}{A vector of dates delineating years of registry.}
+\item{start}{(character): Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.}
 
-\item{registry_start_year}{Ordinal defining the first year of registry data to be used.}
-
-\item{registry_end_year}{Ordinal defining the last year of registry data to be used.}
+\item{num_reg_years}{(integer): The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.}
 }
 \value{
-Vector of absolute incidence values for each of the specified years of a registry.
+Vector of length num_reg_years of doubles, representing the number of absolute incidence values for each included year of the registry.
 }
 \description{
 Calculate absolute incidence from registry data.
 }
 \examples{
-registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
-incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
+data(prevsim)
+
+incidence(prevsim$entrydate, start="2004-01-01", 8)
+incidence(prevsim$entrydate)
+incidence(prevsim$entrydate, start="2005-05-01", 5)
+incidence(prevsim$entrydate, start="2005-05-01")
 }
 

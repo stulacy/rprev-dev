@@ -4,25 +4,33 @@
 \alias{prev_chisq}
 \title{Chi squared test between prevalence prediction and observed values in the registry.}
 \usage{
-prev_chisq(data, registry_years, registry_start_year, registry_end_year,
-  by_year)
+prev_chisq(entry, events, status, by_year, start = NULL,
+  num_reg_years = NULL)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{entry}{Vector of diagnosis dates for each patient in the registry.}
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+\item{events}{Vector of event or censorship dates for each patient in the registry.}
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\item{status}{Vector of binary values indicating if an event has occurred for each patient in the registry.}
 
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{by_year}{Vector of predicted number of prevalent cases by each year of diagnosis.}
+
+\item{start}{Date from which incident cases are included.}
+
+\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.}
 }
 \value{
-Plots of the smoothed incidence function and corresponding deviations.
+Chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 }
 \description{
 Chi squared test between prevalence prediction and observed values in the registry.
 }
 \examples{
-prev_chisq(load_data(registry_data), registry_years = registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
+prev_chisq(entry = registry_data$entrydate,
+           events = registry_data$eventdate,
+           status = registry_data$status,
+           start="2004-01-30", num_reg_years = 9,
+           by_year = by_year_total)
 }
 

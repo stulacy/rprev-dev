@@ -4,10 +4,14 @@
 \alias{smoothed_incidence}
 \title{Estimate smoothed incidence functions and inspect deviations in the registry data.}
 \usage{
-smoothed_incidence(data, registry_years, registry_start_year, registry_end_year,
+smoothed_incidence(entry_date, start = NULL, num_reg_years = NULL,
   N = 1000, df = 6)
 }
 \arguments{
+\item{N}{Number of draws from a homogeneous Poisson process.}
+
+\item{df}{Degrees of freedom for the smoothening function.}
+
 \item{data}{A registry dataset of patient cases generated using load_data().}
 
 \item{registry_years}{A vector of dates delineating years of the registry.}
@@ -15,10 +19,6 @@ smoothed_incidence(data, registry_years, registry_start_year, registry_end_year,
 \item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
 
 \item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
-
-\item{N}{Number of draws from a homogeneous Poisson process.}
-
-\item{df}{Degrees of freedom for the smoothening function.}
 }
 \value{
 Plots of the smoothed incidence function and corresponding deviations.
@@ -42,7 +42,6 @@ as deviations from the smooth of cumulative diagnoses. The blue lines are 95\% c
 intervals drawn from the simulated data.
 }
 \examples{
-smoothed_incidence(load_data(registry_data), registry_years = registry_years,
-         registry_start_year = registry_start_year, registry_end_year = registry_end_year)
+smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
 }
 
