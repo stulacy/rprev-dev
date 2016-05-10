@@ -59,7 +59,7 @@ sim_check(raw_incidence)
 
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
 par(mfrow=c(2,2))
-c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
+c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
 ordered_diagnoses <- c_inc$ordered_diagnoses
 smooth <- c_inc$smooth
 
@@ -93,7 +93,7 @@ To calculate the mean incidence rate per 100,000 within the study population `me
   
 ```{r incidencerate, error = TRUE}
 meanIR(registry_data$entrydate, population_size = 3500000,
-                          start = "2004-01-30", num_years = 9)
+                          start = "2004-01-30", num_reg_years = 9)
 ```
 
 ## Survival modelling
@@ -120,9 +120,9 @@ lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
 plot(cox.zph(cx))
 
 plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-num_years <- 9
-registry_years <- .determine_registry_years(start='2004-01-30', num_years=num_years)
-sapply(seq(num_years),
+num_reg_years <- 9
+registry_years <- .determine_registry_years(start='2004-01-30', num_reg_years=num_reg_years)
+sapply(seq(num_reg_years),
        function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=registry_data_r[registry_data_r$entrydate >= 
                                                           registry_years[i] & 
