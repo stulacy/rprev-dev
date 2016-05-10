@@ -61,12 +61,21 @@ sim_check(raw_incidence)
 par(mfrow=c(2,2))
 c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
 ordered_diagnoses <- c_inc$ordered_diagnoses
+cum_inc <- c_inc$cumulative_incidence
+smooth <- c_inc$smooth
 
-plot(ordered_diagnoses, c_inc$cumulative_incidence, pch=20, cex=0.7, xlab="days", 
-     ylab="cumulative diagnoses")
+plot(ordered_diagnoses, cum_inc, pch=20, 
+     cex=0.7, xlab="days", ylab="cumulative diagnoses")
 abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)], 
        col="red", lwd=2)
-lines(c_inc$smooth, col="green", lwd=2)
+lines(smooth, col="green", lwd=2)
+
+plot(ordered_diagnoses, cum_inc - predict(smooth, ordered_diagnoses)$y, 
+     type="l", xlab="days", ylab="deviation from smooth")
+
+inspect_incidence(c_inc)
+
+poisson_incidence_sim(c_inc)
 ```
 
 The age distribution of incident cases can also be inspected:
