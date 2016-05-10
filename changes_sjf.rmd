@@ -347,3 +347,5 @@ smo_current_output2 <- function() {
 ```{r check_smo_comp2, message=T, cache=TRUE}
 test_output(smo_current_output2, smo_dev2)
 ```
+
+Success was achieved, so we took out the random number seed specification.

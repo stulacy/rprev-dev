@@ -103,7 +103,6 @@ poisson_incidence_sim <- function(object, N_sim=1000, level=0.95, df=4){
   N <- length(diags)
   boot_out <- matrix(NA, nrow = N_sim, ncol = N)
 
-  set.seed(17)
   for (i in 1:N_sim){
     x <- sort(runif(N, 0, max(diags)))
     the_smo <- smooth.spline(x, 1:N, df=df)
