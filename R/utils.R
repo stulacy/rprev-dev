@@ -8,7 +8,7 @@ print.incidence <- function(object, ...) {
               ", with standard deviation ", round(sd(object$raw_incidence),2), ".\n", sep=''))
 }
 
-#' Generate a summary of the prevalence object.
+#' Generate a summary of the incidence object.
 #'
 #' @param object ...
 #' @return ...

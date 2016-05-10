@@ -183,7 +183,7 @@ Prevalence can now be estimated using simulation:
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                registry_data, N_years = N_years, cure_time = cure*365, 
-                               start='2004-01-30', num_years=9)
+                               start='2004-01-30', num_reg_years=9)
 
 print(prevalence_total)
 
@@ -210,7 +210,7 @@ Up until now, the simulated values of prevalent cases for the first years before
 observed <- counted_prevalence(registry_data$entrydate, 
                                registry_data$eventdate, 
                                registry_data$status, 
-                               start='2004-01-30', num_years=9)
+                               start='2004-01-30', num_reg_years=9)
 predicted <- rev(by_year_total[1:9])
 by_year_total[1:9] <- rev(observed)
 ```
@@ -248,20 +248,9 @@ prevalence_by_age(prevalence_total, age_intervals=seq(10, 100, by=10))
 As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n*. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion. `by_year_samples_total` contains the raw prevalence data for each bootstrapped sample:
 
 ```{r nyrest3, error = TRUE} 
-by_year_samples_total <- prevalence_total$samples
+n_year_estimates(prevalence_total, N_years = 3, population_size = 3500000)
 
-total3yr <- n_year_estimates(N_years = 3, num_reg_years = 9,
-                             the_samples = by_year_samples_total,
-                             by_year = by_year_total, population_size = 3500000)
-total3yr
+n_year_estimates(prevalence_total, N_years = 5, population_size = 3500000)
 
-total5yr <- n_year_estimates(N_years = 5, num_reg_years = 9,
-                             the_samples = by_year_samples_total,
-                             by_year = by_year_total, population_size = 3500000)
-total5yr
-
-total10yr <- n_year_estimates(N_years = 10, num_reg_years = 9,
-                             the_samples = by_year_samples_total,
-                             by_year = by_year_total, population_size = 3500000)
-total10yr
+n_year_estimates(prevalence_total, N_years = 10, population_size = 3500000)
 ```
