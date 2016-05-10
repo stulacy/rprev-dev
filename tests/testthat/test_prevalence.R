@@ -1,4 +1,5 @@
 library(prevR)
+library(survival)
 library(abind)
 context('Prevalence')
 data(prevsim)
