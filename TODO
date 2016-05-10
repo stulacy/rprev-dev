@@ -1,7 +1,11 @@
   - Error handling when index date (as determined by start_date + num_years) is far greater than last incident case. How to know if this is an error or just due to chance with a really low incidence rate? Could just be a warning instead? This is used in several functions across incidence and prevalence
-  - Change registry_survival_bootstrapped to work with datasets with only one sex, by adding the fake sex level to the data passed to this function rather than using the hack at the moment to remove the coefficients
   - Sort importing packages issue, if use "imports" in DESCRIPTION then how to actually import functions? I.e. if run library(prevR) then survival doesn't get loaded
   - How should prevalence_by_age (and possibly others, n_years_estimate?) behave when num_registry_years >= num_prevalent_years? Currently, prevalence_by_age only calculates age distribution of the simulated years, should it be renamed to reflect this? Should it incorporate the prior age distribution? At the very least this needs to be highlighted in the documentation.
   - Rename prevalence attributes (i.e. 'samples' not very descriptive)
   - Consistent argument names across functions (i.e. entry or entrydate, event or eventdate, num_years or num_reg_years)
   - Rename meanIR to mean_incidence_rate? Or even something more descriptive, as meanIR implies it just calculates the mean when the main selling point is its standard error estimation
+  - Update documentation for:
+    - prevalence.R
+    - survival.R
+    - diagnostics.R
+    - diagnostics_plots.R
