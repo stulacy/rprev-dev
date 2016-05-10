@@ -223,7 +223,56 @@ survival_modelling_diagnostics_current_output <- function() {
 test_output(survival_modelling_diagnostics_current_output, survival_modelling_diagnostics_dev)
 ```
 
-Here the output looks different; we seem to have lost a year of survival data. Next we will break the function up into smaller ones to generate each plot individually.
+Here the output looks different; we seem to have lost a year of survival data. Next we will break the function up into smaller ones to generate each plot individually (basically there is no longer an outer function):
+
+```{r check_survival_modelling_diagnostics_age2}
+survival_modelling_diagnostics_dev <- function() {
+    par(mfrow=c(2,2))
+    registry_data_r <- registry_data[registry_data$entrydate >= "2004-01-30", ]
+
+    km <- survfit(Surv(time, status) ~ 1, data=registry_data_r)
+    plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
+
+    ages = c(55, 65, 75, 85, 100)
+    km2 <- survfit(Surv(time, status) ~ cut(age, breaks=ages), data=registry_data_r)
+    plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+
+    cx <- coxph(Surv(time, status) ~ age, data=registry_data_r)
+    cxp <- survfit(cx, 
+               newdata=data.frame(age=vapply(seq(length(ages) - 1), 
+                                                function(i) mean(c(ages[i], ages[i + 1])), 
+                                                numeric(1))))
+    lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
+
+    plot(cox.zph(cx))
+
+    plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
+    num_years <- 9
+    registry_years <- .determine_registry_years(start='2004-01-30', num_years=num_years)
+    sapply(seq(num_years),
+           function(i) lines(survfit(Surv(time, status) ~ 1, 
+                                 data=registry_data_r[registry_data_r$entrydate >= 
+                                                          registry_years[i] & 
+                                                          registry_data_r$entrydate < 
+                                                          registry_years[i + 1], ]), 
+                         mark.time = F, conf.int = F))
+    return(cox.zph(cx))
+}
+```
+
+```{r check_survival_modelling_diagnostics_current2}
+survival_modelling_diagnostics_current_output <- function() {
+  par(mfrow=c(2,2))
+  result <- survival_modelling_diagnostics_current(registry_data, ages = c(55, 65, 75, 85, 100), 
+                                         registry_years, registry_start_year, registry_end_year)
+}
+```
+
+```{r check_survival_modelling_diagnostics_comp2, message=T, cache=TRUE}
+test_output(survival_modelling_diagnostics_current_output, survival_modelling_diagnostics_dev)
+```
+
+The output here is clearly the same, however the unit test fails.
 
 ## sim_check
 
@@ -249,6 +298,7 @@ Success was achieved, then seed fixing was removed.
 
 ```{r check_smo}
 smo_dev <- function() {
+  par(mfrow=c(2,2))
   smoothed_incidence(registry_data$entrydate, start = "2004-01-30", num_years = 9)
 }
 ```

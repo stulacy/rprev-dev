@@ -95,12 +95,38 @@ meanIR(registry_data$entrydate, population_size = 3500000,
 
 ## Survival modelling
 
-Firstly, we can inspect the survival data for consistency between years of the registry and with a Cox Proportional Hazards model using `survival_modelling_diagnostics`:
+It is recommended that the user inspects the survival data for consistency between years of the registry and with a Cox Proportional Hazards model as follows:
 
 ```{r survivaldiag, fig.width = 7, fig.height = 7}
-survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate),
-                               registry_data, ages = c(55, 65, 75, 85, 100), 
-                               start = "2004-09-01", num_years = 9)
+par(mfrow=c(2,2))
+
+km <- survfit(Surv(time, status) ~ 1, data=registry_data_r)
+plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
+
+ages = c(55, 65, 75, 85, 100)
+km2 <- survfit(Surv(time, status) ~ cut(age, breaks=ages), data=registry_data_r)
+plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
+
+cx <- coxph(Surv(time, status) ~ age, data=registry_data_r)
+cxp <- survfit(cx, 
+               newdata=data.frame(age=vapply(seq(length(ages) - 1), 
+                                                function(i) mean(c(ages[i], ages[i + 1])), 
+                                                numeric(1))))
+lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
+
+plot(cox.zph(cx))
+
+plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
+num_years <- 9
+registry_years <- .determine_registry_years(start='2004-01-30', num_years=num_years)
+sapply(seq(num_years),
+       function(i) lines(survfit(Surv(time, status) ~ 1, 
+                                 data=registry_data_r[registry_data_r$entrydate >= 
+                                                          registry_years[i] & 
+                                                          registry_data_r$entrydate < 
+                                                          registry_years[i + 1], ]), 
+                         mark.time = F, conf.int = F))
+cox.zph(cx)
 ```
 
 ### Functional form of age
