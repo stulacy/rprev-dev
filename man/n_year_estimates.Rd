@@ -4,21 +4,23 @@
 \alias{n_year_estimates}
 \title{Calculate predicted prevalence for a given number of years.}
 \usage{
-n_year_estimates(N_years, registry_start_year, registry_end_year, the_samples,
-  by_year, population_size)
+n_year_estimates(object, N_years, population_size, level = 0.95,
+  precision = 2)
 }
 \arguments{
-\item{N_years}{Number of years prevalence is to be calculated for.}
+\item{N_years}{Integer representing number of years prevalence is to be calculated for.}
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\item{population_size}{Integer corresponding to the size of the population.}
 
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{level}{Double representing the desired confidence interval width.}
 
-\item{the_samples}{Bootstrapped samples used to gauge the sampling variation in the estimates.}
+\item{precision}{Integer representing the number of decimal places required.}
 
-\item{by_year}{Predicted prevalence by year of the registry.}
+\item{num_reg_years}{Integer representing number of registry years to include.}
 
-\item{population_size}{A number corresponding to the size of the population.}
+\item{the_samples}{Array of bootstrapped samples used to gauge the sampling variation in the estimates.}
+
+\item{by_year}{Vector of predicted prevalence by year of the registry.}
 }
 \value{
 An estimate of prevalence, in total and /100,000 with confidence intervals.
@@ -27,7 +29,7 @@ An estimate of prevalence, in total and /100,000 with confidence intervals.
 Calculate predicted prevalence for a given number of years.
 }
 \examples{
-n_year_estimates(N_years = 3, registry_start_year = year1, registry_end_year = lastyear,
+n_year_estimates(N_years = 3, num_reg_years = 8,
                  the_samples = by_year_male_samples,
                  by_year = by_year_male, population_size = 1700000)
 }

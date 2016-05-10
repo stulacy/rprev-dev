@@ -4,16 +4,21 @@
 \alias{counted_prevalence}
 \title{Count prevalence from registry data.}
 \usage{
-counted_prevalence(data, registry_years, registry_start_year, registry_end_year)
+counted_prevalence(entry, eventdate, status, start = NULL,
+  num_reg_years = NULL, indexdate = NULL)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{entry}{Vector of diagnosis dates for each patient in the registry.}
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+\item{status}{Vector of binary values indicating if an event has occurred for each patient in the registry.}
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\item{start}{Date from which incident cases are included.}
 
-\item{registry_end_year}{Ordinal  defining the last year of the registry data to be used.}
+\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.}
+
+\item{indexdate}{Index date at which to estimate prevalence.}
+
+\item{events}{Vector of dates corresponding to the indicator variable.}
 }
 \value{
 A count of prevalence at the index date subdivided by year of diagnosis and inclusion in the registry.
@@ -22,6 +27,10 @@ A count of prevalence at the index date subdivided by year of diagnosis and incl
 Count prevalence from registry data.
 }
 \examples{
-counted_prevalence(load_data(registry_data), registry_years, registry_start_year, registry_end_year)
+counted_prevalence(registry_data$entrydate,
+                   registry_data$eventdate,
+                   registry_data$status,
+                   indexdate = "2013-01-30",
+                   start="2004-01-30", num_reg_years=8)
 }
 
