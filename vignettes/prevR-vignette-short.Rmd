@@ -77,7 +77,9 @@ plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(smooth, ordered
 inspect_incidence(c_inc)
 
 poisson_incidence_sim(c_inc)
+```
 
+```{r}
 summary(c_inc)
 ```
 
@@ -92,7 +94,7 @@ incidence_age_distribution(prevsim_r$age)
 To calculate the mean incidence rate per 100,000 within the study population `meanIR` is used, which requires an estimate of the size of the population at risk:
   
 ```{r incidencerate, error = TRUE}
-meanIR(prevsim$entrydate, population_size = 3.5e6,
+mean_incidence_rate(prevsim$entrydate, population_size = 3.5e6,
        start = "2004-01-30", num_reg_years = 9)
 ```
 
