@@ -5,7 +5,6 @@
 #' @param status Vector of binary values indicating if an event has occurred for each patient in the registry. \code{entry}, \code{eventdate}, and \code{status} must all have the same length.
 #' @param start Date from which incident cases are included, defaults to the earliest date in \code{entry}.
 #' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated, defaults to the number of complete years in the supplied data.
-#' @param indexdate Index date at which to estimate prevalence, defaults to the date \code{num_reg_years} after \code{start}.
 #' @return A vector of length \code{num_reg_years}, representing the corresponding prevalence values.
 #' @examples
 #' data(prevsim)
@@ -14,7 +13,7 @@
 #'                    prevsim$eventdate,
 #'                    prevsim$status,
 #'                    start="2004-01-30", num_reg_years=8)
-counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL, indexdate=NULL) {
+counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
         stop("Error: entry, eventdate, and status must all have the same length.")
@@ -27,8 +26,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 
     registry_years <- determine_registry_years(start, num_reg_years)
 
-    if (is.null(indexdate))
-        indexdate <- registry_years[length(registry_years)]
+    indexdate <- registry_years[length(registry_years)]
 
     # Need no NAs for this!
     clean <- complete.cases(entry) & complete.cases(eventdate) & complete.cases(status)

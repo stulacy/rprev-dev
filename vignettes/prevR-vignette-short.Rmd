@@ -121,7 +121,7 @@ plot(cox.zph(cx))
 
 plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
 num_reg_years <- 9
-registry_years <- .determine_registry_years(start='2004-01-30', num_reg_years=num_reg_years)
+registry_years <- determine_registry_years(start='2004-01-30', num_reg_years=num_reg_years)
 sapply(seq(num_reg_years),
        function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=registry_data_r[registry_data_r$entrydate >= 
@@ -169,7 +169,7 @@ summary(wb)
 
 ### Counts
 
-In the first instance, prevalence can be estimated by counting from the registry data. When doing this using the supplied synthetic dataset, it is important to note that there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection, micking the process at HMRN. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, `r max(registry_data$entrydate)` is the index date for this synthetic dataset. In `counted_prevalence()`, by default, all cases alive after the index date are censored. The user is permitted to specify their desired index date if they require, but `counted_prevalence()` will no longer be comparable to `prevalence()`, which works to the natural index date on the last day of the last included year of registry data.
+In the first instance, prevalence can be estimated by counting from the registry data. When doing this using the supplied synthetic dataset, it is important to note that there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection, micking the process at HMRN. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as the number of incident cases must be complete for simulating prevalence. Therefore, `r max(registry_data$entrydate)` is the index date for this synthetic dataset. In `counted_prevalence()`, all cases alive after the index date are censored. 
 
 ```{r survival, error = TRUE}
 counted_prevalence(registry_data$entrydate, 
