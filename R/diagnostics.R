@@ -33,7 +33,7 @@ incidence_age_distribution <- function(agedata, df=10){
 
 #' Inspect functional form of age.
 #'
-#' @param form
+#' @param form ...
 #' @param data A registry dataset of patient cases.
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.

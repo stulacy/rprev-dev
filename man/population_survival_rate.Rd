@@ -9,7 +9,7 @@ population_survival_rate(form, data, max_age = 100)
 \arguments{
 \item{form}{Formula to define...}
 
-\item{data}{Data frame containing calendar_year, sex, age and rate.}
+\item{data}{Population data frame containing calendar_year, sex, age and rate.}
 
 \item{max_age}{Integer to specify maximum age.}
 }

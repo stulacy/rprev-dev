@@ -2,29 +2,29 @@
 % Please edit documentation in R/survival.R
 \name{prob_alive}
 \alias{prob_alive}
-\title{Survival function for males or females, modelled on patient data until cure_time, then
+\title{Survival function for males or females, modelled on patient data until cure_days, then
 population data for the remaining time.}
 \usage{
-prob_alive(time, data, cure_time, boot_coefs, pop_surv_rate, max_age = 100)
+prob_alive(time, data, cure_days, boot_coefs, pop_surv_rate, max_age = 100)
 }
 \arguments{
 \item{time}{Time in days.}
 
-\item{cure_time}{A number representing time in days corresponding to the cure model assumption for the calculation.}
+\item{data}{Registry dataset of patient cases.}
 
-\item{age}{Age of the patient in years.}
+\item{cure_days}{A number representing time in days corresponding to the cure model assumption for the calculation.}
 
-\item{sex}{Sex of the patient (0 for males, 1 for females).}
+\item{boot_coefs}{Coefficients for selected bootstrapped dataset.}
 
-\item{boot}{Selected bootstrapped dataset.}
+\item{pop_surv_rate}{Population survival function in days.}
 
-\item{daily_survival}{Population survival function in days.}
+\item{max_age}{Integer to specify maximum age.}
 }
 \value{
 A survival curve on which to base prevalence predictions.
 }
 \description{
-Survival function for males or females, modelled on patient data until cure_time, then
+Survival function for males or females, modelled on patient data until cure_days, then
 population data for the remaining time.
 }
 
