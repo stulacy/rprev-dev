@@ -1,6 +1,7 @@
   - Sort importing packages issue, if use "imports" in DESCRIPTION then how to actually import functions? I.e. if run library(prevR) then survival doesn't get loaded
   - Rename prevalence attributes (i.e. 'samples' not very descriptive)
   - Redo prev_chisq to apply to prevalence object
-  - Rename meanIR to mean_incidence_rate? Or even something more descriptive, as meanIR implies it just calculates the mean when the main selling point is its standard error estimation. Maybe something to reflect that it's essentially doing the same job as n_year_estimates?
+  - Rename n_year_estimates to something more descriptive
   - Generate function flow diagrams
   - What to call num_year_to_estimate?
+  - More rigorous stress testing!

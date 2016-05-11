@@ -73,11 +73,11 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' @examples
 #' data(prevsim)
 #'
-#' meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
-#' meanIR(prevsim$entrydate, population_size=3.5e6)
-#' meanIR(prevsim$entrydate, population_size=3.5e6, precision=3)
-#' meanIR(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
-meanIR <- function(entry, population_size, start=NULL, num_reg_years=NULL, precision = 2, level=0.95){
+#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
+#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6)
+#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
+#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+mean_incidence_rate <- function(entry, population_size, start=NULL, num_reg_years=NULL, precision = 2, level=0.95){
 
     if (is.null(start))
         start <- min(entry)
