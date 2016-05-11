@@ -8,31 +8,36 @@
 #'
 #' @format A data frame with 6666 rows and 4 columns:
 #' \describe{
-#'  \item{calendar_year}{(double) year}
-#'  \item{sex}{(integer) sex encoded as 0 for males and 1 for females}
-#'  \item{age}{(double) age in years}
-#'  \item{rate}{(double) death rate}
+#'  \item{calendar_year}{year}
+#'  \item{sex}{sex encoded as 0 for males and 1 for females}
+#'  \item{age}{age in years}
+#'  \item{rate}{death rate}
 #' }
 "UKmortality"
 
-#' Population survival rate.
+#' Calculates the daily mortality probability for a given population, based on
+#' their yearly mortality rates.
 #'
-#' @param form Formula to define...
-#' @param data Population data frame containing calendar_year, sex, age and rate.
-#' @param max_age Integer to specify maximum age.
-#' @return An estimate of the survival rate by day.
+#' @param form Formula where the LHS indicates the name of the mortality rate column, and
+#' the RHS is the column where age is located. This function assumes that the population data
+#' frame has already been stratified by sex, or any other categorical variable of interest.
+#' @param data Data frame of population mortality stratified by sex and age. The following columns
+#' must be present: \code{sex}, \code{age}, and \code{rate}.
+#' @param max_age Integer to specify the maximum age to calculate mortality for.
+#' @return An estimate of the survival rate per days of age, with \code{max_age} * 365 values.
 #' @examples
-#' pop_data_mx <- load(population_data_mx)
-#' daily_survival_males <- population_survival_rate(rate ~ age, subset(pop_data_mx, sex==0))
+#' data(UKmortality)
+#'
+#' population_survival_rate(rate ~ age, UKmortality)
+#' population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
 population_survival_rate <- function(form, data, max_age=100){
     # Could probably improve on this extraction of response and variable
     # Does this function need to have "population in its name?" Could it be more generally applied?
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
-    data[, age_var] <- floor(data[, age_var])
 
     rate <- vapply(seq(0, max_age-1),
-                   function(x) mean(data[data[,age_var]==x, rate_var]),
+                   function(x) mean(data[floor(data[,age_var]) == x, rate_var]),
                    numeric(1))
 
     a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[max_age] - rate[max_age-1])
@@ -43,17 +48,7 @@ population_survival_rate <- function(form, data, max_age=100){
     cumprod(1 - daily_rate)
 }
 
-#' Calculate bootstrap survival coefficients as a way to estimate uncertainty
-#' of the survival model.
-#' @param form Formula to define survival model by survival time, indicator and covariates.
-#' @param data Registry dataset of patient cases.
-#' @param N_boot Integer to specify number of replicates.
-#' @return A matrix of coefficients from a Weibull survival model fitted to each bootrapped sample.
-#' @examples
-#' form = Surv(time, status) ~ age + sex
-#' data = registry_data
-#' registry_survival_bootstrapped(form, data)
-registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1){
+.registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1){
     data_trans <- .transform_registry_data(form, data) # df -> matrix, log transform stimes. Required for survreg.fit
     coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot, n_cores=n_cores)
 
@@ -135,17 +130,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
     cbind(Y, X)
 }
 
-#' Survival function for males or females, modelled on patient data until cure_days, then
-#' population data for the remaining time.
-#'
-#' @param time Time in days.
-#' @param data Registry dataset of patient cases.
-#' @param cure_days A number representing time in days corresponding to the cure model assumption for the calculation.
-#' @param boot_coefs Coefficients for selected bootstrapped dataset.
-#' @param pop_surv_rate Population survival function in days.
-#' @param max_age Integer to specify maximum age.
-#' @return A survival curve on which to base prevalence predictions.
-prob_alive <- function(time, data, cure_days, boot_coefs, pop_surv_rate, max_age=100){
+.prob_alive <- function(time, data, cure_days, boot_coefs, pop_surv_rate, max_age=100){
     scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot_coefs[length(boot_coefs)]
     age <- data[, 2]  # hardcoded I know, but it will always be first after intercept

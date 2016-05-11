@@ -47,13 +47,13 @@ test_that("population_survival_rate returns the correct number of values", {
     expect_length(subset(UKmortality, sex==1), age=50)
 })
 
-test_that("registry_survival_bootstrapped returns the same value as before", {
+test_that(".registry_survival_bootstrapped returns the same value as before", {
     set.seed(3)
     i <- 1
     expect_ref <- function(data, straps) {
         form = Surv(time, status) ~ age + sex
         fn <- paste("cache/survival/registry_survival_bootstrapped_", i, ".rds", sep='')
-        expect_equal_to_reference(registry_survival_bootstrapped(form, data, straps), file=fn)
+        expect_equal_to_reference(.registry_survival_bootstrapped(form, data, straps), file=fn)
         i <<- i + 1
     }
 
@@ -70,7 +70,7 @@ test_that("registry_survival_bootstrapped returns the same value as before", {
     expect_ref(subset(prevsim, sex==1), 100)
 })
 
-test_that("registry_survival_bootstrapped with a thousand bootstraps returns the same value as before", {
+test_that(".registry_survival_bootstrapped with a thousand bootstraps returns the same value as before", {
     skip_on_cran()
     skip("too slow")
 
@@ -79,7 +79,7 @@ test_that("registry_survival_bootstrapped with a thousand bootstraps returns the
     expect_ref <- function(data, straps) {
         form <- Surv(time, status) ~ age + sex
         fn <- paste("cache/survival/registry_survival_bootstrapped_1000_", i, ".rds", sep='')
-        expect_equal_to_reference(registry_survival_bootstrapped(form, data, straps), file=fn)
+        expect_equal_to_reference(.registry_survival_bootstrapped(form, data, straps), file=fn)
         i <<- i + 1
     }
 
@@ -231,12 +231,12 @@ test_that(".row_any_error correctly returns NA for a variety of errors", {
     expect_rows(matrix6, c(T, F, T, T))
 })
 
-test_that("prob_alive provides the correct probability of death", {
+test_that(".prob_alive provides the correct probability of death", {
     set.seed(3)
     i <- 1
     expect_ref <- function(time, data, cure_time, coefs, pop_rate, max_age=100) {
         fn <- paste("cache/survival/prob_alive_", i, ".rds", sep='')
-        expect_equal_to_reference(prob_alive(time, data, cure_time, coefs, pop_rate, max_age), file=fn)
+        expect_equal_to_reference(.prob_alive(time, data, cure_time, coefs, pop_rate, max_age), file=fn)
         i <<- i + 1
     }
 

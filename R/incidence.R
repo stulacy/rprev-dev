@@ -12,21 +12,24 @@
 #'
 #' @format A data frame with 1000 rows and 6 columns:
 #' \describe{
-#'  \item{time}{(double) time between date of diagnosis and death or censorship, in days}
-#'  \item{status}{(integer) event marker, 1 if patient is deceased and 0 if alive or censored}
-#'  \item{age}{(double) age in years at point of entry into the registry}
-#'  \item{sex}{(integer), 0 for males or 1 for females}
-#'  \item{entrydate}{(character) date of entry into the registry in YYYY-MM-DD format}
-#'  \item{eventdate}{(character) date of death or censorship in YYYY-MM-DD format}
+#'  \item{time}{time between date of diagnosis and death or censorship, in days}
+#'  \item{status}{event marker, 1 if patient is deceased and 0 if alive or censored}
+#'  \item{age}{age in years at point of entry into the registry}
+#'  \item{sex}{boolean variable, 0 for males and 1 for females}
+#'  \item{entrydate}{date of entry into the registry in YYYY-MM-DD format}
+#'  \item{eventdate}{date of death or censorship in YYYY-MM-DD format}
 #' }
 "prevsim"
 
 #' Calculate absolute incidence from registry data.
 #'
-#' @param entry (character): Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start (character): Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.
-#' @param num_reg_years (integer): The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.
-#' @return Vector of length num_reg_years of doubles, representing the number of absolute incidence values for each included year of the registry.
+#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD,
+#' defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated,
+#' defaults to using all available complete years.
+#' @return Vector of length num_reg_years of doubles, representing the number of absolute incidence values
+#' for each included year of the registry.
 #' @examples
 #' data(prevsim)
 #'
@@ -54,12 +57,12 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 
 #' Convert absolute incidence values to per 100,000 population values.
 #'
-#' @param entry (character): Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param population_size (integer): The size of the population at risk.
-#' @param start (character): Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.
-#' @param num_reg_years (integer): The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.
-#' @param precision (integer): The number of decimal places required.
-#' @param level (double): The desired confidence interval width.
+#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
+#' @param population_size The size of the population at risk.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.
+#' @param precision The number of decimal places required.
+#' @param level The desired confidence interval width.
 #' @return A list with the following values:
 #'
 #' \item{absolute}{Overall incidence for the period of interest as a single double}
