@@ -157,7 +157,7 @@ As an alternative to extrapolation of long-term survival of patients using the W
 General population period survival data for the UK is loaded and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`. 
 
 ```{r popsurv, fig.width = 6, fig.height = 4, error = TRUE}
-load("../data/UKmortality.rda")
+data(UKmortality)
 
 daily_survival_males <- population_survival_rate(rate ~ age, subset(UKmortality, sex == 0))
 daily_survival_females <- population_survival_rate(rate ~ age, subset(UKmortality, sex == 1))
@@ -191,6 +191,8 @@ prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(
                                start='2004-01-30', num_reg_years=9)
 
 print(prevalence_total)
+
+summary(prevalence_total)
 ```
 
 ### Comparison and substitution between simulated and counted prevalence
@@ -203,7 +205,8 @@ by_year_total <- prevalence_total$simulated_cases
 prev_chisq(prevsim$entrydate, 
            prevsim$eventdate, 
            prevsim$status, 
-           start="2004-01-30", 9,
+           start="2004-01-30", 
+           num_reg_years=9,
            by_year = by_year_total)
 ```
 
@@ -215,13 +218,8 @@ We replace the simulated values with the observed values, for the years where re
 observed <- counted_prevalence(prevsim$entrydate, 
                                prevsim$eventdate, 
                                prevsim$status, 
-                               start='2004-01-30', num_reg_years=9)
-
-summary(prevalence_total)
-
-prevalence_total$simulated_cases[1:9] <- rev(observed)
-
-summary(prevalence_total)
+                               start='2004-01-30', 
+                               num_reg_years=9)
 ```
 
 As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n* up to the number of years estimated in the prevalence object. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion:
@@ -229,9 +227,21 @@ As a way to estimate uncertainty of our survival model, i.e. sampling variation,
 ```{r nyrest3, error = TRUE} 
 n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 3.5e6)
 
+prevalence_total_2 <- prevalence_total
+prevalence_total_2$simulated_cases[1:9] <- rev(observed)
+n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 3, population_size = 3.5e6)
+
 n_year_estimates(prevalence_total, num_years_to_estimate = 5, population_size = 3.5e6)
 
+prevalence_total_2 <- prevalence_total
+prevalence_total_2$simulated_cases[1:9] <- rev(observed)
+n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 5, population_size = 3.5e6)
+
 n_year_estimates(prevalence_total, num_years_to_estimate = 10, population_size = 3.5e6)
+
+prevalence_total_2 <- prevalence_total
+prevalence_total_2$simulated_cases[1:9] <- rev(observed)
+n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 10, population_size = 3.5e6)
 ```
 
 ### Age distribution of prevalent cases

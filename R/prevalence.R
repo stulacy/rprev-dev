@@ -318,9 +318,8 @@ n_year_estimates <- function(object, num_years_to_estimate,
                                    raw_data$status,
                                    start=object$start,
                                    num_reg_years=num_reg_years)
-
     object$simulated_cases[1:num_reg_years] <- rev(observed)
-
+    set.seed(17)
     z_level <- qnorm((1+level)/2)
 
     the_samples <- object$samples[(num_reg_years + 1):num_years_to_estimate, , drop=F]
@@ -356,6 +355,7 @@ n_year_estimates_current <- function(object, num_years_to_estimate,
 
     num_reg_years <- object$nregyears
 
+    set.seed(17)
     z_level <- qnorm((1+level)/2)
 
     the_samples <- object$samples[(num_reg_years + 1):num_years_to_estimate, , drop=F]
