@@ -7,6 +7,8 @@
 functional_form_age(form, data, df = 4)
 }
 \arguments{
+\item{form}{...}
+
 \item{data}{A registry dataset of patient cases.}
 
 \item{df}{Degrees of freedom for the smooth.}

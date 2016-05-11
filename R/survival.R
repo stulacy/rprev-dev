@@ -135,7 +135,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
     cbind(Y, X)
 }
 
-#' Survival function for males or females, modelled on patient data until cure_time, then
+#' Survival function for males or females, modelled on patient data until cure_days, then
 #' population data for the remaining time.
 #'
 #' @param time Time in days.

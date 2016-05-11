@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostics.R
 \name{sim_check}
 \alias{sim_check}
-\title{Estimate consistency of incidence data with a homogeneous Poisson process.}
+\title{Estimate consistency of incidence data with an homogeneous Poisson process.}
 \usage{
 sim_check(data, N_sim = 1e+05)
 }
@@ -12,10 +12,12 @@ sim_check(data, N_sim = 1e+05)
 \item{N_sim}{Integer to specify number of simulations.}
 }
 \value{
-Vector of p values for over- and under-dispersion based on the position of the observed sequence variance in the distribution.
+Vector of p values for over- and under-dispersion based on the position of the
+observed sequence variance in the distribution.
 }
 \description{
-This function compares the actual variance of the yearly incidence rates with rates simulated from a Poisson process with overall rate equal to the overall mean rate.
+This function compares the actual variance of the yearly incidence rates with rates
+simulated from a Poisson process with overall rate equal to the overall mean rate.
 }
 \examples{
 sim_check(incidence(registry_data$entrydate))

@@ -13,7 +13,7 @@ test_that("prevalence returns same values as before", {
         expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              data, num_years_to_estimate,
                                              start=start, num_reg_years=years,
-                                             cure_days=cure*365, N_boot=boot), file=fn)
+                                             cure=cure, N_boot=boot), file=fn)
         i <<- i + 1
     }
     expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=10)
@@ -34,7 +34,7 @@ test_that("prevalence with a thousand bootstraps returns same values as before",
         expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              data, num_years_to_estimate,
                                              start=start, num_reg_years=years,
-                                             cure_days=cure*365, N_boot=boot), file=fn)
+                                             cure=cure, N_boot=boot), file=fn)
         i <<- i + 1
     }
     expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=1000)
@@ -48,7 +48,7 @@ test_that("Error is raised when passing a population data frame not setup correc
         expect_error(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              prevsim, num_years_to_estimate=10, population_data=popdata,
                                              start='2004-01-01', num_reg_years=9,
-                                             cure_days=5*365, N_boot=10), msg)
+                                cure=5, N_boot=10), msg)
     }
     missing_cols <- "Error: The supplied population data frame must contain columns 'rate', 'age', 'sex'."
     missing_levels <- "Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
@@ -66,7 +66,7 @@ test_that("formula for prevalence must have age, sex, and entry functions", {
         expect_error(prevalence(form,
                                 prevsim, num_years_to_estimate=10,
                                 start='2004-01-01', num_reg_years=9,
-                                cure_days=5*365, N_boot=10), msg)
+                                cure=5, N_boot=10), msg)
     }
     missing_funcs <- "Error: Provide function terms for age, sex, and entry date."
     expect_formerror(Surv(time, status) ~ age + sex + entry, missing_funcs)
@@ -87,7 +87,7 @@ test_that("Error is raised when levels for sex aren't the same in registry and p
         expect_error(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              regdata, num_years_to_estimate=10, population_data=popdata,
                                              start='2004-01-01', num_reg_years=9,
-                                             cure_days=5*365, N_boot=10), msg)
+                                cure=5, N_boot=10), msg)
     }
     missing_levels <- "Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
 
@@ -115,7 +115,7 @@ test_that("Prevalence messages the user when the number of registry years are gr
         expect_message(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                   prevsim, num_years_to_estimate=Nyears,
                                   start=start, num_reg_years=regyears,
-                                  cure_days=5*365, N_boot=10))
+                                  cure=5, N_boot=10))
     }
     expect_msg(Nyears=5, start='2003-01-01', regyears=10)
     expect_msg(Nyears=5, start='2003-01-01')  # Note there are 10 registry years in this dataset which are used if not provided
@@ -145,7 +145,7 @@ test_that("prevalence_by_age results in the same values as before", {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure_days=cure*365, N_boot=boot)
+                          cure, N_boot=boot)
         expect_equal_to_reference(prevalence_by_age(obj, age_intervals=ages), file=fn)
         i <<- i + 1
     }
@@ -164,7 +164,7 @@ test_that("n_year_estimates returns the same values as before", {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure_days=cure*365, N_boot=boot)
+                          cure, N_boot=boot)
         expect_equal_to_reference(n_year_estimates(obj, num_years_to_estimate=nyearest,
                                                    population_size = 35e5), file=fn)
         i <<- i + 1
@@ -181,7 +181,7 @@ test_that("n_year_estimates correctly throws an error when asked to estimate con
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure_days=cure*365, N_boot=boot)
+                          cure, N_boot=boot)
         expect_error(n_year_estimates(obj, num_years_to_estimate=nyearest,
                                       population_size = 35e5), msg)
     }

@@ -14,28 +14,6 @@ sim_check <- function(data, N_sim = 100000){
   c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
 
-#' Estimate consistency of incidence data with aN homogeneous Poisson process.
-#'
-#' This function compares the actual variance of the yearly incidence rates with rates
-#' simulated from a Poisson process with overall rate equal to the overall mean rate.
-#'
-#' @param data Vector of absolute incidence for each complete year of the registry.
-#' @param N_sim Integer to specify number of simulations.
-#' @return Vector of p values for over- and under-dispersion based on the position of the
-#' observed sequence variance in the distribution.
-#' @examples
-#' sim_check(raw_incidence)
-sim_check_current <- function(data, N_sim = 100000){
-    the_mean_rate <-  mean(data)
-    var_sim <- rep(NA, N_sim)
-    M <- length(data)
-    for (i in 1:N_sim){
-        thesims <- rpois(M, the_mean_rate)
-        var_sim[i] <- var(thesims)
-    }
-    return(c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim))
-}
-
 #' Plot the age distribution of incident cases in the registry data.
 #'
 #' @param agedata Vector of age at diagnosis for each patient in the registry.
@@ -53,185 +31,9 @@ incidence_age_distribution <- function(agedata, df=10){
 
 }
 
-#' Plot the age distribution of incident cases in the registry data.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param df Degrees of freedom for the smooth.
-#' @return Plot of the raw data and smoothed age distribution function.
-#' @examples
-#' incidence_age_distribution_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
-#' registry_end_year = registry_end_year)
-incidence_age_distribution_current <- function(data, registry_years, registry_start_year, registry_end_year, df=10){
-
-    ages <- rep(0, 100)
-    for (i in 1:dim(data)[1]){
-        ages[1 + floor(data$age_initial[i])] <- ages[1 + floor(data$age_initial[i])] + 1
-    }
-    plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases per year")
-    smage <- smooth.spline(0:99, ages[1:100], df=df)
-    lines(smage, col="blue", lwd=2)
-
-}
-
-#' Inspect consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
-#'
-#' The first plot is of the Kaplan-Meier survival curve on total cases in the registry. The second plot is the
-#' Kaplan-Meier survival curve for each age group, as delineated by the user using the "ages" argument. The third
-#' plot is of the residuals between the raw data and the fitted Cox Proportional Hazards model. If the model is
-#' a good representation of the data the line should be horizontal. The last plot is of Kaplain Meier survival
-#' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
-#' cases shown in blue.
-#'
-#' @param form ...
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
-#' @param start Date from which incident cases are included.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence
-#' is to be calculated.
-#' @return A sequence of plots indicated the consistency of survival data between years of the registry
-#' and with a Cox Proportional Hazards model.
-#' @examples
-#' survival_modelling_diagnostics(Surv(time, status) ~ age(age) + entry(entrydate), registry_data,
-#' ages = c(55, 65, 75, 85, 100), start = "2004-09-01", num_reg_years = 9)
-survival_modelling_diagnostics_sim <- function(form, data, ages, start = NULL, num_reg_years = NULL){
-
-  ### TO DO/discuss:
-  # ?Too much duplicated code with prevalence() to extract variables from formula
-  # Make generic to not just age cuts
-
-  # Extract required column names from formula
-  spec <- c('age', 'entry')
-  terms <- terms(form, spec)
-  special_indices <- attr(terms, 'specials')
-
-  if (any(sapply(special_indices, is.null)))
-    stop("Error: Provide function terms for age and entry date.")
-
-  v <- as.list(attr(terms, 'variables'))[-1]
-  var_names <- unlist(lapply(special_indices, function(i) v[i]))
-
-  age_var <- .extract_var_name(var_names$age)
-  entry_var <- .extract_var_name(var_names$entry)
-
-  # Extract survival formula
-  response_index <- attr(terms, 'response')
-  resp <- v[response_index][[1]]
-  non_covariate_inds <- c(response_index, unlist(special_indices))
-  covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
-
-  if (length(covar_names) > 0)
-    stop("Error: Functionality isn't currently provided for additional covariates.")
-
-  # Determine the registry years of interest from assessing the code
-  if (is.null(start))
-      start <- min(data[, entry_var])
-
-  if (is.null(num_reg_years))
-      num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
-
-  # Check ages input is correct
-  if (is.numeric(ages) != TRUE) stop("Error: ages is not numeric.")
-  if (is.vector(ages) != TRUE) stop("Error: ages is not a vector.")
-
-  # Plot KM overall
-  data_r <- data[data[, entry_var] >= start, ]
-  surv_form_1 <- as.formula(paste(deparse(resp), '~ 1'))
-  km <- survfit(surv_form_1, data_r)
-  plt1 <- plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
-
-  # Plot KM stratified by age
-  plt2 <- plot(survfit(as.formula(paste(deparse(resp), '~ cut(',
-                                age_var, ', breaks = ages)', sep='')), data_r),
-       lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
-  cx <- coxph(as.formula(paste(deparse(resp), '~ ', age_var, sep='')), data_r)
-  cxp <- survfit(cx,
-                 newdata=data.frame(assign(age_var,
-                                           vapply(seq(length(ages) - 1),
-                                                  function(i) mean(c(ages[i], ages[i + 1])),
-                                                  numeric(1)))))
-  lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
-
-  # Plot coxph residuals
-  plt3 <- plot(cox.zph(cx))
-  output <- cox.zph(cx)
-
-  # Plot KM stratified by year of diagnosis
-  plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-  registry_years <- .determine_registry_years(start, num_reg_years)
-  sapply(seq(num_reg_years),
-        function(i) lines(survfit(surv_form_1,
-                                  data=data[data[, entry_var] >= registry_years[i] & data[, entry_var] < registry_years[i + 1], ]),
-                          mark.time = F, conf.int = F))
-
-  # Output plots and test of proportionality assumption
-  return(list(plt1, plt2, plt3, plt4, output))
-
-}
-
-#' Inspect consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
-#'
-#' The first plot is of the Kaplan-Meier survival curve on total cases in the registry. The second plot is the
-#' Kaplan-Meier survival curve for each age group, as delineated by the user using the "ages" argument. The third
-#' plot is of the residuals between the raw data and the fitted Cox Proportional Hazards model. If the model is
-#' a good representation of the data the line should be horizontal. The last plot is of Kaplain Meier survival
-#' curves fitted to cases subdivided by year of diagnosis within the registry (black lines), compared to total
-#' cases shown in blue.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param ages A vector of ages at which to break the dataset for Kaplan Meier plotting.
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @return A sequence of plots indicated the consistency of survival data between years of the registry and with a Cox Proportional Hazards model.
-#' @examples
-#' survival_modelling_diagnostics_current(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year, ages = c(55, 65, 75, 85, 100))
-survival_modelling_diagnostics_current <- function(data, ages, registry_years, registry_start_year,
-                                           registry_end_year){
-
-    if (is.numeric(ages) != TRUE) stop("error: ages is not numeric.")
-    if (is.vector(ages) != TRUE) stop("error: ages is not a vector.")
-
-    years_estimated <- registry_end_year - registry_start_year + 1
-
-    dfr_r <- data[data$date_initial >= registry_years[registry_start_year], ]
-
-    km <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_r)
-    plt1 <- plot(km, lwd=2, col="blue", xlab="survival (days)", ylab="probability")
-
-    km2 <- survfit(Surv(survival_time, indicator) ~ cut(age_initial, breaks=ages), data=dfr_r)
-    plt2 <- plot(km2, lwd=2, col=1:length(ages), xlab="survival (days)", ylab="probability")
-
-    cx <- coxph(Surv(survival_time, indicator) ~ age_initial, data=dfr_r)
-
-    halves <- rep(0, length(ages) - 1)
-    for(i in 1:length(halves)){
-        halves[i] <- mean(c(ages[i], ages[i + 1]))
-    }
-
-    cxp <- survfit(cx, newdata=data.frame(age_initial=halves))
-    lines(cxp, lwd=2, col=1:6, lty=2, mark.time=F)
-
-    output <- cox.zph(cx)
-    plt3 <- plot(cox.zph(cx))
-
-    plt4 <- plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="survival (days)", ylab="probability")
-
-    for (i in registry_start_year:registry_end_year){
-        dfr_L <- dfr_r[dfr_r$date_initial >= registry_years[i] & dfr_r$date_initial < registry_years[i + 1], ]
-        kmlines <- survfit(Surv(survival_time, indicator) ~ 1, data=dfr_L)
-        lines(kmlines, mark.time=F, conf.int=F)
-    }
-
-    return(list(plt1, plt2, plt3, plt4, output))
-
-}
-
 #' Inspect functional form of age.
 #'
-#' @param form
+#' @param form ...
 #' @param data A registry dataset of patient cases.
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.
@@ -281,38 +83,6 @@ functional_form_age <- function(form, data, df=4){
   plt2 <- plot(eval(parse(text=paste('Predict(mod_rms, ', age_var,')', sep = ''))), lwd=3, adj.subtitle=T)
 
   list(plt1, plt2, output1, output2, output3)
-
-}
-
-#' Inspect functional form of age.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param df Degrees of freedom for the smooth.
-#' @return Plots of the functional form of age.
-#' @examples
-#' functional_form_age_current(load_data(registry_data), registry_years,
-#' registry_start_year = registry_start_year, registry_end_year = registry_end_year)
-functional_form_age_current <- function(data, registry_years, registry_start_year, registry_end_year, df=4){
-
-    data_r <- data[data$date_initial >= registry_years[registry_start_year] & data$date_initial < registry_years[registry_end_year], ]
-    cxnl <- coxph(Surv(survival_time, indicator) ~ pspline(age_initial, df=df), data=data_r)
-    output1 <- summary(cxnl)
-
-    plt1 <- termplot(cxnl)
-
-    f <<- datadist(data_r)
-    options(datadist="f")
-
-    mod_rms <- cph(Surv(survival_time, indicator) ~ rcs(age_initial, df), data=data_r, x=TRUE, y=TRUE, surv=T, time.inc=1)
-    output2 <- anova(mod_rms)
-    output3 <- summary(mod_rms)
-
-    plt2 <- plot(Predict(mod_rms, age_initial), lwd=3, adj.subtitle=T)
-
-    return(list(plt1, plt2, output1, output2, output3))
 
 }
 
@@ -495,25 +265,5 @@ prev_chisq <- function(entry, events, status, by_year, start=NULL, num_reg_years
   predicted <- rev(by_year[1:num_reg_years])
   chi <- sum(((observed - predicted)^2)/predicted)
   1 - pchisq(chi, num_reg_years - 1)
-
-}
-
-#' Chi squared test between prevalence prediction and observed values in the registry.
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @return Plots of the smoothed incidence function and corresponding deviations.
-#' @examples
-#' prev_chisq_current(load_data(registry_data), registry_years = registry_years,
-#' registry_start_year = registry_start_year, registry_end_year = registry_end_year, by_year = by_year_total)
-prev_chisq_current <- function(data, registry_years, registry_start_year, registry_end_year, by_year){
-
-    observed <- counted_prevalence_current(data, registry_years, registry_start_year, registry_end_year)
-    predicted <- rev(by_year[1:(registry_end_year - registry_start_year + 1)])
-    chi <- sum(((observed - predicted)^2)/predicted)
-    result <- 1 - pchisq(chi, (registry_end_year - registry_start_year))
-    return(result)
 
 }

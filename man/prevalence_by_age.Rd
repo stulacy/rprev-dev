@@ -19,6 +19,6 @@ Output extrapolated number of prevalent cases for specified age bands.
 }
 \examples{
 prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
-                 N_years = N_years)
+                 num_years_to_estimate = num_years_to_estimate)
 }
 
