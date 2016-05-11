@@ -117,7 +117,7 @@ prevalence <- function(form, data, num_years_to_estimate,
     special_indices <- attr(terms, 'specials')
 
     if (any(sapply(special_indices, is.null)))
-        stop("Error: Provide function terms for age, sex, and entry date.")
+        stop("Error: provide function terms for age, sex, and entry date.")
 
     v <- as.list(attr(terms, 'variables'))[-1]
     var_names <- unlist(lapply(special_indices, function(i) v[i]))
@@ -133,7 +133,7 @@ prevalence <- function(form, data, num_years_to_estimate,
     covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
 
     if (length(covar_names) > 0)
-        stop("Error: Functionality isn't currently provided for additional covariates.")
+        stop("Error: functionality isn't currently provided for additional covariates.")
 
     cure_days <- cure * 365
 
@@ -156,7 +156,7 @@ prevalence <- function(form, data, num_years_to_estimate,
         # Obtain population data, and ensure it has the correct columns
         req_pop_names <- c('rate', 'age', 'sex')
         if (!all(sapply(req_pop_names, function(x) x %in% names(population_data)))) {
-           stop("Error: The supplied population data frame must contain columns 'rate', 'age', 'sex'.")
+           stop("Error: the supplied population data frame must contain columns 'rate', 'age', 'sex'.")
         }
     }
 
@@ -168,7 +168,7 @@ prevalence <- function(form, data, num_years_to_estimate,
     population_data$sex <- as.factor(population_data$sex)
 
     if (!all(levels(data[, sex_var]) %in% levels(population_data$sex)))
-        stop("Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
+        stop("Error: the same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
 
     surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])),
                              function(x) population_survival_rate(rate ~ age, data=subset(population_data, sex==x)))
@@ -308,7 +308,7 @@ n_year_estimates <- function(object, num_years_to_estimate,
                              level=0.95, precision=2){
 
     if (num_years_to_estimate > object$nyears)
-        stop("Error: Can't calculate prevalence for more years than present in the prevalence object.")
+        stop("Error: can't calculate prevalence for more years than present in the prevalence object.")
 
     num_reg_years <- object$nregyears
 

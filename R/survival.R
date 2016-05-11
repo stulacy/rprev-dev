@@ -58,7 +58,7 @@ registry_survival_bootstrapped <- function(form, data, N_boot = 1000, n_cores=1)
     coefs <- .calculate_bootstrapped_coefficients(data_trans, N_boot, n_cores=n_cores)
 
     if (sum(.row_any_error(coefs)) > 1)
-        warning("Error in cox.ph, possibly due to small number of events in bootstrap sample. Replacing with a new sample.")
+        warning("Error in coxph, possibly due to small number of events in bootstrap sample. Replacing with a new sample.")
 
     # Keep bootstrapping new samples to get non-NA coefficients
     while (sum(.row_any_error(coefs)) > 1) {

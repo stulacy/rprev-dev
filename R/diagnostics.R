@@ -52,7 +52,7 @@ functional_form_age <- function(form, data, df=4){
   special_indices <- attr(terms, 'specials')
 
   if (any(sapply(special_indices, is.null)))
-    stop("Error: Provide function term for age.")
+    stop("Error: provide function term for age.")
 
   v <- as.list(attr(terms, 'variables'))[-1]
   var_names <- unlist(lapply(special_indices, function(i) v[i]))
