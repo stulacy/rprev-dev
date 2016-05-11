@@ -65,51 +65,6 @@ prevalence <- function(form, data, num_years_to_estimate,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
 
-    ############################################
-    #
-    # TODO Remove when finished debugging
-    #set.seed(17)
-    #num_years_to_estimate = 10
-    ##data = subset(registry_data, sex==0)
-    #data = registry_data
-    #num_years_to_estimate = num_years_to_estimate
-    #cure_days = cure*365
-    #start = '2005-09-01'
-    #num_reg_years = 8
-    #N_boot = 1000
-    #max_yearly_incidence = 500
-    #form = Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag)
-    #population_data = NULL
-    #parallel = F
-    ############################################
-    #prelim <- read.csv("R:/HMRN/Substudies/Prevalence/20140402_Prevalence_All/NLPHL/20140414_NLPHL_all.csv", header=T)
-    #prelim$DateOfDiag <- as.Date(prelim$DateOfDiag, format="%d/%m/%Y")
-    #prelim$EventDate <- as.Date(prelim$EventDate, format="%d/%m/%Y")
-    #prelim$stime <- as.double(difftime(prelim$EventDate, prelim$DateOfDiag, units="days"))
-    #prelim$stime <- ifelse(prelim$stime <= 0, 1, prelim$stime)
-    #prelim <- prelim[!is.na(prelim$sex), ]
-    #prelim_r <- prelim[prelim$DateOfDiag >= "2006-09-01", ]
-    #
-    #registry_years = sapply(7:15, function(x) sprintf("20%02d-09-01", x))
-    #form = Surv(stime, status) ~ sex(sex) + age(age) + entry(DateOfDiag)
-    #start='2007-09-01'
-    #
-    #num_reg_years=8
-    #num_years_to_estimate <- 10
-    #cure <- 3
-    #cure_days = cure * 365
-    #N_boot = 1000
-    #pop_vers = 1
-    #max_yearly_incidence = 500
-    #data = prelim_r
-    #n_cores = 1
-    #population_data = NULL
-    #############################################
-prevalence <- function(form, data, N_years,
-                       cure_time=NULL, start=NULL, num_reg_years=NULL,
-                       N_boot=1000, max_yearly_incidence=500,
-                       population_data=NULL, n_cores=1) {
-
     if (n_cores > 1) {
         if (!require(doParallel)) {
             warning("doParallel not installed. Running program serially instead.")
@@ -224,13 +179,13 @@ prevalence <- function(form, data, N_years,
 
 
 .prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
-                                 cure, sex, max_year_inc, nprevyears, include_sex) {
+                                 cure_days, sex, max_year_inc, nprevyears, include_sex) {
     fix_rate_rev <- rev(incidence(entry, start, num_reg_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence
     yearly_rates = lapply(1:nprevyears, .yearly_prevalence, wboot, mean_rate, nregyears, fix_rate_rev,
-                          prior_age_d, survfunc, cure, sex, max_year_inc, include_sex)
+                          prior_age_d, survfunc, cure_days, sex, max_year_inc, include_sex)
     # Unflatten by_year samples
     by_year_samples = do.call(rbind, lapply(yearly_rates, function(x) x$cases))
     post_age_dist = abind(lapply(yearly_rates, function(x) x$post), along=3)
@@ -238,10 +193,10 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.yearly_prevalence <- function(year, bootwb, meanrate, nregyears, fixrate, prior, dailysurv, cure, sex, max_inc, include_sex) {
+.yearly_prevalence <- function(year, bootwb, meanrate, nregyears, fixrate, prior, dailysurv, cure_days, sex, max_inc, include_sex) {
     # Run the bootstrapping to obtain posterior distributions and # cases for this year
     post_results = apply(bootwb, 1, .post_age_bs, meanrate, nregyears, year-1, fixrate[year], prior, dailysurv,
-                         cure, sex, max_inc, inreg=year<=nregyears, include_sex=include_sex)
+                         cure_days, sex, max_inc, inreg=year<=nregyears, include_sex=include_sex)
 
     # Post_age_bs returns a list with 'cases' and 'post' values for the number of cases and posterior age distribution
     # Need to flatten this into single array for boot_out and 2D array for post_age_dist
@@ -251,7 +206,7 @@ prevalence <- function(form, data, N_years,
 }
 
 
-.post_age_bs <- function(coefs_bs, meanrate, nregyears, year, fixrate, prior, daily_surv, curetime,
+.post_age_bs <- function(coefs_bs, meanrate, nregyears, year, fixrate, prior, daily_surv, cure_days,
                          sex, maxyearinc, inreg=TRUE, include_sex=TRUE) {
     post_age_dist <- rep(NA, maxyearinc)
     if (inreg){
@@ -274,7 +229,7 @@ prevalence <- function(form, data, N_years,
 
         is_dead <- as.logical(rbinom(num_diag, 1,
                                       1 - prob_alive(time_since_diag, bootstrapped_data,
-                                                     curetime, boot_coefs=coefs_bs,
+                                                     cure_days, boot_coefs=coefs_bs,
                                                      pop_surv_rate=daily_surv)))
         num_alive <- sum(!is_dead)
     } else {
