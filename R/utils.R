@@ -1,7 +1,7 @@
 #' Generate a summary of the cumulative_incidence object.
 #'
 #' @param object A \code{cumulative_incidence} object.
-summary.cumulative_incidence <- function(object, ...) {
+summary.cincidence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$raw_incidence), "\n")
 

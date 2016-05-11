@@ -43,7 +43,7 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
     cumulative_inc_out <- list(raw_incidence = incidence(entry, start, num_reg_years),
                                 ordered_diagnoses = diags,
                                 smooth = smo)
-    attr(cumulative_inc_out, 'class') <- 'cumulative_incidence'
+    attr(cumulative_inc_out, 'class') <- 'cincidence'
     cumulative_inc_out
 }
 
