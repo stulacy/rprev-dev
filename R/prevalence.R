@@ -107,7 +107,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 #'
 prevalence <- function(form, data, num_years_to_estimate,
-                       cure=NULL, start=NULL, num_reg_years=NULL,
+                       cure=10, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
 
@@ -141,10 +141,6 @@ prevalence <- function(form, data, num_years_to_estimate,
 
     if (length(covar_names) > 0)
         stop("Error: Functionality isn't currently provided for additional covariates.")
-
-    # Assign cure if not provided, set to be so large that it has no impact
-    if (is.null(cure))
-        cure <- (num_years_to_estimate + 1)
 
     cure_days <- cure * 365
 
@@ -391,39 +387,4 @@ n_year_estimates_current <- function(num_years_to_estimate, registry_start_year,
                   "-", round(the_proportion + CI, 2), ")", sep="")
 
     return(list(raw, prop))
-}
-
-#' Output extrapolated number of prevalent cases for specified age bands.
-#'
-#' @param object A \code{prevalence} object.
-#' @param age_intervals Vector of integers to delineate age bands.
-#' @return Vector of predicted number of prevalent cases for specified age bands.
-#' @examples
-#' data(prevsim)
-#'
-#' prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'                    data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-#'                    num_reg_years = 8, cure_days = 5*365)
-#'
-#' prevalence_by_age(prev)
-#'
-#' prevalence_by_age(prev, c(20, 40, 60, 80))
-#'
-#' prevalence_by_age(prev, c(50))
-prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
-
-    if (object$nregyears >= object$nyears)
-        stop("Error: No simulated prevalent years as registry data was available.")
-
-    if (! all(age_intervals >= 0))
-        stop("Must have positive ages")
-
-    the_dist <- object$post[, , (object$nregyears + 1):object$nyears]
-    the_dist <- the_dist[!is.na(the_dist)]
-
-    # Add lower and upper bounds for range
-    ages <- c(0, age_intervals, max(the_dist))
-
-    sapply(seq(length(ages)-1),
-           function(x) sum(the_dist >= ages[x] & the_dist < ages[x+1]) / length(the_dist))
 }
