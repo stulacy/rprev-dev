@@ -145,7 +145,8 @@ prevalence <- function(form, data, num_years_to_estimate,
     # Assign cure if not provided, set to be so large that it has no impact
     if (is.null(cure))
         cure <- (num_years_to_estimate + 1)
-        cure_days <- cure * 365
+
+    cure_days <- cure * 365
 
     data[, sex_var] <- as.factor(data[, sex_var])
     if (length(levels(data[, sex_var])) > 2)
