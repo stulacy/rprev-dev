@@ -188,9 +188,6 @@ registry_survival_bootstrapped_current <- function(data, N_boot = 1000){
 }
 
 #' Survival function for males or females, modelled on patient data until cure_days, then
-=======
-#' Survival function for males or females, modelled on patient data until cure_time, then
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 #' population data for the remaining time.
 #'
 #' @param time Time in days.
@@ -208,7 +205,6 @@ prob_alive <- function(time, data, cure_days, boot_coefs, pop_surv_rate, max_age
            0,
            ifelse(time < cure_days,
                   1 - pweibull(time, scale=scale, shape=shape),
-<<<<<<< HEAD
                   (1 - pweibull(cure_days, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_days]))
 }
 
@@ -220,7 +216,4 @@ prob_alive_current <- function(time, age, sex, cure_days, boot, daily_survival, 
            ifelse(time < cure_days,
                   1 - pweibull(time, scale=scale, shape=shape),
                   (1 - pweibull(cure_days, scale=scale, shape=shape)) * daily_survival[age*365 + time]/daily_survival[age*365 + cure_days]))
-=======
-                  (1 - pweibull(cure_time, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_time]))
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 }
