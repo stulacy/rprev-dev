@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This document demonstrates how predictions of prevalence are calculated from a synthetic patient dataset. For the purposes of this document, the term prevalence refers to estimates of point prevalence at an index date.
+This document demonstrates how predictions of prevalence are calculated from a synthetic patient dataset. For the purposes of this document, the term prevalence refers to estimates of point prevalence at an index date. Where we calculate prevalence for a specific number of years, *n-years*, this means the number of years working back from the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included, and the greater the value of the prevalence estimate. We would argue that the higher the value of *n*, the more accurate the prevalence prediction, until the number of years simulated is markedly disproportionate to the number of years of registry data available. 
 
 ```{r, echo = FALSE, message = FALSE}
 library(devtools)
@@ -52,7 +52,7 @@ raw_incidence <- incidence(prevsim$entrydate, start="2004-01-30", 9)
 raw_incidence
 ```
 
-It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with a homogeneous Poisson process, the `sim_check` and `smoothed_incidence` functions can be used:
+It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with an homogeneous Poisson process, the `sim_check` and `smoothed_incidence` functions can be used:
 
 ```{r}
 sim_check(raw_incidence)
@@ -143,14 +143,14 @@ functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
 
 ### Weibull model
 
-We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` for diagnostic information and to assess the model fit. 
+We model survival in our patient cohort using a Weibull distribution. This is calculated within the prevalence function, however, it is important to look at `summary(wb)` to assess the fit:
 
 ```{r weibull, error = TRUE}
 wb <- survreg(Surv(time, status) ~ age + sex, data=prevsim_r)
 summary(wb)
 ```
 
-As an alternative to extrapolation of long-term survival of patients using the Weibull model alone, we have implemented an alternative, which we call a cure model. For example, the default `cure = 10` in the following functions for estimating prevalence, means a patient can be considered "cured" if they have survived until 10 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. 
+As an alternative to extrapolation from the Weibull model alone when modelling long-term survivors in patient data, we have implemented what we call a cure model. For example, the default `cure = 10` in the following functions for estimating prevalence, means a patient can be considered "cured" if they have survived until 10 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. 
 
 ### Population survival
 
@@ -172,7 +172,7 @@ legend("topright", legend = c("Males", "Females"),
 
 ### Counts
 
-In the first instance, prevalence can be estimated by counting from the registry data. When doing this using the supplied synthetic dataset, it is important to note that there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in incidence and survival data collection. All the survival data for the available incident cases is used for survival modelling, however the prevalence estimate works back by year from an "index date", which is the last date of the last year of registry data, as it is imperative that the number of incident cases is complete for simulating prevalence. Therefore, `last(determine_registry_years(start='2004-01-30', num_reg_years=9))` is the index date for this synthetic dataset. In `counted_prevalence()`, all cases alive after the index date are censored. 
+In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* dataset where there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in methods of incidence and survival data collection, `r last(determine_registry_years(start='2004-01-30', num_reg_years=9))` is the index date. This is calculated to be the last date of the last year of registry data included by the user. In `counted_prevalence()`, all cases alive after the index date are censored. 
 
 ```{r survival, error = TRUE}
 counted_prevalence(prevsim$entrydate, 
@@ -181,9 +181,11 @@ counted_prevalence(prevsim$entrydate,
                      start="2004-01-30", 9)
 ```
 
+NB: all follow-up data for the available incident cases is still used in survival modelling.
+
 ### Simulation
 
-Prevalence can now be estimated using simulation by calling `prevalence()`. `num_years_to_estimate` corresponds to the number of preceding years contributing incident cases:
+Prevalence is estimated using simulation by calling `prevalence()`. `num_years_to_estimate` corresponds to the number of years preceding the index date that contribute incident cases:
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
