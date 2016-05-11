@@ -88,7 +88,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' providing custom ones.
 #' @param num_cores The number of CPU cores to run the fitting of the bootstrapped survival models across.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
-#' @return An S3 object of class \code{prevalence} with the followign attributes:
+#' @return An S3 object of class \code{prevalence} with the following attributes:
 #' \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
 #' prevalent cases at each year across each bootstrap iteration.}
 #' \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
@@ -294,14 +294,30 @@ prevalence <- function(form, data, num_years_to_estimate,
 
 #' Calculate predicted prevalence for a given number of years.
 #'
-#' @param object Object returned from prevalence\(\).
+#' @param object A \code{prevalence} object.
 #' @param num_years_to_estimate Integer representing number of years prevalence is to be calculated for.
 #' @param population_size Integer corresponding to the size of the population.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
-#' @return An estimate of prevalence, in total and /100,000 with confidence intervals.
+#' @return A list with the following attributes:
+#' \item{absolute.prevalence}{Absolute prevalence for the specified time frame.}
+#' \item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
+#' \item{per100K.lower}{Lower confidence bounds on the estimate.}
+#' \item{per100K.upper}{Upper confidence bounds on the estimate.}
 #' @examples
-#' n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 1700000)
+#' data(prevsim)
+#'
+#' prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'                    data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
+#'                    num_reg_years = 8, cure_days = 5*365)
+#'
+#' n_year_estimates(prev, num_years_to_estimate = 3, population_size = 1.7e6)
+#'
+#' n_year_estimates(prev, num_years_to_estimate = 5, population_size = 1.7e6)
+#'
+#' # Maximum number of years to estimate for is 10 as this is the number of years the prev object
+#' # was assigned to estimate.
+#' n_year_estimates(prev, num_years_to_estimate = 10, population_size = 1.7e6, level=0.99)
 n_year_estimates <- function(object, num_years_to_estimate,
                              population_size,
                              level=0.95, precision=2){
@@ -339,12 +355,21 @@ n_year_estimates <- function(object, num_years_to_estimate,
 
 #' Output extrapolated number of prevalent cases for specified age bands.
 #'
-#' @param object Object returned by prevalence\(\) from which to extrapolate.
+#' @param object A \code{prevalence} object.
 #' @param age_intervals Vector of integers to delineate age bands.
 #' @return Vector of predicted number of prevalent cases for specified age bands.
 #' @examples
-#' prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
-#'                  num_years_to_estimate = num_years_to_estimate)
+#' data(prevsim)
+#'
+#' prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'                    data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
+#'                    num_reg_years = 8, cure_days = 5*365)
+#'
+#' prevalence_by_age(prev)
+#'
+#' prevalence_by_age(prev, c(20, 40, 60, 80))
+#'
+#' prevalence_by_age(prev, c(50))
 prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
 
     if (object$nregyears >= object$nyears)
