@@ -48,7 +48,7 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
                        integer(1))
 
-    if(sum(per_year) < 30) warning("warning: low number of incident cases.")
+    if(sum(per_year) < 30) warning("Warning: low number of incident cases.")
     per_year
 }
 

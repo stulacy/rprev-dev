@@ -128,15 +128,12 @@ test_that("counted_prevalence results in the same values as before", {
     expect_ref <- function(entry, event, status, start, years=NULL, index=NULL) {
         fn <- paste('cache/prevalence/countedprevalence_', i, '.rds', sep='')
         expect_equal_to_reference(counted_prevalence(entry, event, status, start=start,
-                                                     num_reg_years=years, indexdate=index), file=fn)
+                                                     num_reg_years=years), file=fn)
         i <<- i + 1
     }
-    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2003-01-01', 9, '2013-01-01')
-    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05', 5, '2009-03-05')
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05', 5)
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05')
 })
-
 
 test_that("n_year_estimates returns the same values as before", {
     set.seed(3)
