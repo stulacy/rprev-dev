@@ -42,7 +42,7 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-    registry_years <- .determine_registry_years(start, num_reg_years)
+    registry_years <- determine_registry_years(start, num_reg_years)
 
     per_year <- vapply(seq(num_reg_years),
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
@@ -82,7 +82,7 @@ meanIR <- function(entry, population_size, start=NULL, num_reg_years=NULL, preci
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-    registry_years <- .determine_registry_years(start, num_reg_years)
+    registry_years <- determine_registry_years(start, num_reg_years)
 
     mean_rate <- mean(incidence(entry, start, num_reg_years=num_reg_years))
     z_conf <- qnorm((1+level)/2)

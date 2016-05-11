@@ -12,13 +12,8 @@
 #'
 #' counted_prevalence(prevsim$entrydate,
 #'                    prevsim$eventdate,
-#'                    prevsim$status)
-#'
-#' counted_prevalence(prevsim$entrydate,
-#'                    prevsim$eventdate,
 #'                    prevsim$status,
-#'                    start="2004-01-30", num_reg_years=8,
-#'                    indexdate = "2013-01-30")
+#'                    start="2004-01-30", num_reg_years=8)
 counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL, indexdate=NULL) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
@@ -30,7 +25,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-    registry_years <- .determine_registry_years(start, num_reg_years)
+    registry_years <- determine_registry_years(start, num_reg_years)
 
     if (is.null(indexdate))
         indexdate <- registry_years[length(registry_years)]
