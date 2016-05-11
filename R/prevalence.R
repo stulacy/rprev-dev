@@ -2,10 +2,13 @@
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
 #' @param eventdate Vector of dates corresponding to the indicator variable in the format YYYY-MM-DD.
-#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry. \code{entry}, \code{eventdate}, and \code{status} must all have the same length.
+#' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
+#' \code{entry}, \code{eventdate}, and \code{status} must all have the same length.
 #' @param start Date from which incident cases are included, defaults to the earliest date in \code{entry}.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated, defaults to the number of complete years in the supplied data.
-#' @return A vector of length \code{num_reg_years}, representing the corresponding prevalence values.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is
+#' to be calculated, defaults to the number of complete years in the supplied data.
+#' @return A vector of length \code{num_reg_years}, representing the number of incident cases in the corresponding year that contribute
+#' to the prevalence at the index date.
 #' @examples
 #' data(prevsim)
 #'
@@ -181,7 +184,7 @@ prevalence <- function(form, data, num_years_to_estimate,
     surv_form <- as.formula(paste(deparse(resp), '~',
                                   req_covariate,
                                   paste(covar_names, collapse='+')))
-    wb_boot <- registry_survival_bootstrapped(surv_form, data_r, N_boot, n_cores=n_cores)
+    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r, N_boot, n_cores=n_cores)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
 
     # Run the prevalence estimator for each subgroup
@@ -264,9 +267,9 @@ prevalence <- function(form, data, num_years_to_estimate,
         }
 
         is_dead <- as.logical(rbinom(num_diag, 1,
-                                      1 - prob_alive(time_since_diag, bootstrapped_data,
-                                                     cure_days, boot_coefs=coefs_bs,
-                                                     pop_surv_rate=daily_surv)))
+                                      1 - .prob_alive(time_since_diag, bootstrapped_data,
+                                                      cure_days, boot_coefs=coefs_bs,
+                                                      pop_surv_rate=daily_surv)))
         num_alive <- sum(!is_dead)
     } else {
         num_alive <- as.integer(0)

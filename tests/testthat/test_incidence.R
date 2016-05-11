@@ -34,11 +34,11 @@ test_that("incidence returns no NAs", {
     expect_NA()
 })
 
-test_that("meanIR returns same values as before", {
+test_that("mean_incidence_rate returns same values as before", {
     i <- 1
     expect_ref <- function(start=NULL, years=NULL) {
         fn <- paste('cache/incidence/meanir_', i, '.rds', sep='')
-        expect_equal_to_reference(meanIR(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years), file=fn)
+        expect_equal_to_reference(mean_incidence_rate(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years), file=fn)
         i <<- i + 1
     }
 
@@ -47,9 +47,9 @@ test_that("meanIR returns same values as before", {
     expect_ref()
 })
 
-test_that("meanIR returns a list", {
+test_that("mean_incidence_rate returns a list", {
     expect_list <- function(start=NULL, years=NULL) {
-        expect_match(typeof(meanIR(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years)), 'list')
+        expect_match(typeof(mean_incidence_rate(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years)), 'list')
     }
 
     expect_list('2004-01-01', 9)
@@ -57,9 +57,9 @@ test_that("meanIR returns a list", {
     expect_list()
 })
 
-test_that("meanIR returns no NAs", {
+test_that("mean_incidence_rate returns no NAs", {
     expect_NA <- function(start=NULL, years=NULL) {
-        expect_equal(any(is.na(meanIR(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years))), FALSE)
+        expect_equal(any(is.na(mean_incidence_rate(prevsim$entrydate, population_size=35e5, start=start, num_reg_years=years))), FALSE)
     }
 
     expect_NA('2004-01-01', 9)
