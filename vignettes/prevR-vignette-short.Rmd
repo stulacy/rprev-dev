@@ -62,8 +62,6 @@ sim_check(raw_incidence)
 par(mfrow=c(2,2))
 c_inc <- cumulative_incidence(prevsim$entrydate, start = "2004-01-30", num_reg_years = 9)
 
-summary(c_inc)
-
 ordered_diagnoses <- c_inc$ordered_diagnoses
 smooth <- c_inc$smooth
 
@@ -79,6 +77,8 @@ plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(smooth, ordered
 inspect_incidence(c_inc)
 
 poisson_incidence_sim(c_inc)
+
+summary(c_inc)
 ```
 
 The age distribution of incident cases can also be inspected:
