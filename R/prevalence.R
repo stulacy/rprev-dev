@@ -207,7 +207,8 @@ prevalence <- function(form, data, num_years_to_estimate,
     by_year_avg <- rowMeans(by_year_samples)
 
     prev_out <- list(simulated_cases=by_year_avg, post_covar=post_age_dist, samples=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions, nyears=num_years_to_estimate, nregyears=num_reg_years, nbootstraps=N_boot)
+                     popsurv=surv_functions, nyears=num_years_to_estimate, nregyears=num_reg_years, start=start, nbootstraps=N_boot,
+                     raw_data=data)
     attr(prev_out, 'class') <- 'prevalence'
     prev_out
 }
@@ -304,6 +305,49 @@ prevalence <- function(form, data, num_years_to_estimate,
 #' # was assigned to estimate.
 #' n_year_estimates(prev, num_years_to_estimate = 10, population_size = 1.7e6, level=0.99)
 n_year_estimates <- function(object, num_years_to_estimate,
+                             population_size,
+                             level=0.95, precision=2){
+
+    if (num_years_to_estimate > object$nyears)
+        stop("Error: can't calculate prevalence for more years than present in the prevalence object.")
+
+    num_reg_years <- object$nregyears
+    raw_data <- object$raw_data
+    observed <- counted_prevalence(raw_data$entrydate,
+                                   raw_data$eventdate,
+                                   raw_data$status,
+                                   start=object$start,
+                                   num_reg_years=num_reg_years)
+
+    object$simulated_cases[1:num_reg_years] <- rev(observed)
+
+    z_level <- qnorm((1+level)/2)
+
+    the_samples <- object$samples[(num_reg_years + 1):num_years_to_estimate, , drop=F]
+    by_sample_estimate <- colSums(the_samples)
+
+    the_estimate <- sum(object$simulated_cases[1:num_years_to_estimate])
+    raw_proportion <- the_estimate / population_size
+    the_proportion <- 100000 * raw_proportion
+
+    if (num_years_to_estimate <= num_reg_years) {
+        se <- (raw_proportion * (1 - raw_proportion)) / population_size
+    } else {
+        the_estimate_n <- sum(object$simulated_cases[1:num_reg_years])
+        raw_proportion_n <- the_estimate_n / population_size
+        std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
+        std_err_2 <- sd(by_sample_estimate)/population_size
+        se <- std_err_1^2 + std_err_2^2
+    }
+
+    CI <- z_level * sqrt(se) * 100000
+    object <- list(absolute.prevalence=the_estimate, per100K=the_proportion,
+                   per100K.lower=the_proportion - CI,
+                   per100K.upper=the_proportion + CI)
+    lapply(object, round, precision)
+}
+
+n_year_estimates_current <- function(object, num_years_to_estimate,
                              population_size,
                              level=0.95, precision=2){
 

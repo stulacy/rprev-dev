@@ -45,8 +45,11 @@ print.prevalence <- function(object, ...) {
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$known_inc_rate), "\n")
+    cat("Start year:", object$start, "\n")
     cat("Known incidence rate:\n")
     cat(object$known_inc_rate)
+    cat("\n\nSummary of included raw data:\n")
+    print(summary(object$raw_data))
 
     cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
     cat("Iterations:", object$nbootstraps, "\n")
