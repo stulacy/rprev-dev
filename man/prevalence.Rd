@@ -26,8 +26,8 @@ Using the supplied \code{prevsim} dataset, it is therefore called with:
 
 \item{num_years_to_estimate}{Integer representing number of years to calculate prevalence for.}
 
-\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond \code{cure_days} days has their survival probability incorporating mortality rates of the
-underlying population.}
+\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
+has their survival probability incorporating mortality rates of the underlying population.}
 
 \item{start}{Date from which incident cases are included, in the format YYYY-MM-DD. Defaults to the earliest incident case in
 the supplied registry.}
@@ -50,7 +50,7 @@ providing custom ones.}
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
 \value{
-An S3 object of class \code{prevalence} with the followign attributes:
+An S3 object of class \code{prevalence} with the following attributes:
 \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
 prevalent cases at each year across each bootstrap iteration.}
 \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
@@ -69,7 +69,7 @@ data(prevsim)
 
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-           num_reg_years = 8, cure_days = 5*365)
+           num_reg_years = 8, cure = 5)
 
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
            data=prevsim, num_years_to_estimate = 5)
