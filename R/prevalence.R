@@ -323,7 +323,7 @@ n_year_estimates <- function(object, num_years_to_estimate,
         raw_proportion_n <- the_estimate_n / population_size
         std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
         std_err_2 <- sd(by_sample_estimate)/population_size
-        se <- std_err_1^1 + std_err_2^2
+        se <- std_err_1^2 + std_err_2^2
     }
 
     CI <- z_level * sqrt(se) * 100000
