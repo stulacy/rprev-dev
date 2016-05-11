@@ -212,36 +212,14 @@ prev_chisq(prevsim$entrydate,
 
 ### N-year prevalence with estimation of uncertainty
 
-We replace the simulated values with the observed values, for the years where registry data is available:
-
-```{r hist1, fig.width = 6, fig.height = 4, error = TRUE}
-observed <- counted_prevalence(prevsim$entrydate, 
-                               prevsim$eventdate, 
-                               prevsim$status, 
-                               start='2004-01-30', 
-                               num_reg_years=9)
-```
-
-As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n* up to the number of years estimated in the prevalence object. It returns the absolute numerical estimate as well as an estimate of the prevalence proportion and confidence intervals for the prevalence proportion:
+As a way to estimate uncertainty of our survival model, i.e. sampling variation, the prevalence function calculates bootstrapped survival coefficients. `n_year_estimates` is a function to calculate the estimated number of *n-year* prevalent cases for any *n* up to the number of years estimated in the prevalence object. Firstly, it replaces the simulated values with the observed values for the years where registry data is available. It then returns the absolute numerical estimate, an estimate of the prevalence proportion and confidence intervals for the prevalence proportion:
 
 ```{r nyrest3, error = TRUE} 
 n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 3.5e6)
 
-prevalence_total_2 <- prevalence_total
-prevalence_total_2$simulated_cases[1:9] <- rev(observed)
-n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 3, population_size = 3.5e6)
-
 n_year_estimates(prevalence_total, num_years_to_estimate = 5, population_size = 3.5e6)
 
-prevalence_total_2 <- prevalence_total
-prevalence_total_2$simulated_cases[1:9] <- rev(observed)
-n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 5, population_size = 3.5e6)
-
 n_year_estimates(prevalence_total, num_years_to_estimate = 10, population_size = 3.5e6)
-
-prevalence_total_2 <- prevalence_total
-prevalence_total_2$simulated_cases[1:9] <- rev(observed)
-n_year_estimates_current(prevalence_total_2, num_years_to_estimate = 10, population_size = 3.5e6)
 ```
 
 ### Age distribution of prevalent cases
