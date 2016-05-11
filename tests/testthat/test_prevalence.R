@@ -13,7 +13,7 @@ test_that("prevalence returns same values as before", {
         expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              data, num_years_to_estimate,
                                              start=start, num_reg_years=years,
-                                             cure=5, N_boot=boot), file=fn)
+                                             cure=cure, N_boot=boot), file=fn)
         i <<- i + 1
     }
     expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=10)
@@ -34,7 +34,7 @@ test_that("prevalence with a thousand bootstraps returns same values as before",
         expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              data, num_years_to_estimate,
                                              start=start, num_reg_years=years,
-                                             cure=5, N_boot=boot), file=fn)
+                                             cure=cure, N_boot=boot), file=fn)
         i <<- i + 1
     }
     expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=1000)
@@ -145,7 +145,7 @@ test_that("prevalence_by_age results in the same values as before", {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure=5, N_boot=boot)
+                          cure, N_boot=boot)
         expect_equal_to_reference(prevalence_by_age(obj, age_intervals=ages), file=fn)
         i <<- i + 1
     }
@@ -164,7 +164,7 @@ test_that("n_year_estimates returns the same values as before", {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure=5, N_boot=boot)
+                          cure, N_boot=boot)
         expect_equal_to_reference(n_year_estimates(obj, num_years_to_estimate=nyearest,
                                                    population_size = 35e5), file=fn)
         i <<- i + 1
@@ -181,7 +181,7 @@ test_that("n_year_estimates correctly throws an error when asked to estimate con
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
                           start=start, num_reg_years=years,
-                          cure=5, N_boot=boot)
+                          cure, N_boot=boot)
         expect_error(n_year_estimates(obj, num_years_to_estimate=nyearest,
                                       population_size = 35e5), msg)
     }
