@@ -59,7 +59,6 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'        prevalent cases, an indication of sampling variation and raw incidence data to
 #'        allow for crosschecking with previous calculations.
 #' @examples
-<<<<<<< HEAD
 #' prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
 #' registry_data, num_years_to_estimate, cure, start='2004-01-30', num_reg_years=9)
 prevalence <- function(form, data, num_years_to_estimate,
@@ -107,22 +106,11 @@ prevalence <- function(form, data, num_years_to_estimate,
     #n_cores = 1
     #population_data = NULL
     #############################################
-
-=======
-#' names = list(age = 'age', sex = 'sex', entry_date = 'DateOfDiag', status = 'status', time ='stime')
-#' prevalence_total <- prevalence(registry_data,
-#'                                N_years = 10,
-#'                                cure_time = 10*365,
-#'                                start = "2005-09-01",
-#'                                num_reg_years = 8,
-#'                                colnames = names)
-#'
 prevalence <- function(form, data, N_years,
                        cure_time=NULL, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
 
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
     if (n_cores > 1) {
         if (!require(doParallel)) {
             warning("doParallel not installed. Running program serially instead.")
@@ -300,7 +288,6 @@ prevalence <- function(form, data, N_years,
     return(list(cases=num_alive, post=post_age_dist))
 }
 
-<<<<<<< HEAD
 #' Predict prevalence for a given number of years.
 #'
 #' @param data A registry dataset of patient cases generated using load_data().
@@ -457,8 +444,6 @@ prevalence_current <- function(data, registry_years, registry_start_year, regist
 
 }
 
-=======
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 #' Calculate predicted prevalence for a given number of years.
 #'
 #' @param object Object returned from prevalence\(\).
@@ -504,7 +489,6 @@ n_year_estimates <- function(object, num_years_to_estimate,
     lapply(object, round, precision)
 }
 
-<<<<<<< HEAD
 #' Calculate predicted prevalence for a given number of years.
 #'
 #' @param num_years_to_estimate Number of years prevalence is to be calculated for.
@@ -549,8 +533,6 @@ n_year_estimates_current <- function(num_years_to_estimate, registry_start_year,
     return(list(raw, prop))
 }
 
-=======
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 #' Output extrapolated number of prevalent cases for specified age bands.
 #'
 #' @param object Object returned by prevalence\(\) from which to extrapolate.
@@ -575,7 +557,6 @@ prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
 
     sapply(seq(length(ages)-1),
            function(x) sum(the_dist >= ages[x] & the_dist < ages[x+1]) / length(the_dist))
-<<<<<<< HEAD
 }
 
 #' Output extrapolated number of prevalent cases per 10-year age group.
@@ -607,6 +588,4 @@ prevalence_by_age_current <- function(dist, registry_end_year, num_years_to_esti
 
     return(c(a_0_9,  a_10_19, a_20_29, a_30_39, a_40_49, a_50_59,
              a_60_69, a_70_79, a_80_plus))
-=======
->>>>>>> 8ee5417fd88bc48262d9b98deff8da3c8bddf276
 }
