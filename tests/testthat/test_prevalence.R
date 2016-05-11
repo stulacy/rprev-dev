@@ -50,8 +50,8 @@ test_that("Error is raised when passing a population data frame not setup correc
                                              start='2004-01-01', num_reg_years=9,
                                 cure=5, N_boot=10), msg)
     }
-    missing_cols <- "Error: The supplied population data frame must contain columns 'rate', 'age', 'sex'."
-    missing_levels <- "Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
+    missing_cols <- "Error: the supplied population data frame must contain columns 'rate', 'age', 'sex'."
+    missing_levels <- "Error: the same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
 
     expect_poperror(data.frame(age=rnorm(10, 60, 10), gender=rbinom(10, 1, 0.5)), missing_cols)  # Lacks rate and sex is named as gender
     expect_poperror(data.frame(age=rnorm(10, 60, 10), gender=rbinom(10, 1, 0.5), rate=runif(10)), missing_cols)  # sex is named as gender
@@ -61,14 +61,14 @@ test_that("Error is raised when passing a population data frame not setup correc
     expect_poperror(data.frame(age=rnorm(10, 60, 10), sex=sample(c('M', 'F'), 10, replace=T), rate=runif(10)), missing_levels)  # sex has different levels to that in prevsim
 })
 
-test_that("formula for prevalence must have age, sex, and entry functions", {
+test_that("Formula for prevalence must have age, sex, and entry functions.", {
     expect_formerror <- function(form, msg) {
         expect_error(prevalence(form,
                                 prevsim, num_years_to_estimate=10,
                                 start='2004-01-01', num_reg_years=9,
                                 cure=5, N_boot=10), msg)
     }
-    missing_funcs <- "Error: Provide function terms for age, sex, and entry date."
+    missing_funcs <- "Error: provide function terms for age, sex, and entry date."
     expect_formerror(Surv(time, status) ~ age + sex + entry, missing_funcs)
     expect_formerror(Surv(time, status) ~ age(age) + sex + entry, missing_funcs)
     expect_formerror(Surv(time, status) ~ age + sex(sex) + entr, missing_funcs)
@@ -89,7 +89,7 @@ test_that("Error is raised when levels for sex aren't the same in registry and p
                                              start='2004-01-01', num_reg_years=9,
                                 cure=5, N_boot=10), msg)
     }
-    missing_levels <- "Error: The same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
+    missing_levels <- "Error: the same levels must be present in both the population and registry data. '0' and '1' by default where male is 0."
 
     regN = 1000
     popN = 5000
@@ -155,7 +155,7 @@ test_that("n_year_estimates returns the same values as before", {
 })
 
 test_that("n_year_estimates correctly throws an error when asked to estimate confidence intervals for more years than initially estimated.", {
-    msg = "Error: Can't calculate prevalence for more years than present in the prevalence object."
+    msg = "Error: can't calculate prevalence for more years than present in the prevalence object."
     expect_err <- function(data, num_years_to_estimate, start, years, cure, boot, nyearest) {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,
