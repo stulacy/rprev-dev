@@ -202,12 +202,14 @@ Whether the model is predicting good numbers for the recent years for which we h
 ```{r test, error = TRUE}
 by_year_total <- prevalence_total$simulated_cases
 
-prev_chisq(prevsim$entrydate, 
+prev_chisq_current(prevsim$entrydate, 
            prevsim$eventdate, 
            prevsim$status, 
            start="2004-01-30", 
            num_reg_years=9,
            by_year = by_year_total)
+
+prev_chisq(prevalence_total)
 ```
 
 ### N-year prevalence with estimation of uncertainty
@@ -227,9 +229,6 @@ n_year_estimates(prevalence_total, num_years_to_estimate = 10, population_size =
 The age distribution of simulated prevalent cases can be viewed as a histogram and compared with the age distribution of counted prevalent cases:
 
 ```{r, fig.height = 4, fig.width = 7}
-predicted <- rev(by_year_total[1:9])
-by_year_total[1:9] <- rev(observed)
-
 prevsim_r$status2 <- ifelse(prevsim_r$eventdate > "2013-01-30", 
                                   0, prevsim_r$status)
 observed_post_age_dist_total <- 

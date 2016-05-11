@@ -260,10 +260,23 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #'            status = registry_data$status,
 #'            start="2004-01-30", num_reg_years = 9,
 #'            by_year = by_year_total)
-prev_chisq <- function(entry, events, status, by_year, start=NULL, num_reg_years=NULL){
-  observed <- counted_prevalence(entry, events, status, start, num_reg_years)
-  predicted <- rev(by_year[1:num_reg_years])
+prev_chisq <- function(object){
+  raw_data <- object$raw_data
+  observed <- counted_prevalence(raw_data$entrydate,
+                                   raw_data$eventdate,
+                                   raw_data$status,
+                                   start=object$start,
+                                   num_reg_years=num_reg_years)
+  predicted <- rev(object$simulated_cases[1:num_reg_years])
   chi <- sum(((observed - predicted)^2)/predicted)
   1 - pchisq(chi, num_reg_years - 1)
+
+}
+
+prev_chisq_current <- function(entry, events, status, by_year, start=NULL, num_reg_years=NULL){
+    observed <- counted_prevalence(entry, events, status, start, num_reg_years)
+    predicted <- rev(by_year[1:num_reg_years])
+    chi <- sum(((observed - predicted)^2)/predicted)
+    1 - pchisq(chi, num_reg_years - 1)
 
 }
