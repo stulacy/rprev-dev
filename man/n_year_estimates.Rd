@@ -8,7 +8,7 @@ n_year_estimates(object, num_years_to_estimate, population_size, level = 0.95,
   precision = 2)
 }
 \arguments{
-\item{object}{Object returned from prevalence\(\).}
+\item{object}{A \code{prevalence} object.}
 
 \item{num_years_to_estimate}{Integer representing number of years prevalence is to be calculated for.}
 
@@ -19,12 +19,28 @@ n_year_estimates(object, num_years_to_estimate, population_size, level = 0.95,
 \item{precision}{Integer representing the number of decimal places required.}
 }
 \value{
-An estimate of prevalence, in total and /100,000 with confidence intervals.
+A list with the following attributes:
+\item{absolute.prevalence}{Absolute prevalence for the specified time frame.}
+\item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
+\item{per100K.lower}{Lower confidence bounds on the estimate.}
+\item{per100K.upper}{Upper confidence bounds on the estimate.}
 }
 \description{
 Calculate predicted prevalence for a given number of years.
 }
 \examples{
-n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 1700000)
+data(prevsim)
+
+prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+                   data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
+                   num_reg_years = 8, cure_days = 5*365)
+
+n_year_estimates(prev, num_years_to_estimate = 3, population_size = 1.7e6)
+
+n_year_estimates(prev, num_years_to_estimate = 5, population_size = 1.7e6)
+
+# Maximum number of years to estimate for is 10 as this is the number of years the prev object
+# was assigned to estimate.
+n_year_estimates(prev, num_years_to_estimate = 10, population_size = 1.7e6, level=0.99)
 }
 

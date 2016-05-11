@@ -76,7 +76,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' providing custom ones.
 #' @param num_cores The number of CPU cores to run the fitting of the bootstrapped survival models across.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
-#' @return An S3 object of class \code{prevalence} with the followign attributes:
+#' @return An S3 object of class \code{prevalence} with the following attributes:
 #' \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
 #' prevalent cases at each year across each bootstrap iteration.}
 #' \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
@@ -100,7 +100,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 #'
 prevalence <- function(form, data, num_years_to_estimate,
-                       cure=NULL, start=NULL, num_reg_years=NULL,
+                       cure=10, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
                        population_data=NULL, n_cores=1) {
 
@@ -134,10 +134,6 @@ prevalence <- function(form, data, num_years_to_estimate,
 
     if (length(covar_names) > 0)
         stop("Error: Functionality isn't currently provided for additional covariates.")
-
-    # Assign cure if not provided, set to be so large that it has no impact
-    if (is.null(cure))
-        cure <- (num_years_to_estimate + 1)
 
     cure_days <- cure * 365
 
@@ -283,14 +279,30 @@ prevalence <- function(form, data, num_years_to_estimate,
 
 #' Calculate predicted prevalence for a given number of years.
 #'
-#' @param object Object returned from prevalence\(\).
+#' @param object A \code{prevalence} object.
 #' @param num_years_to_estimate Integer representing number of years prevalence is to be calculated for.
 #' @param population_size Integer corresponding to the size of the population.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
-#' @return An estimate of prevalence, in total and /100,000 with confidence intervals.
+#' @return A list with the following attributes:
+#' \item{absolute.prevalence}{Absolute prevalence for the specified time frame.}
+#' \item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
+#' \item{per100K.lower}{Lower confidence bounds on the estimate.}
+#' \item{per100K.upper}{Upper confidence bounds on the estimate.}
 #' @examples
-#' n_year_estimates(prevalence_total, num_years_to_estimate = 3, population_size = 1700000)
+#' data(prevsim)
+#'
+#' prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'                    data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
+#'                    num_reg_years = 8, cure_days = 5*365)
+#'
+#' n_year_estimates(prev, num_years_to_estimate = 3, population_size = 1.7e6)
+#'
+#' n_year_estimates(prev, num_years_to_estimate = 5, population_size = 1.7e6)
+#'
+#' # Maximum number of years to estimate for is 10 as this is the number of years the prev object
+#' # was assigned to estimate.
+#' n_year_estimates(prev, num_years_to_estimate = 10, population_size = 1.7e6, level=0.99)
 n_year_estimates <- function(object, num_years_to_estimate,
                              population_size,
                              level=0.95, precision=2){
@@ -324,74 +336,4 @@ n_year_estimates <- function(object, num_years_to_estimate,
                    per100K.lower=the_proportion - CI,
                    per100K.upper=the_proportion + CI)
     lapply(object, round, precision)
-}
-
-#' Calculate predicted prevalence for a given number of years.
-#'
-#' @param num_years_to_estimate Number of years prevalence is to be calculated for.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param registry_end_year Ordinal defining the last year of the registry data to be used.
-#' @param the_samples Bootstrapped samples used to gauge the sampling variation in the estimates.
-#' @param by_year Predicted prevalence by year of the registry.
-#' @param population_size A number corresponding to the size of the population.
-#' @return An estimate of prevalence, in total and /100,000 with confidence intervals.
-#' @examples
-#' n_year_estimates_current(num_years_to_estimate = 3, registry_start_year = year1, registry_end_year = lastyear,
-#'                  the_samples = by_year_male_samples,
-#'                  by_year = by_year_male, population_size = 1700000)
-n_year_estimates_current <- function(num_years_to_estimate, registry_start_year, registry_end_year,
-                                     the_samples, by_year, population_size){
-    if (num_years_to_estimate > length(by_year)) stop("error: too many years for the data.")
-
-    the_samples <- the_samples[(registry_end_year - registry_start_year + 2):num_years_to_estimate, , drop=F]
-    by_sample_estimate <- apply(the_samples, 2, sum)
-
-    the_estimate <- sum(by_year[1:num_years_to_estimate])
-
-    raw_proportion <- the_estimate / population_size
-    the_proportion <- 100000 * raw_proportion
-
-    if (num_years_to_estimate <= (registry_end_year - registry_start_year + 1)){
-        CI <- (1.96 * sqrt((raw_proportion * (1 - raw_proportion))/population_size)) * 100000
-    }else {
-        the_estimate_n <- sum(by_year[1:(registry_end_year - registry_start_year + 1)])
-        raw_proportion_n <- the_estimate_n / population_size
-        std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n))/population_size)
-        std_err_2 <- sd(by_sample_estimate)/population_size
-
-        CI <<- 1.96 * sqrt(std_err_1^2 + std_err_2^2) * 100000
-    }
-
-    raw <- paste("raw: ", round(the_estimate, 2), sep="")
-    prop <- paste("/100,000 cases: ", round(the_proportion, 2),
-                  " (", round(the_proportion - CI, 2),
-                  "-", round(the_proportion + CI, 2), ")", sep="")
-
-    return(list(raw, prop))
-}
-
-#' Output extrapolated number of prevalent cases for specified age bands.
-#'
-#' @param object Object returned by prevalence\(\) from which to extrapolate.
-#' @param age_intervals Vector of integers to delineate age bands.
-#' @return Vector of predicted number of prevalent cases for specified age bands.
-#' @examples
-#' prevalence_by_age(dist = post_age_dist_male, registry_end_year = 4,
-#'                  num_years_to_estimate = num_years_to_estimate)
-prevalence_by_age <- function(object, age_intervals=seq(10, 80, by=10)) {
-
-    if (object$nregyears >= object$nyears)
-        stop("Error: No simulated prevalent years as registry data was available.")
-
-    if (! all(age_intervals >= 0))
-        stop("Must have positive ages")
-
-    the_dist <- object$post[, , (object$nregyears + 1):object$nyears]
-    the_dist <- the_dist[!is.na(the_dist)]
-
-    # Add lower and upper bounds for range
-    ages <- c(0, age_intervals, max(the_dist))
-
-    sapply(seq(length(ages)-1),
-           function(x) sum(the_dist >= ages[x] & the_dist < ages[x+1]) / length(the_dist))
 }
