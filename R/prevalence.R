@@ -72,8 +72,8 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
 #' Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
 #' to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.
-#' @param cure Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond \code{cure_days} days has their survival probability incorporating mortality rates of the
-#' underlying population.
+#' @param cure Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
+#' has their survival probability incorporating mortality rates of the underlying population.
 #' @param N_boot Integer representing number of bootstrapped calculations to perform.
 #' @param max_yearly_incidence Integer larger than the expected yearly incidence
 #'        to allow for variation in incidence between years.
@@ -98,7 +98,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-#'            num_reg_years = 8, cure_days = 5*365)
+#'            num_reg_years = 8, cure = 5)
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5)
@@ -143,8 +143,9 @@ prevalence <- function(form, data, num_years_to_estimate,
         stop("Error: Functionality isn't currently provided for additional covariates.")
 
     # Assign cure if not provided, set to be so large that it has no impact
-    if (is.null(cure_days))
-        cure_days <- (num_years_to_estimate + 1) * 365
+    if (is.null(cure))
+        cure <- (num_years_to_estimate + 1)
+        cure_days <- cure * 365
 
     data[, sex_var] <- as.factor(data[, sex_var])
     if (length(levels(data[, sex_var])) > 2)
