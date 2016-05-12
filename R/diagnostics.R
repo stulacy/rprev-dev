@@ -8,7 +8,7 @@
 #' @return Vector of p values for over- and under-dispersion based on the position of the
 #' observed sequence variance in the distribution.
 #' @examples
-#' sim_check(incidence(registry_data$entrydate))
+#' sim_check(incidence(prevsim$entrydate))
 sim_check <- function(data, N_sim = 100000){
   var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
   c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
@@ -20,7 +20,7 @@ sim_check <- function(data, N_sim = 100000){
 #' @param df Degrees of freedom for the smooth.
 #' @return Plot of the raw data and smoothed age distribution function.
 #' @examples
-#' incidence_age_distribution(registry_data_r$age)
+#' incidence_age_distribution(prevsim_r$age)
 incidence_age_distribution <- function(agedata, df=10){
 
   ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
@@ -38,7 +38,7 @@ incidence_age_distribution <- function(agedata, df=10){
 #' @param df Degrees of freedom for the smooth.
 #' @return Plots of the functional form of age.
 #' @examples
-#' functional_form_age(registry_data_r)
+#' functional_form_age(prevsim_data_r)
 functional_form_age <- function(form, data, df=4){
 
   ### TO DO/discuss:
@@ -253,6 +253,7 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' prev_chisq(prevalence_total)
 prev_chisq <- function(object){
   raw_data <- object$raw_data
+  num_reg_years=object$nregyears
   observed <- counted_prevalence(raw_data$entrydate,
                                    raw_data$eventdate,
                                    raw_data$status,

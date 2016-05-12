@@ -4,7 +4,6 @@ library(abind)
 context('Prevalence')
 data(prevsim)
 
-
 test_that("prevalence returns same values as before", {
     set.seed(3)
     i <- 1
