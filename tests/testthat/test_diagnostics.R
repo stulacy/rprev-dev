@@ -107,7 +107,7 @@ test_that("prev_chisq returns no NAs", {
 test_that("cumulative_incidence returns same values as before", {
     set.seed(3)
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/cumulative_incidence.rds', sep='')
+        fn <- paste('cache/diagnostics/cumulative_incidence.rds', sep='')
         expect_equal_to_reference(cumulative_incidence(prevsim$entrydate), file=fn)
     }
     expect_ref(prevsim$entrydate)
@@ -117,7 +117,7 @@ test_that("cumulative_incidence returns same values as before", {
 test_that("inspect_incidence returns same values as before", {
     set.seed(3)
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/inspect_incidence.rds', sep='')
+        fn <- paste('cache/diagnostics/inspect_incidence.rds', sep='')
         c_inc <- cumulative_incidence(data)
         expect_equal_to_reference(inspect_incidence(c_inc), file=fn)
     }
@@ -129,7 +129,7 @@ test_that("poisson_incidence_sim returns same values as before", {
     skip("too slow")
     set.seed(3)
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/poisson_incidence_sim.rds', sep='')
+        fn <- paste('cache/diagnostics/poisson_incidence_sim.rds', sep='')
         c_inc <- cumulative_incidence(data)
         expect_equal_to_reference(poisson_incidence_sim(c_inc), file=fn)
     }
