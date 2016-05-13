@@ -55,7 +55,8 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
     per_year
 }
 
-#' Convert absolute incidence values to per 100,000 population values.
+#' Calculate average incidence rates per one hundred thousand over the specified number of years, with
+#' confidence intervals.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
 #' @param population_size The size of the population at risk.
