@@ -15,7 +15,7 @@
 #' }
 "UKmortality"
 
-#' Calculates the daily mortality probability for a given population, based on
+#' Calculates the daily mortality probability for a given population stratified by age, based on
 #' their yearly mortality rates.
 #'
 #' @param form Formula where the LHS indicates the name of the mortality rate column, and
@@ -32,7 +32,6 @@
 #' population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
 population_survival_rate <- function(form, data, max_age=100){
     # Could probably improve on this extraction of response and variable
-    # Does this function need to have "population in its name?" Could it be more generally applied?
     age_var <- as.character(form[[3]])
     rate_var <- as.character(form[[2]])
 
