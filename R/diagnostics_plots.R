@@ -11,7 +11,14 @@
 #' defaults to the earliest entry date.
 #' @param num_reg_years The number of years of the registry for which incidence is to be calculated,
 #' defaults to using all available complete years.
-#' @param df Integer representing degrees of freedom for the smoothening function.
+#' @param df The desired degrees of freedom for the smoothening function.
+#' @return An S3 object of class \code{cincidence} with the following attributes:
+#' \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
+#' as generated using \code{incidence()}.}
+#' \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
+#' inclusion in the registry, ordered shortest to longest.}
+#' \item{smooth}{Smooth fitted to the cumulative incidence data.}
+#'
 #' @return Object containing incidence for each year of the registry, the cumulative incidence functions and corresponding deviations.
 #' @examples
 #' c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
@@ -56,7 +63,7 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
 #' with the 95\% confidence interval shown with dashed blue lines. The smooth fitted to the
 #' cumulative incidence data is shown in green.
 #' @param object A \code{cincidence} object.
-#' @param level Double representing the desired confidence interval width.
+#' @param level The desired confidence interval width.
 #' @return Plot of incidence rate, confidence interval and smoothed incidence function.
 #' inspect_incidence(c_inc)
 inspect_incidence <- function(object, level=0.95){
@@ -94,8 +101,8 @@ inspect_incidence <- function(object, level=0.95){
 #'
 #' @param object A \code{cincidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.
-#' @param level Double representing the desired confidence interval width.
-#' @param df Integer representing degrees of freedom for the smoothening function.
+#' @param level The desired confidence interval width.
+#' @param df The desired degrees of freedom for the smoothening function.
 #' @return Plot of the smoothed incidence function and corresponding deviations.
 #' @examples
 #' poisson_incidence_sim(c_inc)

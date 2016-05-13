@@ -52,8 +52,8 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' This function estimates point prevalence at an index date using Monte Carlo simulation.
 #' \code{num_years_to_estimate} is the number of years working back from the index date for
 #' which incident cases are included in the prevalent pool. The larger the number of years,
-#' the more accurate the prevalence estimate, assuming a good survival model is drawn from
-#' the provided registry data.
+#' the more accurate the prevalence estimate, assuming an adequate survival model can be
+#' drawn from the provided registry data.
 #'
 #' Simulated cases are marked with age and sex to enable agreement with population survival
 #' data where are cure model is used, and calculation of the posterior distributions of each.
@@ -110,7 +110,6 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
-#'
 prevalence <- function(form, data, num_years_to_estimate,
                        cure=10, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,

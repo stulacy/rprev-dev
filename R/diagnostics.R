@@ -40,8 +40,8 @@ incidence_age_distribution <- function(agedata, df=10){
 #' This formula is used in the following way:
 #'
 #' \code{Surv(time, status) ~ age(age_column_name)}
-#' @param data A registry dataset of patient cases.
-#' @param df Degrees of freedom for the smooth.
+#' @param data A data frame with the corresponding column names provided in \code{form}.
+#' @param df The desired degrees of freedom for the smooth.
 #' @return Plots and model summary relating to the functional form of age.
 #' @examples
 #' functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
@@ -220,7 +220,7 @@ plot_km <- function(data, registry_years, registry_start_year, age,
 #' @return ?
 boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot = 1000){
 
-  wb_boot <- registry_survival_bootstrapped(data = data[data$date_initial >= registry_years[registry_start_year], ])
+  wb_boot <- .registry_survival_bootstrapped(data = data[data$date_initial >= registry_years[registry_start_year], ])
   wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
   n <- seq(1,5000, by=1)
 
