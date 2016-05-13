@@ -153,6 +153,18 @@ summary(wb)
 
 As an alternative to extrapolation from the Weibull model alone when modelling long-term survivors in patient data, we have implemented what we call a cure model. For example, the default `cure = 10` in the following functions for estimating prevalence, means a patient can be considered "cured" if they have survived until 10 years after diagnosis, and therefore from this point onwards their survival is modelled using population data rather than patient data. 
 
+### Bootstrapped survival modelling
+
+The `boot_eg` function can be used to provide a visual impression of the variance in survival models fitted to bootstrapped samples. Below, we look at the survival curves for a 65 year old male patient:
+
+```{r bootstrapping_eg, fig.width = 7, fig.height = 4, error = TRUE}
+boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+                                                       data = prevsim,
+                                                       start = "2004-01-30",
+                                                       age = 65,
+                                                       sex = "Male")
+```
+
 ### Population survival
 
 General population period survival data for the UK is loaded and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`. 

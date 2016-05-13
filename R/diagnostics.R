@@ -216,30 +216,73 @@ plot_km <- function(data, registry_years, registry_start_year, age,
 #' @param registry_start_year Ordinal defining the first year of the registry data to be used.
 #' @param age Age of example patient.
 #' @param sex Sex of example patient ("Male" or "Female").
+#' @param start
 #' @param N_boot Number of replicates.
 #' @return ?
-boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot = 1000){
+#' @examples
+#' boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'                     data = prevsim,
+#'                     start = "2004-01-30",
+#'                     age = 65,
+#'                     sex = "Male")
+boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000){
 
-  wb_boot <- .registry_survival_bootstrapped(data = data[data$date_initial >= registry_years[registry_start_year], ])
+  spec <- c('age', 'sex', 'entry')
+  terms <- terms(form, spec)
+  special_indices <- attr(terms, 'specials')
+
+  if (any(sapply(special_indices, is.null)))
+      stop("Error: provide function terms for age, sex, and entry date.")
+
+  v <- as.list(attr(terms, 'variables'))[-1]
+  var_names <- unlist(lapply(special_indices, function(i) v[i]))
+
+  age_var <- .extract_var_name(var_names$age)
+  sex_var <- .extract_var_name(var_names$sex)
+  entry_var <- .extract_var_name(var_names$entry)
+
+  # Extract survival formula
+  response_index <- attr(terms, 'response')
+  resp <- v[response_index][[1]]
+  non_covariate_inds <- c(response_index, unlist(special_indices))
+  covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+
+  if (length(covar_names) > 0)
+      stop("Error: functionality isn't currently provided for additional covariates.")
+
+  data[, sex_var] <- as.factor(data[, sex_var])
+  if (length(levels(data[, sex_var])) > 2)
+      stop("Error: function can't currently function with more than two levels of sex.")
+
+  # Determine the registry years of interest from assessing the code
+  if (is.null(start))
+      start <- min(data[, entry_var])
+
+  req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
+  surv_form <- as.formula(paste(deparse(resp), '~',
+                                req_covariate,
+                                paste(covar_names, collapse='+')))
+
+  data_r = data[data[, entry_var] >= start, ]
+  wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
+
   wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
-  n <- seq(1,5000, by=1)
+  n <- seq(5000)
 
   if(sex == "Male"){
-    for (i in 1:N_boot){
-      wb_lines[i, ] <- 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4])
-    }
+    wb_lines <- sapply(seq(N_boot),
+                       function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
   } else {
-    for (i in 1:N_boot){
-      wb_lines[i, ] <- 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] + wb_boot[i, 3]), shape=1/wb_boot[i, 4])
-    }
+    wb_lines <- sapply(seq(N_boot),
+                         function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
+                                                                   wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
   }
 
   plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
-  for (i in 1:N_boot){
-    lines(wb_lines[i, ], lwd=1, col="grey")
-  }
+  sapply(seq(N_boot),
+         function(i) lines(wb_lines[, i], lwd=1, col="grey"))
 
-  wb <- survreg(Surv(survival_time, indicator) ~ age_initial + sex, data)
+  wb <- survreg(surv_form, data_r)
 
   if(sex == "Male"){
     A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
@@ -258,6 +301,7 @@ boot_eg <- function(data, registry_years, registry_start_year, age, sex, N_boot 
 #' @examples
 #' prev_chisq(prevalence_total)
 prev_chisq <- function(object){
+
   raw_data <- object$raw_data
   num_reg_years=object$nregyears
   observed <- counted_prevalence(raw_data$entrydate,
