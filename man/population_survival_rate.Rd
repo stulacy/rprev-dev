@@ -2,25 +2,32 @@
 % Please edit documentation in R/survival.R
 \name{population_survival_rate}
 \alias{population_survival_rate}
-\title{Population survival rate.}
+\title{Calculates the daily mortality probability for a given population, based on
+their yearly mortality rates.}
 \usage{
 population_survival_rate(form, data, max_age = 100)
 }
 \arguments{
-\item{form}{Formula to define...}
+\item{form}{Formula where the LHS indicates the name of the mortality rate column, and
+the RHS is the column where age is located. This function assumes that the population data
+frame has already been stratified by sex, or any other categorical variable of interest.}
 
-\item{data}{Population data frame containing calendar_year, sex, age and rate.}
+\item{data}{Data frame of population mortality stratified by sex and age. The following columns
+must be present: \code{sex}, \code{age}, and \code{rate}.}
 
-\item{max_age}{Integer to specify maximum age.}
+\item{max_age}{Integer to specify the maximum age to calculate mortality for.}
 }
 \value{
-An estimate of the survival rate by day.
+An estimate of the survival rate per days of age, with \code{max_age} * 365 values.
 }
 \description{
-Population survival rate.
+Calculates the daily mortality probability for a given population, based on
+their yearly mortality rates.
 }
 \examples{
-pop_data_mx <- load(population_data_mx)
-daily_survival_males <- population_survival_rate(rate ~ age, subset(pop_data_mx, sex==0))
+data(UKmortality)
+
+population_survival_rate(rate ~ age, UKmortality)
+population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
 }
 

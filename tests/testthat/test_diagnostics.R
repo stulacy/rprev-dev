@@ -1,6 +1,7 @@
 library(prevR)
 library(survival)
 library(rms)
+library(abind)
 context('Diagnostics')
 data(prevsim)
 
@@ -50,15 +51,6 @@ test_that("sim_check returns the correct number of values", {
     expect_length(sim_check(incidence(prevsim$entrydate), N_sim = 10))
 })
 
-### This test isn't reproducible - can't work out why
-#test_that("functional_form_age returns same values as before", {
-#    expect_ref <- function(data) {
-#        fn <- 'cache/diagnostics/functional_form_age.rds'
-#        expect_equal_to_reference(functional_form_age(Surv(time, status) ~ age(age), data), file=fn)
-#    }
-#    expect_ref(prevsim)
-#})
-
 test_that("functional_form_age returns a list", {
     expect_list <- function(data) {
         expect_match(typeof(functional_form_age(Surv(time, status) ~ age(age), data)), 'list')
@@ -107,31 +99,48 @@ test_that("prev_chisq returns no NAs", {
 test_that("cumulative_incidence returns same values as before", {
     set.seed(3)
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/cumulative_incidence.rds', sep='')
+        fn <- 'cache/diagnostics/cumulative_incidence.rds'
         expect_equal_to_reference(cumulative_incidence(prevsim$entrydate), file=fn)
     }
     expect_ref(prevsim$entrydate)
 })
 
 
-test_that("inspect_incidence returns same values as before", {
-    set.seed(3)
+test_that("inspect_incidence returns same as before", {
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/inspect_incidence.rds', sep='')
+        fn <- 'cache/diagnostics/inspect_incidence.rds'
         c_inc <- cumulative_incidence(data)
         expect_equal_to_reference(inspect_incidence(c_inc), file=fn)
     }
     expect_ref(prevsim$entrydate)
 })
 
-test_that("poisson_incidence_sim returns same values as before", {
+test_that("poisson_incidence_sim returns same as before", {
     skip_on_cran()
     skip("too slow")
     set.seed(3)
     expect_ref <- function(data) {
-        fn <- paste('cache/prevalence/poisson_incidence_sim.rds', sep='')
+        fn <- 'cache/diagnostics/poisson_incidence_sim.rds'
         c_inc <- cumulative_incidence(data)
         expect_equal_to_reference(poisson_incidence_sim(c_inc), file=fn)
     }
     expect_ref(prevsim$entrydate)
+})
+
+test_that("boot_eg returns same as before", {
+    #skip_on_cran()
+    #skip("too slow")
+    i <- 1
+    set.seed(3)
+    expect_ref <- function(data, sex) {
+        fn <- paste('cache/diagnostics/boot_eg', i, '.rds', sep='')
+        expect_equal_to_reference(boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+                                                       data = data,
+                                                       start = "2004-01-30",
+                                                       age = 65,
+                                                       sex = sex), file=fn)
+        i <<- i + 1
+    }
+    expect_ref(prevsim, "Male")
+    expect_ref(prevsim, "Female")
 })

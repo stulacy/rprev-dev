@@ -15,10 +15,10 @@ test_that("population_survival_rate returns same values as before", {
 
     expect_ref(UKmortality)
     expect_ref(subset(UKmortality, sex==0))
-    expect_ref(subset(UKmortality, sex==0))
+    expect_ref(subset(UKmortality, sex==1))
     expect_ref(UKmortality, age=50)
     expect_ref(subset(UKmortality, sex==0), age=50)
-    expect_ref(subset(UKmortality, sex==0), age=50)
+    expect_ref(subset(UKmortality, sex==1), age=50)
 })
 
 test_that("population_survival_rate returns doubles", {

@@ -6,12 +6,12 @@
 \title{Simulated patient dataset.}
 \format{A data frame with 1000 rows and 6 columns:
 \describe{
- \item{time}{(double) time between date of diagnosis and death or censorship, in days}
- \item{status}{(integer) event marker, 1 if patient is deceased and 0 if alive or censored}
- \item{age}{(double) age in years at point of entry into the registry}
- \item{sex}{(integer), 0 for males or 1 for females}
- \item{entrydate}{(character) date of entry into the registry in YYYY-MM-DD format}
- \item{eventdate}{(character) date of death or censorship in YYYY-MM-DD format}
+ \item{time}{time between date of diagnosis and death or censorship, in days}
+ \item{status}{event marker, 1 if patient is deceased and 0 if alive or censored}
+ \item{age}{age in years at point of entry into the registry}
+ \item{sex}{boolean variable, 0 for males and 1 for females}
+ \item{entrydate}{date of entry into the registry in YYYY-MM-DD format}
+ \item{eventdate}{date of death or censorship in YYYY-MM-DD format}
 }}
 \usage{
 prevsim

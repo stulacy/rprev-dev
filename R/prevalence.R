@@ -49,6 +49,15 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 
 #' Predict prevalence for a given number of years.
 #'
+#' This function estimates point prevalence at an index date using Monte Carlo simulation.
+#' \code{num_years_to_estimate} is the number of years working back from the index date for
+#' which incident cases are included in the prevalent pool. The larger the number of years,
+#' the more accurate the prevalence estimate, assuming an adequate survival model can be
+#' drawn from the provided registry data.
+#'
+#' Simulated cases are marked with age and sex to enable agreement with population survival
+#' data where are cure model is used, and calculation of the posterior distributions of each.
+#'
 #' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
 #' \code{age}, the column where age is located;
 #' \code{sex}, the column where sex is located; and
@@ -81,7 +90,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
 #' @return An S3 object of class \code{prevalence} with the following attributes:
 #' \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
-#' prevalent cases at each year across each bootstrap iteration.}
+#' prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
 #' \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
 #' \item{samples}{Total simulated prevalent cases from every bootstrap sample.}
 #' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
@@ -101,7 +110,6 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
-#'
 prevalence <- function(form, data, num_years_to_estimate,
                        cure=10, start=NULL, num_reg_years=NULL,
                        N_boot=1000, max_yearly_incidence=500,
@@ -312,7 +320,7 @@ n_year_estimates <- function(object, num_years_to_estimate,
                              level=0.95, precision=2){
 
     if (num_years_to_estimate > object$nyears)
-        stop("Error: can't calculate prevalence for more years than present in the prevalence object.")
+        stop("Error: can't estimate prevalence for more years than present in the prevalence object.")
 
     num_reg_years <- object$nregyears
     raw_data <- object$raw_data

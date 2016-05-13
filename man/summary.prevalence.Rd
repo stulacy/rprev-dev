@@ -7,15 +7,9 @@
 \method{summary}{prevalence}(object, ...)
 }
 \arguments{
-\item{object}{...}
-}
-\value{
-...
+\item{object}{A \code{prevalence} object.}
 }
 \description{
 Generate a summary of the prevalence object.
-}
-\examples{
-...
 }
 
