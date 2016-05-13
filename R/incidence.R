@@ -28,7 +28,7 @@
 #' defaults to the earliest entry date.
 #' @param num_reg_years The number of years of the registry for which incidence is to be calculated,
 #' defaults to using all available complete years.
-#' @return Vector of length num_reg_years of doubles, representing the number of absolute incidence values
+#' @return Vector of length num_reg_years of integers, representing the number of absolute incidence values
 #' for each included year of the registry.
 #' @examples
 #' data(prevsim)

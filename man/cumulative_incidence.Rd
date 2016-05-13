@@ -8,11 +8,13 @@ and compare with the cumulative incidence for constant diagnosis rate.}
 cumulative_incidence(entry, start = NULL, num_reg_years = NULL, df = 6)
 }
 \arguments{
-\item{entry}{Vector of diagnosis dates for each patient in the registry.}
+\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{start}{Date from which incident cases are included.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD,
+defaults to the earliest entry date.}
 
-\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated,
+defaults to using all available complete years.}
 
 \item{df}{Integer representing degrees of freedom for the smoothening function.}
 }

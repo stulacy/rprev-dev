@@ -42,7 +42,7 @@ test_that("prevalence with a thousand bootstraps returns same values as before",
 
 # TODO error testing, that if num_years_to_estimate is longer than a set amount it throws an error
 
-test_that("Error is raised when passing a population data frame not setup correctly", {
+test_that("Error is raised when passing a population data frame not set up correctly", {
     expect_poperror <- function(popdata, msg) {
         expect_error(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                                              prevsim, num_years_to_estimate=10, population_data=popdata,
@@ -154,7 +154,7 @@ test_that("n_year_estimates returns the same values as before", {
 })
 
 test_that("n_year_estimates correctly throws an error when asked to estimate confidence intervals for more years than initially estimated.", {
-    msg = "Error: can't calculate prevalence for more years than present in the prevalence object."
+    msg = "Error: can't estimate prevalence for more years than present in the prevalence object."
     expect_err <- function(data, num_years_to_estimate, start, years, cure, boot, nyearest) {
         obj <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
                           data, num_years_to_estimate,

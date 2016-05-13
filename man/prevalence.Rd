@@ -4,7 +4,7 @@
 \alias{prevalence}
 \title{Predict prevalence for a given number of years.}
 \usage{
-prevalence(form, data, num_years_to_estimate, cure = NULL, start = NULL,
+prevalence(form, data, num_years_to_estimate, cure = 10, start = NULL,
   num_reg_years = NULL, N_boot = 1000, max_yearly_incidence = 500,
   population_data = NULL, n_cores = 1)
 }
@@ -52,7 +52,7 @@ Defaults to 1; multi-core functionality is provided by the \code{doParallel} pac
 \value{
 An S3 object of class \code{prevalence} with the following attributes:
 \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
-prevalent cases at each year across each bootstrap iteration.}
+prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
 \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
 \item{samples}{Total simulated prevalent cases from every bootstrap sample.}
 \item{known_inc_rate}{The known incidence rate for years included in the registry.}
@@ -62,7 +62,15 @@ prevalent cases at each year across each bootstrap iteration.}
 \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
 }
 \description{
-Predict prevalence for a given number of years.
+This function estimates point prevalence at an index date using Monte Carlo simulation.
+\code{num_years_to_estimate} is the number of years working back from the index date for
+which incident cases are included in the prevalent pool. The larger the number of years,
+the more accurate the prevalence estimate, assuming a good survival model is drawn from
+the provided registry data.
+}
+\details{
+Simulated cases are marked with age and sex to enable agreement with population survival
+data where are cure model is used, and calculation of the posterior distributions of each.
 }
 \examples{
 data(prevsim)

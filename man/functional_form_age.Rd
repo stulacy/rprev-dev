@@ -7,19 +7,24 @@
 functional_form_age(form, data, df = 4)
 }
 \arguments{
-\item{form}{...}
+\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS
+has the function argument \code{age} to specify the column containing age data.
+
+This formula is used in the following way:
+
+\code{Surv(time, status) ~ age(age_column_name)}}
 
 \item{data}{A registry dataset of patient cases.}
 
 \item{df}{Degrees of freedom for the smooth.}
 }
 \value{
-Plots of the functional form of age.
+Plots and model summary relating to the functional form of age.
 }
 \description{
 Inspect functional form of age.
 }
 \examples{
-functional_form_age(registry_data_r)
+functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
 }
 

@@ -6,10 +6,10 @@
 \title{General population survival data.}
 \format{A data frame with 6666 rows and 4 columns:
 \describe{
- \item{calendar_year}{(double) year}
- \item{sex}{(integer) sex encoded as 0 for males and 1 for females}
- \item{age}{(double) age in years}
- \item{rate}{(double) death rate}
+ \item{calendar_year}{year}
+ \item{sex}{sex encoded as 0 for males and 1 for females}
+ \item{age}{age in years}
+ \item{rate}{death rate}
 }}
 \usage{
 UKmortality

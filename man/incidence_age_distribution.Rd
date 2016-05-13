@@ -7,7 +7,7 @@
 incidence_age_distribution(agedata, df = 10)
 }
 \arguments{
-\item{agedata}{Vector of age at diagnosis for each patient in the registry.}
+\item{agedata}{Vector of ages at diagnosis for each patient in the registry.}
 
 \item{df}{Degrees of freedom for the smooth.}
 }
@@ -18,6 +18,6 @@ Plot of the raw data and smoothed age distribution function.
 Plot the age distribution of incident cases in the registry data.
 }
 \examples{
-incidence_age_distribution(registry_data_r$age)
+incidence_age_distribution(prevsim_r$age)
 }
 
