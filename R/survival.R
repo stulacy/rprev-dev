@@ -1,20 +1,3 @@
-#' General population survival data.
-#'
-#' A dataset containing basic mortality rates stratified by sex and age (yearly from 0 to 100) from
-#' the UK population, obtained from:
-#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
-#' Adapted from public sector information licensed under the Open Government Licence v3.0.
-#' Data were relabelled according to the mean year of the three-year birth window.
-#'
-#' @format A data frame with 6666 rows and 4 columns:
-#' \describe{
-#'  \item{calendar_year}{year}
-#'  \item{sex}{sex encoded as 0 for males and 1 for females}
-#'  \item{age}{age in years}
-#'  \item{rate}{death rate}
-#' }
-"UKmortality"
-
 #' Calculates the daily mortality probability for a given population stratified by age, based on
 #' their yearly mortality rates.
 #'

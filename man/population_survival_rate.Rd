@@ -2,7 +2,7 @@
 % Please edit documentation in R/survival.R
 \name{population_survival_rate}
 \alias{population_survival_rate}
-\title{Calculates the daily mortality probability for a given population, based on
+\title{Calculates the daily mortality probability for a given population stratified by age, based on
 their yearly mortality rates.}
 \usage{
 population_survival_rate(form, data, max_age = 100)
@@ -21,7 +21,7 @@ must be present: \code{sex}, \code{age}, and \code{rate}.}
 An estimate of the survival rate per days of age, with \code{max_age} * 365 values.
 }
 \description{
-Calculates the daily mortality probability for a given population, based on
+Calculates the daily mortality probability for a given population stratified by age, based on
 their yearly mortality rates.
 }
 \examples{

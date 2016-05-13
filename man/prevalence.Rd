@@ -2,11 +2,12 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Predict prevalence for a given number of years.}
+\title{Estimates prevalence at a specific index date using a combination of available registry
+data, and Monte Carlo simulated incident data.}
 \usage{
-prevalence(form, data, num_years_to_estimate, cure = 10, start = NULL,
-  num_reg_years = NULL, N_boot = 1000, max_yearly_incidence = 500,
-  population_data = NULL, n_cores = 1)
+prevalence(form, data, num_years_to_estimate, start = NULL,
+  num_reg_years = NULL, cure = 10, N_boot = 1000,
+  max_yearly_incidence = 500, population_data = NULL, n_cores = 1)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
@@ -24,17 +25,18 @@ Using the supplied \code{prevsim} dataset, it is therefore called with:
 
 \item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
-\item{num_years_to_estimate}{Integer representing number of years to calculate prevalence for.}
+\item{num_years_to_estimate}{Integer representing number of years of data to estimate point prevalence for, if this value
+is greater than \code{num_registry_years} then incident cases for the difference will be simulated.}
 
-\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
-has their survival probability incorporating mortality rates of the underlying population.}
-
-\item{start}{Date from which incident cases are included, in the format YYYY-MM-DD. Defaults to the earliest incident case in
-the supplied registry.}
+\item{start}{Date from which incident cases in the registry data are to be included in the prevalence estimation, in
+the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.}
 
 \item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.
 Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
 to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.}
+
+\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
+has their survival probability incorporating mortality rates of the underlying population.}
 
 \item{N_boot}{Integer representing number of bootstrapped calculations to perform.}
 
@@ -62,15 +64,20 @@ prevalent cases subdivided by year of diagnosis across each bootstrap iteration.
 \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
 }
 \description{
-This function estimates point prevalence at an index date using Monte Carlo simulation.
-\code{num_years_to_estimate} is the number of years working back from the index date for
-which incident cases are included in the prevalent pool. The larger the number of years,
-the more accurate the prevalence estimate, assuming a good survival model is drawn from
-the provided registry data.
+The most important parameter is \code{num_years_to_estimate}, which governs the number of
+previous years of data to use when estimating the prevalence at the index date. If this
+parameter is greater than the number of years of known incident cases available in the
+supplied registry data (specified with arguemtn \code{num_registry_years}), then the
+remaining \code{num_years_to_estimate - num_registry_years} years of incident data
+will be simulated using Monte Carlo simulation.
 }
 \details{
+The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
+provided an adequate survival model can be fitted to the registry data. It is therefore
+important to provide as much clean registry data as possible.
+
 Simulated cases are marked with age and sex to enable agreement with population survival
-data where are cure model is used, and calculation of the posterior distributions of each.
+data where a cure model is used, and calculation of the posterior distributions of each.
 }
 \examples{
 data(prevsim)
@@ -84,6 +91,5 @@ prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
            data=prevsim, num_years_to_estimate = 5, n_cores=4)
-
 }
 

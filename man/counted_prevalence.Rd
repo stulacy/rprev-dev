@@ -32,6 +32,10 @@ data(prevsim)
 
 counted_prevalence(prevsim$entrydate,
                    prevsim$eventdate,
+                   prevsim$status)
+
+counted_prevalence(prevsim$entrydate,
+                   prevsim$eventdate,
                    prevsim$status,
                    start="2004-01-30", num_reg_years=8)
 }

@@ -11,9 +11,9 @@ poisson_incidence_sim(object, N_sim = 1000, level = 0.95, df = 4)
 
 \item{N_sim}{Number of draws from a homogeneous Poisson process.}
 
-\item{level}{Double representing the desired confidence interval width.}
+\item{level}{The desired confidence interval width.}
 
-\item{df}{Integer representing degrees of freedom for the smoothening function.}
+\item{df}{The desired degrees of freedom for the smoothening function.}
 }
 \value{
 Plot of the smoothed incidence function and corresponding deviations.

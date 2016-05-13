@@ -2,7 +2,8 @@
 % Please edit documentation in R/incidence.R
 \name{mean_incidence_rate}
 \alias{mean_incidence_rate}
-\title{Convert absolute incidence values to per 100,000 population values.}
+\title{Calculate average incidence rates per one hundred thousand over the specified number of years, with
+confidence intervals.}
 \usage{
 mean_incidence_rate(entry, population_size, start = NULL,
   num_reg_years = NULL, precision = 2, level = 0.95)
@@ -29,7 +30,8 @@ A list with the following values:
 \item{per100K.upper}{Upper bounds of the specified confidence level on the per one hundred thousand estimate}
 }
 \description{
-Convert absolute incidence values to per 100,000 population values.
+Calculate average incidence rates per one hundred thousand over the specified number of years, with
+confidence intervals.
 }
 \examples{
 data(prevsim)

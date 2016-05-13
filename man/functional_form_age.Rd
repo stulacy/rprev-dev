@@ -14,9 +14,9 @@ This formula is used in the following way:
 
 \code{Surv(time, status) ~ age(age_column_name)}}
 
-\item{data}{A registry dataset of patient cases.}
+\item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
-\item{df}{Degrees of freedom for the smooth.}
+\item{df}{The desired degrees of freedom for the smooth.}
 }
 \value{
 Plots and model summary relating to the functional form of age.

@@ -16,9 +16,16 @@ defaults to the earliest entry date.}
 \item{num_reg_years}{The number of years of the registry for which incidence is to be calculated,
 defaults to using all available complete years.}
 
-\item{df}{Integer representing degrees of freedom for the smoothening function.}
+\item{df}{The desired degrees of freedom for the smoothening function.}
 }
 \value{
+An S3 object of class \code{cincidence} with the following attributes:
+\item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
+as generated using \code{incidence()}.}
+\item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
+inclusion in the registry, ordered shortest to longest.}
+\item{smooth}{Smooth fitted to the cumulative incidence data.}
+
 Object containing incidence for each year of the registry, the cumulative incidence functions and corresponding deviations.
 }
 \description{

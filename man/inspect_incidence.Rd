@@ -9,7 +9,7 @@ inspect_incidence(object, level = 0.95)
 \arguments{
 \item{object}{A \code{cincidence} object.}
 
-\item{level}{Double representing the desired confidence interval width.}
+\item{level}{The desired confidence interval width.}
 }
 \value{
 Plot of incidence rate, confidence interval and smoothed incidence function.

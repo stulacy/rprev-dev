@@ -2,27 +2,47 @@
 % Please edit documentation in R/diagnostics.R
 \name{boot_eg}
 \alias{boot_eg}
-\title{?}
+\title{Inspect bootstrapped survival curves for an example patient with a given age and sex.}
 \usage{
-boot_eg(data, registry_years, registry_start_year, age, sex, N_boot = 1000)
+boot_eg(form, data, age, sex, start = NULL, N_boot = 1000)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
+\code{age}, the column where age is located;
+\code{sex}, the column where sex is located; and
+\code{entry}, the column where dates of entry to the registry are located.
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+This formula is used in the following way:
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
+
+Using the supplied \code{prevsim} dataset, it is therefore called with:
+
+\code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}}
+
+\item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
 \item{age}{Age of example patient.}
 
-\item{sex}{Sex of example patient ("Male" or "Female").}
+\item{sex}{Sex of example patient.}
+
+\item{start}{Date from which incident cases are included, in the format YYYY-MM-DD. Defaults to the earliest incident case in
+the supplied registry.}
 
 \item{N_boot}{Number of replicates.}
 }
 \value{
-?
+Generates a plot of survival curves fitted to each bootstrapped sample (grey) with the survival curve plotted
+to the raw data overlaid (orange).
 }
 \description{
-?
+Inspect bootstrapped survival curves for an example patient with a given age and sex.
+}
+\examples{
+boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+                    data = prevsim,
+                    start = "2004-01-30",
+                    age = 65,
+                    sex = "Male")
 }
 
