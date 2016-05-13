@@ -209,16 +209,28 @@ plot_km <- function(data, registry_years, registry_start_year, age,
   lines(kma, lwd=1, col=colour, conf.int=T)
 }
 
-#' ?
+#' Inspect bootstrapped survival curves for an example patient with a given age and sex.
 #'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
+#' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
+#' \code{age}, the column where age is located;
+#' \code{sex}, the column where sex is located; and
+#' \code{entry}, the column where dates of entry to the registry are located.
+#'
+#' This formula is used in the following way:
+#'
+#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
+#'
+#' Using the supplied \code{prevsim} dataset, it is therefore called with:
+#'
+#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}
+#' @param data A data frame with the corresponding column names provided in \code{form}.
+#' @param start Date from which incident cases are included, in the format YYYY-MM-DD. Defaults to the earliest incident case in
+#' the supplied registry.
 #' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param start
+#' @param sex Sex of example patient.
 #' @param N_boot Number of replicates.
-#' @return ?
+#' @return Generates a plot of survival curves fitted to each bootstrapped sample (grey) with the survival curve plotted
+#' to the raw data overlaid (orange).
 #' @examples
 #' boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'                     data = prevsim,
