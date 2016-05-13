@@ -6,3 +6,4 @@
   - What to call num_year_to_estimate?
   - More rigorous stress testing!
   - Have prevalence return formula and raw_data, so that counted_prevalence doesn't need to hardcode the column names!
+  - Improve docstring for n_year_estimates
