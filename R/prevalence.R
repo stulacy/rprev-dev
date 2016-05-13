@@ -320,7 +320,7 @@ n_year_estimates <- function(object, num_years_to_estimate,
                              level=0.95, precision=2){
 
     if (num_years_to_estimate > object$nyears)
-        stop("Error: can't calculate prevalence for more years than present in the prevalence object.")
+        stop("Error: can't estimate prevalence for more years than present in the prevalence object.")
 
     num_reg_years <- object$nregyears
     raw_data <- object$raw_data
