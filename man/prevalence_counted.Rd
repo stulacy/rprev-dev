@@ -2,7 +2,7 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence_counted}
 \alias{prevalence_counted}
-\title{Count prevalence from registry data.}
+\title{Counts prevalence at a specific index date from registry data.}
 \usage{
 prevalence_counted(entry, eventdate, status, start = NULL,
   num_reg_years = NULL)
@@ -25,7 +25,7 @@ A vector of length \code{num_reg_years}, representing the number of incident cas
 to the prevalence at the index date.
 }
 \description{
-Count prevalence from registry data.
+Counts prevalence at a specific index date from registry data.
 }
 \examples{
 data(prevsim)

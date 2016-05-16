@@ -2,14 +2,21 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence_simulated}
 \alias{prevalence_simulated}
-\title{Estimates prevalence at a specific index date using a combination of available registry
-data, and Monte Carlo simulated incident data.}
+\title{Estimates prevalent cases at a specific index date by use of Monte Carlo simulation.}
 \usage{
 prevalence_simulated(survobj, age, sex, entry, num_years_to_estimate, start,
   num_reg_years, cure = 10, N_boot = 1000, max_yearly_incidence = 500,
   population_data = NULL, n_cores = 1)
 }
 \arguments{
+\item{survobj}{\code{Surv} object from \code{survival} package. Currently only right censoring is supported.}
+
+\item{age}{A vector of ages from the registry.}
+
+\item{sex}{A vector of sex, encoded as 0 and 1 for males and females respectively.}
+
+\item{entry}{A vector of entry dates into the registry, in the format YYYY-MM-DD.}
+
 \item{num_years_to_estimate}{Integer representing number of years of data to estimate point prevalence for, if this value
 is greater than \code{num_registry_years} then incident cases for the difference will be simulated.}
 
@@ -33,21 +40,6 @@ where each row is the mortality rate for a person of that age and gender. Ideall
 Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
 providing custom ones.}
 
-\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
-\code{age}, the column where age is located;
-\code{sex}, the column where sex is located; and
-\code{entry}, the column where dates of entry to the registry are located.
-
-This formula is used in the following way:
-
-\code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
-
-Using the supplied \code{prevsim} dataset, it is therefore called with:
-
-\code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}}
-
-\item{data}{A data frame with the corresponding column names provided in \code{form}.}
-
 \item{num_cores}{The number of CPU cores to run the fitting of the bootstrapped survival models across.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
@@ -57,40 +49,25 @@ A list with the following attributes:
 prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
 \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
 \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
-\item{known_inc_rate}{The known incidence rate for years included in the registry.}
 \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-\item{nyears}{Number of years that prevalence was estimated for.}
-\item{nregyears}{Number of years of registry data that were used.}
-\item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
+\item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
 }
 \description{
-The most important parameter is \code{num_years_to_estimate}, which governs the number of
-previous years of data to use when estimating the prevalence at the index date. If this
-parameter is greater than the number of years of known incident cases available in the
-supplied registry data (specified with argument \code{num_registry_years}), then the
-remaining \code{num_years_to_estimate - num_registry_years} years of incident data
-will be simulated using Monte Carlo simulation.
-}
-\details{
-The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
-provided an adequate survival model can be fitted to the registry data. It is therefore
-important to provide as much clean registry data as possible.
-
 Simulated cases are marked with age and sex to enable agreement with population survival
 data where a cure model is used, and calculation of the posterior distributions of each.
 }
 \examples{
 data(prevsim)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-           data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-           num_reg_years = 8, cure = 5)
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 10, start = "2005-09-01", num_reg_years = 8, cure = 5)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-           data=prevsim, num_years_to_estimate = 5)
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 5)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-           data=prevsim, num_years_to_estimate = 5, n_cores=4)
+# The program can be run using parallel processing.
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 5, n_cores=4)
 
 }
 

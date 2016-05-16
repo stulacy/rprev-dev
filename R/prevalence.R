@@ -1,4 +1,4 @@
-#' Count prevalence from registry data.
+#' Counts prevalence at a specific index date from registry data.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
 #' @param eventdate Vector of dates corresponding to the indicator variable in the format YYYY-MM-DD.
@@ -52,37 +52,15 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
     per_year - num_cens
 }
 
-
-#' Estimates prevalence at a specific index date using a combination of available registry
-#' data, and Monte Carlo simulated incident data.
-#'
-#' The most important parameter is \code{num_years_to_estimate}, which governs the number of
-#' previous years of data to use when estimating the prevalence at the index date. If this
-#' parameter is greater than the number of years of known incident cases available in the
-#' supplied registry data (specified with argument \code{num_registry_years}), then the
-#' remaining \code{num_years_to_estimate - num_registry_years} years of incident data
-#' will be simulated using Monte Carlo simulation.
-#'
-#' The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
-#' provided an adequate survival model can be fitted to the registry data. It is therefore
-#' important to provide as much clean registry data as possible.
+#' Estimates prevalent cases at a specific index date by use of Monte Carlo simulation.
 #'
 #' Simulated cases are marked with age and sex to enable agreement with population survival
 #' data where a cure model is used, and calculation of the posterior distributions of each.
 #'
-#' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
-#' \code{age}, the column where age is located;
-#' \code{sex}, the column where sex is located; and
-#' \code{entry}, the column where dates of entry to the registry are located.
-#'
-#' This formula is used in the following way:
-#'
-#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
-#'
-#' Using the supplied \code{prevsim} dataset, it is therefore called with:
-#'
-#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}
-#' @param data A data frame with the corresponding column names provided in \code{form}.
+#' @param survobj \code{Surv} object from \code{survival} package. Currently only right censoring is supported.
+#' @param age A vector of ages from the registry.
+#' @param sex A vector of sex, encoded as 0 and 1 for males and females respectively.
+#' @param entry A vector of entry dates into the registry, in the format YYYY-MM-DD.
 #' @param num_years_to_estimate Integer representing number of years of data to estimate point prevalence for, if this value
 #' is greater than \code{num_registry_years} then incident cases for the difference will be simulated.
 #' @param start Date from which incident cases in the registry data are to be included in the prevalence estimation, in
@@ -106,23 +84,20 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
 #' \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
 #' \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
-#' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
 #' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-#' \item{nyears}{Number of years that prevalence was estimated for.}
-#' \item{nregyears}{Number of years of registry data that were used.}
-#' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
+#' \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
 #' @examples
 #' data(prevsim)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-#'            num_reg_years = 8, cure = 5)
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 10, start = "2005-09-01", num_reg_years = 8, cure = 5)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'            data=prevsim, num_years_to_estimate = 5)
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 5)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
+#' # The program can be run using parallel processing.
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 5, n_cores=4)
 #'
 #' @importFrom abind abind
 #' @export prevalence_simulated
@@ -292,19 +267,21 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #'
 #' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
 #' \code{age}, the column where age is located;
-#' \code{sex}, the column where sex is located; and
-#' \code{entry}, the column where dates of entry to the registry are located.
+#' \code{sex}, the column where sex is located;
+#' \code{entry}, the column where dates of entry to the registry are located; and
+#' \code{event}, the column where event dates are located.
 #'
 #' This formula is used in the following way:
 #'
-#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
+#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name) + event(event_column_name)}
 #'
 #' Using the supplied \code{prevsim} dataset, it is therefore called with:
 #'
-#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}
+#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate)}
 #' @param data A data frame with the corresponding column names provided in \code{form}.
-#' @param num_years_to_estimate Integer representing number of years of data to estimate point prevalence for, if this value
-#' is greater than \code{num_registry_years} then incident cases for the difference will be simulated.
+#' @param num_years_to_estimate Vector of integers representing number of years of data to consider when
+#' estimating point prevalence. If this value is greater than \code{num_registry_years},
+#' incident cases for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population.
 #' @param start Date from which incident cases in the registry data are to be included in the prevalence estimation, in
 #' the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.
@@ -318,6 +295,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #'        to allow for variation in incidence between years.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
+#' @param proportion The population ratio to estimate prevalence for.
 #' @param population_data A dataframe which must contain the columns \code{age}, \code{rate}, and \code{sex},
 #' where each row is the mortality rate for a person of that age and gender. Ideally, age ranges from [0, 100].
 #' Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
@@ -325,30 +303,25 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' @param num_cores The number of CPU cores to run the fitting of the bootstrapped survival models across.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
 #' @return An S3 object of class \code{prevalence} with the following attributes:
-#' \item{prevalence}{Estimated prevalence at the index date.}
-#' \item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate}, representing the average number of
-#' prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
-#' \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
-#' \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
+#' \item{estimates}{Estimated prevalence at the index date for each of the years in \code{num_years_to_estimate}.}
+#' \item{simulated}{A list containing items related to the simulation of prevalence contributions, see \code{prevalence_simulated}}.
+#' \item{counted}{Contributions to prevalence from each of the supplied registry years, see \code{prevalence_counted}.}
+#' \item{start_date}{The starting date of the registry data included in the estimation.}
+#' \item{index_date}{The index date at which the point prevalence was calculated for.}
 #' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
-#' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-#' \item{nyears}{Number of years that prevalence was estimated for.}
 #' \item{nregyears}{Number of years of registry data that were used.}
 #' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
-#' \item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
-#' \item{per100K.lower}{Lower confidence bounds on the estimate.}
-#' \item{per100K.upper}{Upper confidence bounds on the estimate.}
 #' @examples
 #' data(prevsim)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
 #'            num_reg_years = 8, cure = 5)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = 5)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 #'
 #' @export prevalence
@@ -436,7 +409,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
     z_level <- qnorm((1+level)/2)
 
-    # TODO
     the_estimate <- sum(sim$mean_yearly_contributions[1:years])
     raw_proportion <- the_estimate / population_size
     the_proportion <- proportion * raw_proportion

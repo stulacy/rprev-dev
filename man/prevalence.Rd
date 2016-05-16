@@ -12,16 +12,17 @@ prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
 \code{age}, the column where age is located;
-\code{sex}, the column where sex is located; and
-\code{entry}, the column where dates of entry to the registry are located.
+\code{sex}, the column where sex is located;
+\code{entry}, the column where dates of entry to the registry are located; and
+\code{event}, the column where event dates are located.
 
 This formula is used in the following way:
 
-\code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
+\code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name) + event(event_column_name)}
 
 Using the supplied \code{prevsim} dataset, it is therefore called with:
 
-\code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}}
+\code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate)}}
 
 \item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
@@ -48,6 +49,8 @@ to allow for variation in incidence between years.}
 
 \item{precision}{Integer representing the number of decimal places required.}
 
+\item{proportion}{The population ratio to estimate prevalence for.}
+
 \item{population_data}{A dataframe which must contain the columns \code{age}, \code{rate}, and \code{sex},
 where each row is the mortality rate for a person of that age and gender. Ideally, age ranges from [0, 100].
 Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
@@ -55,8 +58,9 @@ providing custom ones.}
 
 \item{object}{A \code{prevalence} object.}
 
-\item{num_years_to_estimate}{Integer representing number of years of data to estimate point prevalence for, if this value
-is greater than \code{num_registry_years} then incident cases for the difference will be simulated.}
+\item{num_years_to_estimate}{Vector of integers representing number of years of data to consider when
+estimating point prevalence. If this value is greater than \code{num_registry_years},
+incident cases for the difference will be simulated.}
 
 \item{num_cores}{The number of CPU cores to run the fitting of the bootstrapped survival models across.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
@@ -81,19 +85,14 @@ Simulated cases are marked with age and sex to enable agreement with population 
 data where a cure model is used, and calculation of the posterior distributions of each.
 
 An S3 object of class \code{prevalence} with the following attributes:
-\item{prevalence}{Estimated prevalence at the index date.}
-\item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate}, representing the average number of
-prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
-\item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
-\item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
+\item{estimates}{Estimated prevalence at the index date for each of the years in \code{num_years_to_estimate}.}
+\item{simulated}{A list containing items related to the simulation of prevalence contributions, see \code{prevalence_simulated}}.
+\item{counted}{Contributions to prevalence from each of the supplied registry years, see \code{prevalence_counted}.}
+\item{start_date}{The starting date of the registry data included in the estimation.}
+\item{index_date}{The index date at which the point prevalence was calculated for.}
 \item{known_inc_rate}{The known incidence rate for years included in the registry.}
-\item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-\item{nyears}{Number of years that prevalence was estimated for.}
 \item{nregyears}{Number of years of registry data that were used.}
 \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
-\item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
-\item{per100K.lower}{Lower confidence bounds on the estimate.}
-\item{per100K.upper}{Upper confidence bounds on the estimate.}
 }
 \description{
 Calculate predicted prevalence for a given number of years.
@@ -101,14 +100,14 @@ Calculate predicted prevalence for a given number of years.
 \examples{
 data(prevsim)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
            num_reg_years = 8, cure = 5)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = 5)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 
 }
