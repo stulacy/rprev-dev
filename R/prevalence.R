@@ -12,15 +12,15 @@
 #' @examples
 #' data(prevsim)
 #'
-#' counted_prevalence(prevsim$entrydate,
+#' prevalence_counted(prevsim$entrydate,
 #'                    prevsim$eventdate,
 #'                    prevsim$status)
 #'
-#' counted_prevalence(prevsim$entrydate,
+#' prevalence_counted(prevsim$entrydate,
 #'                    prevsim$eventdate,
 #'                    prevsim$status,
 #'                    start="2004-01-30", num_reg_years=8)
-counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
+prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
         stop("Error: entry, eventdate, and status must all have the same length.")
@@ -57,7 +57,7 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' The most important parameter is \code{num_years_to_estimate}, which governs the number of
 #' previous years of data to use when estimating the prevalence at the index date. If this
 #' parameter is greater than the number of years of known incident cases available in the
-#' supplied registry data (specified with arguemtn \code{num_registry_years}), then the
+#' supplied registry data (specified with argument \code{num_registry_years}), then the
 #' remaining \code{num_years_to_estimate - num_registry_years} years of incident data
 #' will be simulated using Monte Carlo simulation.
 #'
@@ -99,13 +99,13 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' providing custom ones.
 #' @param num_cores The number of CPU cores to run the fitting of the bootstrapped survival models across.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
-#' @return An S3 object of class \code{prevalence} with the following attributes:
-#' \item{simulated_cases}{A vector of length \code{num_years_to_estimate}, representing the average number of
+#' @return A list with the following attributes:
+#' \item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate}, representing the average number of
 #' prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
-#' \item{post_covar}{Posterior distributions of age, sampled at every bootstrap iteration.}
-#' \item{samples}{Total simulated prevalent cases from every bootstrap sample.}
+#' \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
+#' \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
 #' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
-#' \item{popsurv}{Population survival rates in the format of a list, stratified by sex.}
+#' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
 #' \item{nyears}{Number of years that prevalence was estimated for.}
 #' \item{nregyears}{Number of years of registry data that were used.}
 #' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
@@ -121,10 +121,10 @@ counted_prevalence <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
-prevalence <- function(form, data, num_years_to_estimate,
-                       start=NULL, num_reg_years=NULL, cure=10,
-                       N_boot=1000, max_yearly_incidence=500,
-                       population_data=NULL, n_cores=1) {
+prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
+                                 start, num_reg_years, cure=10,
+                                 N_boot=1000, max_yearly_incidence=500,
+                                 population_data=NULL, n_cores=1) {
 
     if (n_cores > 1) {
         if (!require(doParallel)) {
@@ -133,42 +133,11 @@ prevalence <- function(form, data, num_years_to_estimate,
         }
     }
 
-    # Extract required column names from formula
-    spec <- c('age', 'sex', 'entry')
-    terms <- terms(form, spec)
-    special_indices <- attr(terms, 'specials')
-
-    if (any(sapply(special_indices, is.null)))
-        stop("Error: provide function terms for age, sex, and entry date.")
-
-    v <- as.list(attr(terms, 'variables'))[-1]
-    var_names <- unlist(lapply(special_indices, function(i) v[i]))
-
-    age_var <- .extract_var_name(var_names$age)
-    sex_var <- .extract_var_name(var_names$sex)
-    entry_var <- .extract_var_name(var_names$entry)
-
-    # Extract survival formula
-    response_index <- attr(terms, 'response')
-    resp <- v[response_index][[1]]
-    non_covariate_inds <- c(response_index, unlist(special_indices))
-    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
-
-    if (length(covar_names) > 0)
-        stop("Error: functionality isn't currently provided for additional covariates.")
-
     cure_days <- cure * 365
 
-    data[, sex_var] <- as.factor(data[, sex_var])
-    if (length(levels(data[, sex_var])) > 2)
+    sex <- as.factor(sex)
+    if (length(levels(sex)) > 2)
         stop("Error: function can't currently function with more than two levels of sex.")
-
-    # Determine the registry years of interest from assessing the code
-    if (is.null(start))
-        start <- min(data[, entry_var])
-
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
@@ -182,36 +151,31 @@ prevalence <- function(form, data, num_years_to_estimate,
         }
     }
 
-    if (num_reg_years > num_years_to_estimate) {
-        msg <- paste("More registry years provided than prevalence is predicted for. Prevalence will be predicted for", num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
-        message(msg)
-    }
-
     population_data$sex <- as.factor(population_data$sex)
-
-    if (!all(levels(data[, sex_var]) %in% levels(population_data$sex)))
+    if (!all(levels(sex) %in% levels(population_data$sex)))
         stop("Error: the same levels must be present in both the population and registry data. '0' and '1' by default where male is 0.")
 
-    surv_functions <- lapply(setNames(levels(data[, sex_var]), levels(data[, sex_var])),
+    surv_functions <- lapply(setNames(levels(sex), levels(sex)),
                              function(x) population_survival_rate(rate ~ age, data=subset(population_data, sex==x)))
 
     # Calculate bootstrapped weibull coefficients for registry data
-    data_r <- data[data[, entry_var] >= start, ]
+    df <- data.frame(time=survobj[, 1], status=survobj[, 2], age=age, sex=sex, entry=entry)
+    df <- df[as.character(df$entry) >= start, ]
 
     # Specify whether to include sex as a survival variable or not, this should be included within the formula!
-    req_covariate <- ifelse(length(levels(data_r[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
-    surv_form <- as.formula(paste(deparse(resp), '~',
+    req_covariate <- ifelse(length(levels(sex)) == 1, 'age', 'age + sex')
+    surv_form <- as.formula(paste('Surv(time, status)', '~',
                                   req_covariate,
                                   paste(covar_names, collapse='+')))
-    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r, N_boot, n_cores=n_cores)
+    wb_boot <- .registry_survival_bootstrapped(surv_form, df, N_boot, n_cores=n_cores)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
 
     # Run the prevalence estimator for each subgroup
-    results <- lapply(levels(data_r[, sex_var]), function(x) {
-        sub_data <- data_r[data_r[sex_var]==x, ]
-        .prevalence_subgroup(sub_data[, age_var], sub_data[, entry_var], start, wb_boot, num_reg_years,
+    results <- lapply(levels(df$sex), function(x) {
+        sub_data <- df[df$sex==x, ]
+        .prevalence_subgroup(sub_data$age, as.character(sub_data$entry), start, wb_boot, num_reg_years,
                              surv_functions[[x]], cure_days, as.numeric(x), max_yearly_incidence, num_years_to_estimate,
-                             include_sex=length(levels(data_r[, sex_var])) == 2)
+                             include_sex=length(levels(df$sex)) == 2)
     })
 
     # Combine results if have more than 1 sex subgroup
@@ -228,10 +192,9 @@ prevalence <- function(form, data, num_years_to_estimate,
     }
     by_year_avg <- rowMeans(by_year_samples)
 
-    prev_out <- list(simulated_cases=by_year_avg, post_covar=post_age_dist, samples=by_year_samples, known_inc_rate=fix_rate,
-                     popsurv=surv_functions, nyears=num_years_to_estimate, nregyears=num_reg_years, start=start, nbootstraps=N_boot,
-                     raw_data=data)
-    attr(prev_out, 'class') <- 'prevalence'
+    prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist, yearly_contributions=by_year_samples,
+                     known_inc_rate=fix_rate,
+                     pop_mortality=surv_functions, nbootstraps=N_boot)
     prev_out
 }
 
@@ -304,65 +267,221 @@ prevalence <- function(form, data, num_years_to_estimate,
 #'
 #' @param object A \code{prevalence} object.
 #' @param num_years_to_estimate Integer representing number of years prevalence is to be calculated for.
+#' @return A list with the following attributes:
+
+#' Estimates prevalence at a specific index date using a combination of available registry
+#' data, and Monte Carlo simulated incident data.
+#'
+#' The most important parameter is \code{num_years_to_estimate}, which governs the number of
+#' previous years of data to use when estimating the prevalence at the index date. If this
+#' parameter is greater than the number of years of known incident cases available in the
+#' supplied registry data (specified with argument \code{num_registry_years}), then the
+#' remaining \code{num_years_to_estimate - num_registry_years} years of incident data
+#' will be simulated using Monte Carlo simulation.
+#'
+#' The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
+#' provided an adequate survival model can be fitted to the registry data. It is therefore
+#' important to provide as much clean registry data as possible.
+#'
+#' Simulated cases are marked with age and sex to enable agreement with population survival
+#' data where a cure model is used, and calculation of the posterior distributions of each.
+#'
+#' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
+#' \code{age}, the column where age is located;
+#' \code{sex}, the column where sex is located; and
+#' \code{entry}, the column where dates of entry to the registry are located.
+#'
+#' This formula is used in the following way:
+#'
+#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
+#'
+#' Using the supplied \code{prevsim} dataset, it is therefore called with:
+#'
+#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}
+#' @param data A data frame with the corresponding column names provided in \code{form}.
+#' @param num_years_to_estimate Integer representing number of years of data to estimate point prevalence for, if this value
+#' is greater than \code{num_registry_years} then incident cases for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population.
+#' @param start Date from which incident cases in the registry data are to be included in the prevalence estimation, in
+#' the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.
+#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
+#' Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
+#' to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.
+#' @param cure Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
+#' has their survival probability incorporating mortality rates of the underlying population.
+#' @param N_boot Integer representing number of bootstrapped calculations to perform.
+#' @param max_yearly_incidence Integer larger than the expected yearly incidence
+#'        to allow for variation in incidence between years.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
-#' @return A list with the following attributes:
-#' \item{absolute.prevalence}{Absolute prevalence for the specified time frame.}
+#' @param population_data A dataframe which must contain the columns \code{age}, \code{rate}, and \code{sex},
+#' where each row is the mortality rate for a person of that age and gender. Ideally, age ranges from [0, 100].
+#' Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
+#' providing custom ones.
+#' @param num_cores The number of CPU cores to run the fitting of the bootstrapped survival models across.
+#' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
+#' @return An S3 object of class \code{prevalence} with the following attributes:
+#' \item{prevalence}{Estimated prevalence at the index date.}
+#' \item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate}, representing the average number of
+#' prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
+#' \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
+#' \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
+#' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
+#' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
+#' \item{nyears}{Number of years that prevalence was estimated for.}
+#' \item{nregyears}{Number of years of registry data that were used.}
+#' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
 #' \item{per100K}{Prevalence rates per one hundred thousand in the specified population.}
 #' \item{per100K.lower}{Lower confidence bounds on the estimate.}
 #' \item{per100K.upper}{Upper confidence bounds on the estimate.}
 #' @examples
 #' data(prevsim)
 #'
-#' prev <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'                    data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
-#'                    num_reg_years = 8, cure_days = 5*365)
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'            data=prevsim, num_years_to_estimate = 10, start = "2005-09-01",
+#'            num_reg_years = 8, cure = 5)
 #'
-#' n_year_estimates(prev, num_years_to_estimate = 3, population_size = 1.7e6)
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'            data=prevsim, num_years_to_estimate = 5)
 #'
-#' n_year_estimates(prev, num_years_to_estimate = 5, population_size = 1.7e6)
-#'
-#' # Maximum number of years to estimate for is 10 as this is the number of years the prev object
-#' # was assigned to estimate.
-#' n_year_estimates(prev, num_years_to_estimate = 10, population_size = 1.7e6, level=0.99)
-n_year_estimates <- function(object, num_years_to_estimate,
-                             population_size,
-                             level=0.95, precision=2){
+#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
+#'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 
-    if (num_years_to_estimate > object$nyears)
-        stop("Error: can't estimate prevalence for more years than present in the prevalence object.")
+# TODO Have this working with ...
+prevalence <- function(form, data, num_years_to_estimate, population_size,
+                       start=NULL, num_reg_years=NULL, cure=10,
+                       N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
+                       proportion=100e3, population_data=NULL, n_cores=1) {
 
-    num_reg_years <- object$nregyears
-    raw_data <- object$raw_data
-    observed <- counted_prevalence(raw_data$entrydate,
-                                   raw_data$eventdate,
-                                   raw_data$status,
-                                   start=object$start,
-                                   num_reg_years=num_reg_years)
-    object$simulated_cases[1:num_reg_years] <- rev(observed)
+    ##########################################################
+    # TODO Remove when finished debugging
+    form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate)
+    data = prevsim
+    num_years_to_estimate = 10
+    start = '2004-01-01'
+    num_reg_years = 8
+    cure = 5
+    N_boot = 1000
+    max_yearly_incidence = 500
+    population_data = NULL
+    proportion = 100e3
+    population_size = 1.7e6
+    level = 0.95
+    precision = 2
+    num_years_to_estimate = c(3, 5, 10)
+    n_cores = 1
+    ##########################################################
+
+    if (num_reg_years > max(num_years_to_estimate)) {
+        msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
+                     num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
+        message(msg)
+    }
+
+    # Extract required column names from formula
+    spec <- c('age', 'sex', 'entry', 'event')
+    terms <- terms(form, spec)
+    special_indices <- attr(terms, 'specials')
+
+    if (any(sapply(special_indices, is.null)))
+        stop("Error: provide function terms for age, sex, entry date, and event date.")
+
+    v <- as.list(attr(terms, 'variables'))[-1]
+    var_names <- unlist(lapply(special_indices, function(i) v[i]))
+
+    age_var <- .extract_var_name(var_names$age)
+    sex_var <- .extract_var_name(var_names$sex)
+    entry_var <- .extract_var_name(var_names$entry)
+    event_var <- .extract_var_name(var_names$event)
+
+    # Extract survival formula
+    response_index <- attr(terms, 'response')
+    resp <- v[response_index][[1]]
+    survobj <- with(data, eval(resp))
+
+    # Other covariates
+    non_covariate_inds <- c(response_index, unlist(special_indices))
+    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+    if (length(covar_names) > 0)
+        stop("Error: functionality isn't currently provided for additional covariates.")
+
+    # Calculate start and num_registry_years
+    if (is.null(start))
+        start <- min(data[, entry_var])
+
+    if (is.null(num_reg_years))
+        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+
+    # Calculate simulated prevalence for 1:max(num_years_to_estimate)
+    prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
+                                     max(num_years_to_estimate), start,
+                                     num_reg_years, cure=cure, N_boot=N_boot,
+                                     max_yearly_incidence=max_yearly_incidence,
+                                     population_data=population_data, n_cores=n_cores)
+    inc_rate <- prev_sim$known_inc_rate
+    prev_sim$known_inc_rate <- NULL
+
+    # Calculate observed prevalence for 1:num_registry_years
+    prev_count <- prevalence_counted(data[, entry_var],
+                                     data[, event_var],
+                                     survobj[, 2],
+                                     start=start,
+                                     num_reg_years=num_reg_years)
+
+    # TODO Put this into function to calculate CIs and iterate for every
+    # year of interest
+    names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
+    estimates <- lapply(setNames(num_years_to_estimate, names), .point_estimate,
+                        prev_sim, prev_count, num_reg_years, population_size, level=level, precision=precision,
+                        proportion=proportion)
+
+    object <- list(estimates=estimates, simulated=prev_sim,
+                   counted=prev_count, known_inc_rate=inc_rate,
+                   nregyears=num_reg_years)
+    attr(object, 'class') <- 'prevalence'
+    object
+}
+
+.point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3, level=0.95, precision=2) {
+
+    # Replace simulated values for observed for the years we have simulated data
+    sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
     z_level <- qnorm((1+level)/2)
 
-    the_samples <- object$samples[(num_reg_years + 1):num_years_to_estimate, , drop=F]
-    by_sample_estimate <- colSums(the_samples)
-
-    the_estimate <- sum(object$simulated_cases[1:num_years_to_estimate])
+    # TODO
+    the_estimate <- sum(sim$mean_yearly_contributions[1:years])
     raw_proportion <- the_estimate / population_size
-    the_proportion <- 100000 * raw_proportion
+    the_proportion <- proportion * raw_proportion
 
-    if (num_years_to_estimate <= num_reg_years) {
+    if (years <= num_reg_years) {
         se <- (raw_proportion * (1 - raw_proportion)) / population_size
     } else {
-        the_estimate_n <- sum(object$simulated_cases[1:num_reg_years])
+        the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=F]
+        by_sample_estimate <- colSums(the_samples)
+        the_estimate_n <- sum(sim$mean_yearly_contributions[1:num_reg_years])
         raw_proportion_n <- the_estimate_n / population_size
         std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
         std_err_2 <- sd(by_sample_estimate)/population_size
         se <- std_err_1^2 + std_err_2^2
     }
 
-    CI <- z_level * sqrt(se) * 100000
-    object <- list(absolute.prevalence=the_estimate, per100K=the_proportion,
-                   per100K.lower=the_proportion - CI,
-                   per100K.upper=the_proportion + CI)
-    lapply(object, round, precision)
+    CI <- z_level * sqrt(se) * proportion
+
+    # Setup labels for proportion list outputs
+    proportion_unit <- ifelse(proportion / 1e6 >= 1, 'M',
+                              ifelse(proportion / 1e3 >= 1, 'K',
+                                     ''))
+    proportion_val <- ifelse(proportion / 1e6 >= 1, proportion / 1e6,
+                              ifelse(proportion / 1e3 >= 1, proportion / 1e3,
+                                     proportion))
+    est_lab <- paste('per', proportion_val, proportion_unit, sep='')
+    upper_lab <- paste(est_lab, '.upper', sep='')
+    lower_lab <- paste(est_lab, '.lower', sep='')
+
+    result <- list(absolute.prevalence=the_estimate)
+    result[est_lab] <- the_proportion
+    result[upper_lab] <- the_proportion - CI
+    result[lower_lab] <- the_proportion + CI
+
+    lapply(result, round, precision)
 }
