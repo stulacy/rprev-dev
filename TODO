@@ -1,9 +1,3 @@
-  - Sort importing packages issue, if use "imports" in DESCRIPTION then how to actually import functions? I.e. if run library(prevR) then survival doesn't get loaded
-  - Rename prevalence attributes (i.e. 'samples' not very descriptive)
   - Redo prev_chisq to apply to prevalence object
-  - Rename n_year_estimates to something more descriptive
   - Generate function flow diagrams
-  - What to call num_year_to_estimate?
   - More rigorous stress testing!
-  - Have prevalence return formula and raw_data, so that counted_prevalence doesn't need to hardcode the column names!
-  - Improve docstring for n_year_estimates
