@@ -124,6 +124,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
 #'
+#' @importFrom abind abind
 #' @export prevalence_simulated
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
                                  start, num_reg_years, cure=10,

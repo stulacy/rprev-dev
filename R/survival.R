@@ -76,6 +76,10 @@ population_survival_rate <- function(form, data, max_age=100){
     )
 }
 
+#' @importFrom survival survreg.fit
+#' @importFrom survival survreg.control
+#' @importFrom survival survreg.distributions
+#' @importFrom survival Surv
 .fit_weibull <- function(data) {
     # Helper function to fit weibull by calling the lower level survreg.fit function
     # Abstracts away this complex and ugly function call
