@@ -9,8 +9,10 @@
 #' @return Vector of p-values for over- and under-dispersion based on the position of the
 #' observed sequence variance in the distribution.
 #' @examples
+#' data(prevsim)
+#'
 #' sim_check(incidence(prevsim$entrydate))
-sim_check <- function(data, N_sim = 100000){
+sim_check <- function(data, N_sim = 100000) {
   var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
   c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
@@ -21,8 +23,10 @@ sim_check <- function(data, N_sim = 100000){
 #' @param df Degrees of freedom for the smooth.
 #' @return Plot of the raw data and smoothed age distribution function.
 #' @examples
-#' incidence_age_distribution(prevsim_r$age)
-incidence_age_distribution <- function(agedata, df=10){
+#' data(prevsim)
+#'
+#' incidence_age_distribution(prevsim$age)
+incidence_age_distribution <- function(agedata, df=10) {
 
   ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
 
@@ -45,7 +49,7 @@ incidence_age_distribution <- function(agedata, df=10){
 #' @return Plots and model summary relating to the functional form of age.
 #' @examples
 #' functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
-functional_form_age <- function(form, data, df=4){
+functional_form_age <- function(form, data, df=4) {
 
   ### TO DO/discuss:
   # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
@@ -98,10 +102,10 @@ functional_form_age <- function(form, data, df=4){
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-dfr_sc <- function(age, sex, wb){
-  if(sex == "Male"){
+dfr_sc <- function(age, sex, wb) {
+  if (sex == "Male") {
     sexn <- 0
-  }else{
+  } else {
     sexn <- 1
   }
   return(exp(wb$coef[1] + age*wb$coef[2] + sexn*wb$coef[3]))
@@ -113,7 +117,7 @@ dfr_sc <- function(age, sex, wb){
 #' @param shape ?
 #' @param scale ?
 #' @return ?
-wb_Su <- function(t, shape, scale){
+wb_Su <- function(t, shape, scale) {
   return(exp(-(t/scale)^shape))
 }
 
@@ -123,7 +127,7 @@ wb_Su <- function(t, shape, scale){
 #' @param shape ?
 #' @param scale ?
 #' @return ?
-wb_haz <- function(t, shape, scale){
+wb_haz <- function(t, shape, scale) {
   return((shape/scale)*(t/scale)^(shape-1))
 }
 
@@ -134,7 +138,7 @@ wb_haz <- function(t, shape, scale){
 #' @param the_length Number of days to predict.
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-plot_haz <- function(age, sex, the_length=3000, wb){
+plot_haz <- function(age, sex, the_length=3000, wb) {
   s_time <- seq(0, the_length, by=1)
   haz <- wb_haz(s_time, dfr_sh, dfr_sc(age, sex, wb))
   plot(s_time, haz, type="l", lwd=2, col="red", ylim=c(0,0.002),
@@ -148,7 +152,7 @@ plot_haz <- function(age, sex, the_length=3000, wb){
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param the_length Number of days to predict.
 #' @return ?
-plot_population_hazard <- function(data, age, sex, the_length=3000){
+plot_population_hazard <- function(data, age, sex, the_length=3000) {
   if(sex == "Male") sex = "Males"
   if(sex == "Female") sex = "Females"
   daily_survival_rate <- function(data, sex)
@@ -163,7 +167,7 @@ plot_population_hazard <- function(data, age, sex, the_length=3000){
 #' @param the_length Number of days to predict.
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-plot_Su <- function(age, sex, the_length=3000, wb){
+plot_Su <- function(age, sex, the_length=3000, wb) {
   s_time <- seq(0, the_length, by=1)
   Su <- wb_Su(s_time, dfr_sh, dfr_sc(age, sex, wb))
   plot(s_time, Su, type="l", lwd=2, col="red", ylim=c(0,1),
@@ -177,7 +181,7 @@ plot_Su <- function(age, sex, the_length=3000, wb){
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param the_length Number of days to predict.
 #' @return ?
-plot_pop_Su <- function(data, age, sex, the_length=3000){
+plot_pop_Su <- function(data, age, sex, the_length=3000) {
   if(sex == "Male") sex = "Males"
   if(sex == "Female") sex = "Females"
   daily_survival_rate <- function(data, sex)
@@ -196,10 +200,10 @@ plot_pop_Su <- function(data, age, sex, the_length=3000){
 #' @param colour ?
 #' @return ?
 plot_km <- function(data, registry_years, registry_start_year, age,
-                    sex, limits, colour="green"){
-  if(sex == "Male"){
+                    sex, limits, colour="green") {
+  if (sex == "Male") {
     sexn <- 0
-  }else{
+  } else {
     sexn <- 1
   }
   dfr_r <- data[data$date_initial >= registry_years[registry_start_year],]
@@ -237,7 +241,7 @@ plot_km <- function(data, registry_years, registry_start_year, age,
 #'                     start = "2004-01-30",
 #'                     age = 65,
 #'                     sex = "Male")
-boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000){
+boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
   spec <- c('age', 'sex', 'entry')
   terms <- terms(form, spec)
@@ -281,7 +285,7 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000){
   wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
   n <- seq(5000)
 
-  if(sex == "Male"){
+  if (sex == "Male") {
     wb_lines <- sapply(seq(N_boot),
                        function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
   } else {
@@ -296,7 +300,7 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000){
 
   wb <- survreg(surv_form, data_r)
 
-  if(sex == "Male"){
+  if (sex == "Male") {
     A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
     lines(A, col="orange", lwd=3, lty=3)
   } else {
@@ -311,18 +315,15 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000){
 #' @param object A \code{prevalence} object.
 #' @return P-value from a chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
 #' @examples
-#' prev_chisq(prevalence_total)
-prev_chisq <- function(object){
-
-  raw_data <- object$raw_data
-  num_reg_years=object$nregyears
-  observed <- counted_prevalence(raw_data$entrydate,
-                                   raw_data$eventdate,
-                                   raw_data$status,
-                                   start=object$start,
-                                   num_reg_years=num_reg_years)
-  predicted <- rev(object$simulated_cases[1:num_reg_years])
-  chi <- sum(((observed - predicted)^2)/predicted)
-  1 - pchisq(chi, num_reg_years - 1)
-
+#' obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                   data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                   start = "2005-09-01",
+#'                   num_reg_years = 8, cure = 5)
+#'
+#' prev_chisq(obj)
+prev_chisq <- function(object) {
+    observed <- object$counted
+    predicted <- rev(object$simulated$mean_yearly_contributions[1:num_reg_years])
+    chi <- sum(((observed - predicted)^2)/predicted)
+    1 - pchisq(chi, num_reg_years - 1)
 }

@@ -60,8 +60,8 @@ test_that("prev_chisq returns same values as before", {
     expect_ref <- function(data) {
         fn <- 'cache/diagnostics/prev_chisq.rds'
         set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                                        data, num_years_to_estimate=10,
+        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                                        data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
         expect_equal_to_reference(prev_chisq(prevalence_object), file=fn)
     }
@@ -72,8 +72,8 @@ test_that("prev_chisq returns same values as before", {
 test_that("prev_chisq returns doubles", {
     expect_double <- function(data) {
         set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                                        data, num_years_to_estimate=10,
+        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                                        data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
         expect_match(typeof(prev_chisq(prevalence_object)), 'double')
     }
@@ -84,8 +84,8 @@ test_that("prev_chisq returns doubles", {
 test_that("prev_chisq returns no NAs", {
     expect_NA <- function(data) {
         set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                                        data, num_years_to_estimate=10,
+        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                                        data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
         expect_equal(any(is.na(prev_chisq(prevalence_object))), FALSE)
     }
