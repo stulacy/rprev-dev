@@ -91,7 +91,7 @@ prevsim_r <- prevsim[prevsim$entrydate >= "2004-01-30", ]
 incidence_age_distribution(prevsim_r$age)
 ```
 
-To calculate the mean incidence rate per 100,000 within the study population `meanIR` is used, which requires an estimate of the size of the population at risk:
+To calculate the mean incidence rate per 100,000 within the study population `mean_incidence_rate` is used, which requires an estimate of the size of the population at risk:
   
 ```{r incidencerate, error = TRUE}
 mean_incidence_rate(prevsim$entrydate, population_size = 3.5e6,
