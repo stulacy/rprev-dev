@@ -1,6 +1,4 @@
 library(prevR)
-library(survival)
-library(abind)
 context('Survival')
 data(UKmortality)
 data(prevsim)

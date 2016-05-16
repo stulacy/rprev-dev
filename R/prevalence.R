@@ -330,12 +330,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
                        proportion=100e3, population_data=NULL, n_cores=1) {
 
-    if (num_reg_years > max(num_years_to_estimate)) {
-        msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
-                     num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
-        message(msg)
-    }
-
     # Extract required column names from formula
     spec <- c('age', 'sex', 'entry', 'event')
     terms <- terms(form, spec)
@@ -369,6 +363,12 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+
+    if (num_reg_years > max(num_years_to_estimate)) {
+        msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
+                     num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
+        message(msg)
+    }
 
     # Calculate simulated prevalence for 1:max(num_years_to_estimate)
     prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],

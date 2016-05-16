@@ -1,7 +1,4 @@
 library(prevR)
-library(survival)
-library(rms)
-library(abind)
 context('Diagnostics')
 data(prevsim)
 
@@ -128,8 +125,8 @@ test_that("poisson_incidence_sim returns same as before", {
 })
 
 test_that("boot_eg returns same as before", {
-    #skip_on_cran()
-    #skip("too slow")
+    skip_on_cran()
+    skip("too slow")
     i <- 1
     set.seed(3)
     expect_ref <- function(data, sex) {
