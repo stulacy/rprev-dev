@@ -29,5 +29,6 @@ incidence(prevsim$entrydate, start="2004-01-01", 8)
 incidence(prevsim$entrydate)
 incidence(prevsim$entrydate, start="2005-05-01", 5)
 incidence(prevsim$entrydate, start="2005-05-01")
+
 }
 

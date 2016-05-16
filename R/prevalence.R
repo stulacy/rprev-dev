@@ -20,6 +20,8 @@
 #'                    prevsim$eventdate,
 #'                    prevsim$status,
 #'                    start="2004-01-30", num_reg_years=8)
+#'
+#' @export prevalence_counted
 prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
@@ -121,6 +123,8 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
+#'
+#' @export prevalence_simulated
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
                                  start, num_reg_years, cure=10,
                                  N_boot=1000, max_yearly_incidence=500,
@@ -345,6 +349,8 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
+#'
+#' @export prevalence
 prevalence <- function(form, data, num_years_to_estimate, population_size,
                        start=NULL, num_reg_years=NULL, cure=10,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,

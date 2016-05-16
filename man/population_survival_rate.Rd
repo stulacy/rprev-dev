@@ -29,5 +29,6 @@ data(UKmortality)
 
 population_survival_rate(rate ~ age, UKmortality)
 population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
+
 }
 

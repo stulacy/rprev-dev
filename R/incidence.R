@@ -14,6 +14,8 @@
 #' incidence(prevsim$entrydate)
 #' incidence(prevsim$entrydate, start="2005-05-01", 5)
 #' incidence(prevsim$entrydate, start="2005-05-01")
+#'
+#' @export incidence
 incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 
     if (is.null(start))
@@ -55,6 +57,8 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6)
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+#'
+#' @export mean_incidence_rate
 mean_incidence_rate <- function(entry, population_size, start=NULL, num_reg_years=NULL, precision = 2, level=0.95){
 
     if (is.null(start))

@@ -1,6 +1,7 @@
 #' Generate a summary of the cumulative_incidence object.
 #'
 #' @param object A \code{cumulative_incidence} object.
+#' @export summary.cincidence
 summary.cincidence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$raw_incidence), "\n")
@@ -19,6 +20,7 @@ summary.cincidence <- function(object, ...) {
 #' Print the current value of the prevalence object.
 #'
 #' @param object A \code{prevalence} object.
+#' @export print.prevalence
 print.prevalence <- function(object, ...) {
     cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
     lapply(names(object$estimates), function(x) {
@@ -33,6 +35,7 @@ print.prevalence <- function(object, ...) {
 #' Generate a summary of the prevalence object.
 #'
 #' @param object A \code{prevalence} object.
+#' @export summary.prevalence
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Index date:", object$index_date, "\n")
