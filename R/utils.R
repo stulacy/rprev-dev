@@ -20,7 +20,14 @@ summary.cincidence <- function(object, ...) {
 #'
 #' @param object A \code{prevalence} object.
 print.prevalence <- function(object, ...) {
-    cat(paste("Estimated ", object$nyears, " year prevalence is ", sum(object$simulated_cases), ".\n", sep=''))
+    cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
+    lapply(names(object$estimates), function(x) {
+        year <- strsplit(x, 'y')[[1]][2]
+        prev_est <- object$estimates[[x]][2]
+        cat(paste(year, "years:", prev_est, "\n"))
+    })
+
+   # cat(paste("Estimated ", object$nyears, " year prevalence is ", sum(object$mean_yearly_contributions), ".\n", sep=''))
 }
 
 #' Generate a summary of the prevalence object.
@@ -28,19 +35,20 @@ print.prevalence <- function(object, ...) {
 #' @param object A \code{prevalence} object.
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("Index date:", object$index_date, "\n")
+    cat("Start year:", object$start_date, "\n")
     cat("Number of years:", length(object$known_inc_rate), "\n")
-    cat("Start year:", object$start, "\n")
     cat("Known incidence rate:\n")
-    cat(object$known_inc_rate)
-    cat("\n\nSummary of included raw data:\n")
-    print(summary(object$raw_data))
+    cat(object$known_inc_rate, "\n")
+    cat("Counted prevalent cases:\n")
+    cat(object$counted)
 
     cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
-    cat("Iterations:", object$nbootstraps, "\n")
+    cat("Iterations:", object$simulated$nbootstraps, "\n")
     cat("Posterior age distribution summary:\n")
-    print(summary(object$post_covar))
-    cat("Average prevalent cases per year:\n")
-    cat(object$simulated_cases)
+    print(summary(object$simulated$posterior_age))
+    cat("Average simulated prevalent cases per year:\n")
+    cat(rev(object$simulated$mean_yearly_contributions))
 }
 
 determine_registry_years <- function(start, num_reg_years) {

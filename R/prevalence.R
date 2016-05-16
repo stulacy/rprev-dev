@@ -353,25 +353,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
                        proportion=100e3, population_data=NULL, n_cores=1) {
 
-    ##########################################################
-    # TODO Remove when finished debugging
-    form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate)
-    data = prevsim
-    num_years_to_estimate = 10
-    start = '2004-01-01'
-    num_reg_years = 8
-    cure = 5
-    N_boot = 1000
-    max_yearly_incidence = 500
-    population_data = NULL
-    proportion = 100e3
-    population_size = 1.7e6
-    level = 0.95
-    precision = 2
-    num_years_to_estimate = c(3, 5, 10)
-    n_cores = 1
-    ##########################################################
-
     if (num_reg_years > max(num_years_to_estimate)) {
         msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
                      num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
@@ -428,16 +409,19 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                                      start=start,
                                      num_reg_years=num_reg_years)
 
-    # TODO Put this into function to calculate CIs and iterate for every
-    # year of interest
+    # Calculate CIs and iterate for every year of interest
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
     estimates <- lapply(setNames(num_years_to_estimate, names), .point_estimate,
                         prev_sim, prev_count, num_reg_years, population_size, level=level, precision=precision,
                         proportion=proportion)
 
+    reg_years <- determine_registry_years(start, num_reg_years)
+    index_date <- reg_years[length(reg_years)]
+
     object <- list(estimates=estimates, simulated=prev_sim,
-                   counted=prev_count, known_inc_rate=inc_rate,
-                   nregyears=num_reg_years)
+                   counted=prev_count, start_date=start,
+                   index_date=index_date, known_inc_rate=inc_rate,
+                   nregyears=num_reg_years, proportion=proportion)
     attr(object, 'class') <- 'prevalence'
     object
 }
