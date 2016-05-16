@@ -7,9 +7,8 @@ Authors: Simon Crouch <simon.crouch@york.ac.uk>,
          Stephanie Lax <stephanie.lax@york.ac.uk>,
          Stuart Lacy <stuart.lacy@york.ac.uk>
 Maintainer: Stuart Lacy <stuart.lacy@york.ac.uk>
-Description: This code was used to calculate the estimated portion of the 10-
-    year prevalence data presented on the HMRN website: \url{https://www.hmrn.org/
-    statistics/prevalence}
+Description: Estimates point prevalence for a given index date, using existing
+    registry data extended with Monte Carlo simulations.
 License: GPL-2
 Depends:
     survival (>= 2.37-7)
