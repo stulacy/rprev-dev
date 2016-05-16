@@ -165,8 +165,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Specify whether to include sex as a survival variable or not, this should be included within the formula!
     req_covariate <- ifelse(length(levels(sex)) == 1, 'age', 'age + sex')
     surv_form <- as.formula(paste('Surv(time, status)', '~',
-                                  req_covariate,
-                                  paste(covar_names, collapse='+')))
+                                  req_covariate))
     wb_boot <- .registry_survival_bootstrapped(surv_form, df, N_boot, n_cores=n_cores)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
 
@@ -346,8 +345,6 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 #'            data=prevsim, num_years_to_estimate = 5, n_cores=4)
-
-# TODO Have this working with ...
 prevalence <- function(form, data, num_years_to_estimate, population_size,
                        start=NULL, num_reg_years=NULL, cure=10,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
