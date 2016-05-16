@@ -182,7 +182,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
         # This is ugly but will work provided there aren't more than 2 sexs specified for, which is guarded
         # against anyway
         by_year_samples <- results[[1]]$cases + results[[2]]$cases
-        post_age_dist <- abind(results[[1]]$post, results[[2]]$post, along=1)
+        post_age_dist <- abind::abind(results[[1]]$post, results[[2]]$post, along=1)
         fix_rate <- rev(results[[1]]$fix + results[[2]]$fix)
     } else {
         by_year_samples <- results[[1]]$cases
@@ -208,7 +208,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
                           prior_age_d, survfunc, cure_days, sex, max_year_inc, include_sex)
     # Unflatten by_year samples
     by_year_samples = do.call(rbind, lapply(yearly_rates, function(x) x$cases))
-    post_age_dist = abind(lapply(yearly_rates, function(x) x$post), along=3)
+    post_age_dist = abind::abind(lapply(yearly_rates, function(x) x$post), along=3)
     return(list(cases=by_year_samples, post=post_age_dist, fix=fix_rate_rev))
 }
 

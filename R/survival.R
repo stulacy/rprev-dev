@@ -77,13 +77,13 @@ population_survival_rate <- function(form, data, max_age=100){
 .fit_weibull <- function(data) {
     # Helper function to fit weibull by calling the lower level survreg.fit function
     # Abstracts away this complex and ugly function call
-    model <- survreg.fit(data[, 3:ncol(data)],
+    model <- survival::survreg.fit(data[, 3:ncol(data)],
                          data[, 1:2],
                          NULL, # weights
                          numeric(nrow(data)), # offset
                          NULL, # init
-                         survreg.control(), # controlvars
-                         survreg.distributions[['extreme']], # dist
+                         survival::survreg.control(), # controlvars
+                         survival::survreg.distributions[['extreme']], # dist
                          0, # scale
                          1, # nstrat
                          0, # strata
