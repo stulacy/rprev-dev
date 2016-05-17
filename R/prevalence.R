@@ -87,8 +87,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
 #' \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
 #' \item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
-#' \item{y}{The Surv object used as the response in the survival modeling.}
-#' \item{means}{The co-variate means from the data.}
+#' \item{full_coefs}{The Weibull coefficients from a model fitted to the full dataset.}
 #' @examples
 #' data(prevsim)
 #'
@@ -174,14 +173,14 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     }
     by_year_avg <- rowMeans(by_year_samples)
 
-    # Calculate covariate means
-    mean_df <- data[, c(age_var, sex_var)]
-    mean_df <- apply(mean_df, 2, as.numeric)
-    means <- colMeans(mean_df)
+    # Fit weibull model to full data
+    full_data_trans <- .transform_registry_data(surv_form, df)
+    full_coefs <- .fit_weibull(full_data_trans)
+    full_coefs[length(full_coefs)] <- exp(full_coefs[length(full_coefs)])  # As this .fit_weibull skips the reverse log transform
 
     prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist,
                      yearly_contributions=by_year_samples, known_inc_rate=fix_rate,
-                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot, y=survobj, means=means)
+                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot, full_coefs=full_coefs)
     prev_out
 }
 
@@ -321,6 +320,8 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
 #' \item{pval}{The p-value resulting from the chi-square test between the simulated and counted prevalent cases for the years of
 #' registry data available.}
+#' \item{y}{The Surv object used as the response in the survival modeling.}
+#' \item{means}{The co-variate means from the data.}
 #' @examples
 #' data(prevsim)
 #'
@@ -390,6 +391,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     inc_rate <- prev_sim$known_inc_rate
     prev_sim$known_inc_rate <- NULL
 
+
     # Calculate observed prevalence for 1:num_registry_years
     prev_count <- prevalence_counted(data[, entry_var],
                                      data[, event_var],
@@ -410,9 +412,18 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                    counted=prev_count, start_date=start,
                    index_date=index_date, known_inc_rate=inc_rate,
                    nregyears=num_reg_years, proportion=proportion)
-    attr(object, 'class') <- 'prevalence'
+
+    # Calculate covariate means and save
+    mean_df <- data[, c(age_var, sex_var)]
+    mean_df <- apply(mean_df, 2, as.numeric)
+    object$means <- colMeans(mean_df)
+    object$y <- survobj
+
     object$pval <- prev_chisq(object)
+
+    attr(object, 'class') <- 'prevalence'
     object
+
 }
 
 .point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3, level=0.95, precision=2) {

@@ -46,10 +46,10 @@ raw_incidence <- incidence(prevsim$entrydate, start="2004-01-30", 9)
 raw_incidence
 ```
 
-It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with an homogeneous Poisson process, the `sim_check` and `smoothed_incidence` functions can be used:
+It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with an homogeneous Poisson process, the `test_poisson_fit` and `smoothed_incidence` functions can be used:
 
 ```{r}
-sim_check(raw_incidence)
+test_poisson_fit(raw_incidence)
 ```
 
 **NOTE these are p-values for over and underdispersion**
