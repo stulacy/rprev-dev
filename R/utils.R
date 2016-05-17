@@ -73,27 +73,31 @@ determine_registry_years <- function(start, num_reg_years) {
 
 survfit.prevalence <- function(object, newdata=NULL) {
     if (is.null(newdata)) {
-        use_df <- object$simulated$means
+        use_df <- object$means
     } else {
         # Check names have same names as those in original data
-        if (!all(sort(names(newdata)) == sort(names(object$simulated$means))))
+        if (!all(sort(names(newdata)) == sort(names(object$means))))
             stop("Error: Please provide a list with the same column names as in the orignal dataset.")
 
         # Reorder new data to be in same order as original data
-        use_df <- unlist(newdata)[names(object$simulated$means)]
+        use_df <- unlist(newdata)[names(object$means)]
     }
 
     # Add intercept
     use_df <- c(1, use_df)
 
-    times <- seq(max(object$simulated$y[, 1]))
-    survprobs <- apply(object$simulated$coefs, 1, function(row) {
-        scale <- exp(row[-length(row)] %*% t(use_df)) + 0.000001  # Hack to ensure scale != 0
-        shape <- 1 / row[length(row)]
-        1 - pweibull(times, scale=scale, shape=shape)
-    })
+    times <- seq(max(object$y[, 1]))
+    survprobs <- apply(object$simulated$coefs, 1, .calculate_survival_probability, use_df, times)
 
-    result <- list(time=times, surv=t(survprobs))
+    full_survprobs <- .calculate_survival_probability(object$simulated$full_coefs, use_df, times)
+
+    result <- list(time=times, surv=t(survprobs), fullsurv=full_survprobs)
     attr(result, 'class') <- 'survfit.prev'
     result
+}
+
+.calculate_survival_probability <- function(coef, data, times) {
+    scale <- exp(coef[-length(coef)] %*% data) + 0.000001  # Hack to ensure scale != 0
+    shape <- 1 / coef[length(coef)]
+    1 - pweibull(times, scale=scale, shape=shape)
 }

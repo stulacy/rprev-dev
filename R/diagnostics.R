@@ -12,9 +12,9 @@
 #' data(prevsim)
 #'
 #' inc <- incidence(prevsim$entrydate)
-#' sim_check(inc)
-#' @export sim_check
-sim_check <- function(data, N_sim = 100000) {
+#' test_poisson_fit(inc)
+#' @export test_poisson_fit
+test_poisson_fit <- function(data, N_sim = 100000) {
     var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
     c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
@@ -321,107 +321,39 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
 }
 
-boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000, num_days=5000) {
-
-    form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)
-    data = prevsim
-    age = 65
-    sex = 0
-    start = '2004-01-30'
-    N_boot = 1000
-    num_days = 5000
-
-    spec <- c('age', 'sex', 'entry')
-    terms <- terms(form, spec)
-    special_indices <- attr(terms, 'specials')
-
-    if (any(sapply(special_indices, is.null)))
-        stop("Error: provide function terms for age, sex, and entry date.")
-
-    v <- as.list(attr(terms, 'variables'))[-1]
-    var_names <- unlist(lapply(special_indices, function(i) v[i]))
-
-    age_var <- .extract_var_name(var_names$age)
-    sex_var <- .extract_var_name(var_names$sex)
-    entry_var <- .extract_var_name(var_names$entry)
-
-    # Extract survival formula
-    response_index <- attr(terms, 'response')
-    resp <- v[response_index][[1]]
-    non_covariate_inds <- c(response_index, unlist(special_indices))
-    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
-
-    if (length(covar_names) > 0)
-        stop("Error: functionality isn't currently provided for additional covariates.")
-
-    data[, sex_var] <- as.factor(data[, sex_var])
-    if (length(levels(data[, sex_var])) > 2)
-        stop("Error: function can't currently function with more than two levels of sex.")
-
-    # Determine the registry years of interest from assessing the code
-    if (is.null(start))
-        start <- min(data[, entry_var])
-
-    req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
-    surv_form <- as.formula(paste(deparse(resp), '~',
-                                  req_covariate,
-                                  paste(covar_names, collapse='+')))
-
-    data_r = data[data[, entry_var] >= start, ]
-    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r, N_boot=N_boot)
-
-    ##########################################################################################################################
-    ##########################################################################################################################
-    #                      UP TO HERE, IS REPEATED CODE FROM PREVALENCE! JUST RETURN COEFS IN OBJECT?
-    ##########################################################################################################################
-    ##########################################################################################################################
-
-    n <- seq(num_days)
-
-    wb_lines <- sapply(seq(N_boot),
-                       function(i) 1 - pweibull(n,
-                                                scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
-                                                          sex * wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
-
-    plot(NA, xlim=c(1, num_days), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
-    sapply(seq(N_boot),
-           function(i) lines(wb_lines[, i], lwd=1, col="grey"))
-
-    wb <- survreg(surv_form, data_r)
-
-    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + sex*wb$coef[3]), shape=1/wb$scale)
-    lines(A, col="orange", lwd=3, lty=3)
-
-    ###########################################################################################################
-    # ggplot version
-    ###########################################################################################################
+plot.survfit.prev <- function(object, pct_show=0.5) {
     library(ggplot2)
     library(tidyr)
     library(dplyr)
 
-    lines <- t(wb_lines)
+    num_boot <- dim(object$surv)[1]
+    num_days <- dim(object$surv)[2]
+    if (num_days != length(object$time))
+        stop("Error: Number of survival probabilities not consistent with time variable.")
 
-    df <- data.frame(lines)
-    colnames(df) <- seq(1:num_days)
-    df$bootstrap=seq(1:N_boot)
+    df <- data.frame(object$surv)
+    colnames(df) <- seq(num_days)
+    df$bootstrap <- seq(num_boot)
 
     gathered <- gather(df, time, survprob, -bootstrap)
 
     smooth <- gathered %>%
         group_by(time) %>%
-        summarise(mx=max(survprob),
-                  mn=min(survprob))
+        summarise(mx=quantile(survprob, 0.975),
+                  mn=quantile(survprob, 0.025)) %>%
+        arrange(as.numeric(time))
+
+    row_inds <- apply(df[, -ncol(df)], 1, function(x) mean(x > smooth$mx | x < smooth$mn) > pct_show)
+
+    outliers <- df[row_inds, ] %>%
+                    gather(time, survprob, -bootstrap)
 
     ggplot() +
-        #geom_line(data=gathered, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap)), colour='grey') +
-        geom_line(data=data.frame(time=seq(1:num_days), survprob=A), aes(x=as.numeric(time), y=survprob), colour='orange') +
+        geom_line(data=outliers, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap))) +
+        geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
+                  aes(x=as.numeric(time), y=survprob), colour='orange') +
         geom_ribbon(data=smooth, aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
         theme_bw()
-
-
-
-
-
 }
 #' Chi squared test between prevalence prediction and observed values in the registry.
 #'
