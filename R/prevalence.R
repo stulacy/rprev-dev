@@ -87,6 +87,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
 #' \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
 #' \item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
+#' \item{y}{The Surv object used as the response in the survival modeling.}
 #' @examples
 #' data(prevsim)
 #'
@@ -174,7 +175,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
     prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist, yearly_contributions=by_year_samples,
                      known_inc_rate=fix_rate,
-                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot)
+                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot, y=survobj)
     prev_out
 }
 
