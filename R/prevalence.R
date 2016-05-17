@@ -86,6 +86,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
 #' \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
 #' \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
+#' \item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
 #' @examples
 #' data(prevsim)
 #'
@@ -311,6 +312,8 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' \item{known_inc_rate}{The known incidence rate for years included in the registry.}
 #' \item{nregyears}{Number of years of registry data that were used.}
 #' \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
+#' \item{pval}{The p-value resulting from the chi-square test between the simulated and counted prevalent cases for the years of
+#' registry data available.}
 #' @examples
 #' data(prevsim)
 #'
@@ -401,6 +404,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                    index_date=index_date, known_inc_rate=inc_rate,
                    nregyears=num_reg_years, proportion=proportion)
     attr(object, 'class') <- 'prevalence'
+    object$pval <- prev_chisq(object)
     object
 }
 

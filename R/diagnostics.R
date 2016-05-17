@@ -321,7 +321,15 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
 }
 
-boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
+boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000, num_days=5000) {
+
+    form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)
+    data = prevsim
+    age = 65
+    sex = 0
+    start = '2004-01-30'
+    N_boot = 1000
+    num_days = 5000
 
     spec <- c('age', 'sex', 'entry')
     terms <- terms(form, spec)
@@ -360,7 +368,7 @@ boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
                                   paste(covar_names, collapse='+')))
 
     data_r = data[data[, entry_var] >= start, ]
-    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
+    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r, N_boot=N_boot)
 
     ##########################################################################################################################
     ##########################################################################################################################
@@ -368,31 +376,51 @@ boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
     ##########################################################################################################################
     ##########################################################################################################################
 
-    wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
-    n <- seq(5000)
+    n <- seq(num_days)
 
-    if (sex == "Male") {
-        wb_lines <- sapply(seq(N_boot),
-                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
-    } else {
-        wb_lines <- sapply(seq(N_boot),
-                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
-                                                                     wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
-    }
+    wb_lines <- sapply(seq(N_boot),
+                       function(i) 1 - pweibull(n,
+                                                scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
+                                                          sex * wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
 
-    plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
+    plot(NA, xlim=c(1, num_days), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
     sapply(seq(N_boot),
            function(i) lines(wb_lines[, i], lwd=1, col="grey"))
 
     wb <- survreg(surv_form, data_r)
 
-    if (sex == "Male") {
-        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
-        lines(A, col="orange", lwd=3, lty=3)
-    } else {
-        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
-        lines(A, col="orange", lwd=3, lty=3)
-    }
+    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + sex*wb$coef[3]), shape=1/wb$scale)
+    lines(A, col="orange", lwd=3, lty=3)
+
+    ###########################################################################################################
+    # ggplot version
+    ###########################################################################################################
+    library(ggplot2)
+    library(tidyr)
+    library(dplyr)
+
+    lines <- t(wb_lines)
+
+    df <- data.frame(lines)
+    colnames(df) <- seq(1:num_days)
+    df$bootstrap=seq(1:N_boot)
+
+    gathered <- gather(df, time, survprob, -bootstrap)
+
+    smooth <- gathered %>%
+        group_by(time) %>%
+        summarise(mx=max(survprob),
+                  mn=min(survprob))
+
+    ggplot() +
+        #geom_line(data=gathered, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap)), colour='grey') +
+        geom_line(data=data.frame(time=seq(1:num_days), survprob=A), aes(x=as.numeric(time), y=survprob), colour='orange') +
+        geom_ribbon(data=smooth, aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
+        theme_bw()
+
+
+
+
 
 }
 #' Chi squared test between prevalence prediction and observed values in the registry.
@@ -411,7 +439,7 @@ boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 #' @export prev_chisq
 prev_chisq <- function(object) {
     observed <- object$counted
-    predicted <- rev(object$simulated$mean_yearly_contributions[1:num_reg_years])
+    predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
     chi <- sum(((observed - predicted)^2)/predicted)
-    1 - pchisq(chi, num_reg_years - 1)
+    1 - pchisq(chi, object$nregyears - 1)
 }

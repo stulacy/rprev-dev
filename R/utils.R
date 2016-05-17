@@ -51,7 +51,8 @@ summary.prevalence <- function(object, ...) {
     cat("Posterior age distribution summary:\n")
     print(summary(object$simulated$posterior_age))
     cat("Average simulated prevalent cases per year:\n")
-    cat(round(rev(object$simulated$mean_yearly_contributions)))
+    cat(round(rev(object$simulated$mean_yearly_contributions)), "\n")
+    cat("P-value from chi-square test:", object$pval)
 }
 
 determine_registry_years <- function(start, num_reg_years) {
