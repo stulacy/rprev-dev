@@ -71,6 +71,30 @@ determine_registry_years <- function(start, num_reg_years) {
     as.character(expr)[[2]]
 }
 
+#' Calculates bootstrapped survival probabilities from the Weibull models fitted to the
+#' \code{prevalence} object.
+#'
+#' @param object A \code{prevalence} object.
+#' @param newdata A list or dataframe with the co-variate values to calculate survival probabilities
+#' for. Defaults to using the mean values from the training dataset.
+#' @return An S3 object of class \code{survfit.prev} with the following attributes:
+#' \item{time}{A vector of time points at which survival probability has been calculated.}
+#' \item{surv}{A matrix of survival probabilities, where the rows represent a different bootstrapped
+#' Weibull model, and the columns are each timepoint.}
+#' \item{fullsurv}{A vector of survival probabilities for the model built on the full training set.}
+#' @examples
+#' data(prevsim)
+#'
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                        start = "2005-09-01",
+#'                        num_reg_years = 8, cure = 5)
+#'
+#' survobj <- survfit(prev_obj)
+#'
+#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+#'
+#' @export survfit.prevalence
 survfit.prevalence <- function(object, newdata=NULL) {
     if (is.null(newdata)) {
         use_df <- object$means

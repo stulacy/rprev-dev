@@ -249,13 +249,8 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     return(list(cases=num_alive, post=post_age_dist))
 }
 
-#' Calculate predicted prevalence for a given number of years.
-#'
-#' @param object A \code{prevalence} object.
-#' @param num_years_to_estimate Integer representing number of years prevalence is to be calculated for.
-#' @return A list with the following attributes:
 
-#' Estimates prevalence at a specific index date using a combination of available registry
+#' Estimates point prevalence at a specific index date using a combination of available registry
 #' data, and Monte Carlo simulated incident data.
 #'
 #' The most important parameter is \code{num_years_to_estimate}, which governs the number of

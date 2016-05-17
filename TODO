@@ -1,7 +1,5 @@
   - More rigorous stress testing!
-  - Rename prev_chisq to test_prevalence_fit
-  - Turn boot_eg into survfit -> plot methods
   - Improve functional_form_age to only plot rcs and return 2 summaries, working with rms loading!
-  - Docs for survfit.prevalence
   - Summary and print methods for survfit.prev object
-  - Plot method for survfit.prev
+  - Agree with Simon best way to display plot.survfit.prev
+  - Get plot.survfit working with package loading
