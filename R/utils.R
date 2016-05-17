@@ -70,3 +70,30 @@ determine_registry_years <- function(start, num_reg_years) {
 .extract_var_name <- function(expr) {
     as.character(expr)[[2]]
 }
+
+survfit.prevalence <- function(object, newdata=NULL) {
+    if (is.null(newdata)) {
+        use_df <- object$simulated$means
+    } else {
+        # Check names have same names as those in original data
+        if (!all(sort(names(newdata)) == sort(names(object$simulated$means))))
+            stop("Error: Please provide a list with the same column names as in the orignal dataset.")
+
+        # Reorder new data to be in same order as original data
+        use_df <- unlist(newdata)[names(object$simulated$means)]
+    }
+
+    # Add intercept
+    use_df <- c(1, use_df)
+
+    times <- seq(max(object$simulated$y[, 1]))
+    survprobs <- apply(object$simulated$coefs, 1, function(row) {
+        scale <- exp(row[-length(row)] %*% t(use_df)) + 0.000001  # Hack to ensure scale != 0
+        shape <- 1 / row[length(row)]
+        1 - pweibull(times, scale=scale, shape=shape)
+    })
+
+    result <- list(time=times, surv=t(survprobs))
+    attr(result, 'class') <- 'survfit.prev'
+    result
+}

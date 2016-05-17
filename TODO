@@ -3,3 +3,6 @@
   - Turn boot_eg into survfit -> plot methods
   - Improve functional_form_age in some description
   - Rename some functions in diagnostics
+  - Docs for survfit.prevalence
+  - Summary and print methods for survfit.prev object
+  - Plot method for survfit.prev
