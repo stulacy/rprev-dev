@@ -322,11 +322,37 @@ boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
 }
 
+#' Plots survival curves for a \code{survfit.prev} object.
+#'
+#' The survival curve for a model formed on all the data is displayed in orange,
+#' while the 95% confidence interval for the bootstrapped models are displayed as a grey ribbon.
+#' Outlying survival curves are displayed in full, where the \code{pct_show} argument details the
+#' proportion of points outside of the confidence interval for a survival curve to be deemed as an outlier.
+#'
+#' @param object A \code{survfit.prev} object.
+#' @param pct_show A list or dataframe with the co-variate values to calculate survival probabilities
+#' @return An S3 object of class \code{survfit.prev} with the following attributes:
+#' @examples
+#' data(prevsim)
+#'
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                        start = "2005-09-01",
+#'                        num_reg_years = 8, cure = 5)
+#'
+#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+#'
+#' plot(survobj)
+#'
+#' plot(survobj, pct_show=0)  # Display curves with any outlying points
+#' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
+#' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
+#'
+#' @export plot.survfit.prev
+#' @import dplyr
+#' @import ggplot2
+#' @importFrom tidyr gather
 plot.survfit.prev <- function(object, pct_show=0.5) {
-    library(ggplot2)
-    library(tidyr)
-    library(dplyr)
-
     num_boot <- dim(object$surv)[1]
     num_days <- dim(object$surv)[2]
     if (num_days != length(object$time))
@@ -336,27 +362,28 @@ plot.survfit.prev <- function(object, pct_show=0.5) {
     colnames(df) <- seq(num_days)
     df$bootstrap <- seq(num_boot)
 
-    gathered <- gather(df, time, survprob, -bootstrap)
+    gathered <- tidyr::gather(df, time, survprob, -bootstrap)
 
     smooth <- gathered %>%
-        group_by(time) %>%
-        summarise(mx=quantile(survprob, 0.975),
-                  mn=quantile(survprob, 0.025)) %>%
-        arrange(as.numeric(time))
+        dplyr::group_by(time) %>%
+        dplyr::summarise(mx=quantile(survprob, 0.975),
+                         mn=quantile(survprob, 0.025)) %>%
+        dplyr::arrange(as.numeric(time))
 
     row_inds <- apply(df[, -ncol(df)], 1, function(x) mean(x > smooth$mx | x < smooth$mn) > pct_show)
 
     outliers <- df[row_inds, ] %>%
-                    gather(time, survprob, -bootstrap)
+                    tidyr::gather(time, survprob, -bootstrap)
 
-    ggplot() +
-        geom_line(data=outliers, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap))) +
-        geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
-                  aes(x=as.numeric(time), y=survprob), colour='orange') +
-        geom_ribbon(data=smooth, aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
-        theme_bw()
+    ggplot2::ggplot() +
+        ggplot2::geom_line(data=outliers, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap))) +
+        ggplot2::geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
+                           aes(x=as.numeric(time), y=survprob), colour='orange') +
+        ggplot2::geom_ribbon(data=smooth, aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
+        ggplot2::theme_bw()
 }
-#' Chi squared test between prevalence prediction and observed values in the registry.
+
+#' Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.
 #'
 #' @param object A \code{prevalence} object.
 #' @return P-value from a chi-squared test of difference between prevalence prediction and counted prevalence at the index date.

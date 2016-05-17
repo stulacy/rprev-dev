@@ -14,7 +14,10 @@ Depends:
     survival (>= 2.37-7)
 Imports:
     abind (>= 1.4-3),
-    rms (>= 4.4-0)
+    dplyr (>= 0.4.0),
+    ggplot2 (>= 2.0.0),
+    rms (>= 4.4-0),
+    tidyr (>= 0.4.0)
 RoxygenNote: 5.0.1
 Suggests: testthat,
     doParallel

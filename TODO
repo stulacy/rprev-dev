@@ -2,4 +2,3 @@
   - Improve functional_form_age to only plot rcs and return 2 summaries, working with rms loading!
   - Summary and print methods for survfit.prev object
   - Agree with Simon best way to display plot.survfit.prev
-  - Get plot.survfit working with package loading
