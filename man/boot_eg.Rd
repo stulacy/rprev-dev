@@ -39,6 +39,8 @@ to the raw data overlaid (orange).
 Inspect bootstrapped survival curves for an example patient with a given age and sex.
 }
 \examples{
+data(prevsim)
+
 boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
                     data = prevsim,
                     start = "2004-01-30",

@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostics.R
 \name{incidence_age_distribution}
 \alias{incidence_age_distribution}
-\title{Plot the age distribution of incident cases in the registry data.}
+\title{Plots the age distribution of incident cases in the registry data.}
 \usage{
 incidence_age_distribution(agedata, df = 10)
 }
@@ -15,9 +15,11 @@ incidence_age_distribution(agedata, df = 10)
 Plot of the raw data and smoothed age distribution function.
 }
 \description{
-Plot the age distribution of incident cases in the registry data.
+Plots the age distribution of incident cases in the registry data.
 }
 \examples{
-incidence_age_distribution(prevsim_r$age)
+data(prevsim)
+
+incidence_age_distribution(prevsim$age)
 }
 

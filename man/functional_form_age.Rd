@@ -25,6 +25,8 @@ Plots and model summary relating to the functional form of age.
 Inspect functional form of age.
 }
 \examples{
-functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
+data(prevsim)
+
+functional_form_age(Surv(time, status) ~ age(age), prevsim)
 }
 
