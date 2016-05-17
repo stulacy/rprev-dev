@@ -56,38 +56,38 @@ test_that("functional_form_age returns a list", {
     expect_list(prevsim)
 })
 
-test_that("prev_chisq returns same values as before", {
+test_that("test_prevalence_fit returns same values as before", {
     expect_ref <- function(data) {
         fn <- 'cache/diagnostics/prev_chisq.rds'
         set.seed(17)
         prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                         data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
-        expect_equal_to_reference(prev_chisq(prevalence_object), file=fn)
+        expect_equal_to_reference(test_prevalence_fit(prevalence_object), file=fn)
     }
 
     expect_ref(prevsim)
 })
 
-test_that("prev_chisq returns doubles", {
+test_that("test_prevalence_fit returns doubles", {
     expect_double <- function(data) {
         set.seed(17)
         prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                         data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
-        expect_match(typeof(prev_chisq(prevalence_object)), 'double')
+        expect_match(typeof(test_prevalence_fit(prevalence_object)), 'double')
     }
 
     expect_double(prevsim)
 })
 
-test_that("prev_chisq returns no NAs", {
+test_that("test_prevalence_fit returns no NAs", {
     expect_NA <- function(data) {
         set.seed(17)
         prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                         data, num_years_to_estimate=10, population_size=1e6,
                                         start='2004-01-30', num_reg_years=9)
-        expect_equal(any(is.na(prev_chisq(prevalence_object))), FALSE)
+        expect_equal(any(is.na(test_prevalence_fit(prevalence_object))), FALSE)
     }
 
     expect_NA(prevsim)
