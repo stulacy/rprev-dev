@@ -58,6 +58,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @importFrom rms datadist
 #' @importFrom rms cph
 #' @importFrom rms rcs
+#' @importFrom rms Predict
 #' @importFrom survival coxph
 functional_form_age <- function(form, data, df=4) {
 
@@ -111,7 +112,7 @@ functional_form_age <- function(form, data, df=4) {
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-dfr_sc <- function(age, sex, wb) {
+.dfr_sc <- function(age, sex, wb) {
     if (sex == "Male") {
         sexn <- 0
     } else {
@@ -126,7 +127,7 @@ dfr_sc <- function(age, sex, wb) {
 #' @param shape ?
 #' @param scale ?
 #' @return ?
-wb_Su <- function(t, shape, scale) {
+.wb_Su <- function(t, shape, scale) {
     return(exp(-(t/scale)^shape))
 }
 
@@ -136,7 +137,7 @@ wb_Su <- function(t, shape, scale) {
 #' @param shape ?
 #' @param scale ?
 #' @return ?
-wb_haz <- function(t, shape, scale) {
+.wb_haz <- function(t, shape, scale) {
     return((shape/scale)*(t/scale)^(shape-1))
 }
 
@@ -147,7 +148,7 @@ wb_haz <- function(t, shape, scale) {
 #' @param the_length Number of days to predict.
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-plot_haz <- function(age, sex, the_length=3000, wb) {
+.plot_haz <- function(age, sex, the_length=3000, wb) {
     s_time <- seq(0, the_length, by=1)
     haz <- wb_haz(s_time, dfr_sh, dfr_sc(age, sex, wb))
     plot(s_time, haz, type="l", lwd=2, col="red", ylim=c(0,0.002),
@@ -161,7 +162,7 @@ plot_haz <- function(age, sex, the_length=3000, wb) {
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param the_length Number of days to predict.
 #' @return ?
-plot_population_hazard <- function(data, age, sex, the_length=3000) {
+.plot_population_hazard <- function(data, age, sex, the_length=3000) {
     if(sex == "Male") sex = "Males"
     if(sex == "Female") sex = "Females"
     daily_survival_rate <- function(data, sex)
@@ -176,7 +177,7 @@ plot_population_hazard <- function(data, age, sex, the_length=3000) {
 #' @param the_length Number of days to predict.
 #' @param wb Weibull model fitted to the data.
 #' @return ?
-plot_Su <- function(age, sex, the_length=3000, wb) {
+.plot_Su <- function(age, sex, the_length=3000, wb) {
     s_time <- seq(0, the_length, by=1)
     Su <- wb_Su(s_time, dfr_sh, dfr_sc(age, sex, wb))
     plot(s_time, Su, type="l", lwd=2, col="red", ylim=c(0,1),
@@ -190,7 +191,7 @@ plot_Su <- function(age, sex, the_length=3000, wb) {
 #' @param sex Sex of example patient ("Male" or "Female").
 #' @param the_length Number of days to predict.
 #' @return ?
-plot_pop_Su <- function(data, age, sex, the_length=3000) {
+.plot_pop_Su <- function(data, age, sex, the_length=3000) {
     if(sex == "Male") sex = "Males"
     if(sex == "Female") sex = "Females"
     daily_survival_rate <- function(data, sex)
@@ -208,7 +209,7 @@ plot_pop_Su <- function(data, age, sex, the_length=3000) {
 #' @param limits ?
 #' @param colour ?
 #' @return ?
-plot_km <- function(data, registry_years, registry_start_year, age,
+.plot_km <- function(data, registry_years, registry_start_year, age,
                     sex, limits, colour="green") {
     if (sex == "Male") {
         sexn <- 0

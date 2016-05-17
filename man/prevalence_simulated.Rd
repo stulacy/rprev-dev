@@ -51,6 +51,8 @@ prevalent cases subdivided by year of diagnosis across each bootstrap iteration.
 \item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
 \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
 \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
+\item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
+\item{full_coefs}{The Weibull coefficients from a model fitted to the full dataset.}
 }
 \description{
 Simulated cases are marked with age and sex to enable agreement with population survival

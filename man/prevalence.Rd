@@ -2,7 +2,8 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Calculate predicted prevalence for a given number of years.}
+\title{Estimates point prevalence at a specific index date using a combination of available registry
+data, and Monte Carlo simulated incident data.}
 \usage{
 prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
   num_reg_years = NULL, cure = 10, N_boot = 1000,
@@ -26,7 +27,9 @@ Using the supplied \code{prevsim} dataset, it is therefore called with:
 
 \item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
-\item{num_years_to_estimate}{Integer representing number of years prevalence is to be calculated for.}
+\item{num_years_to_estimate}{Vector of integers representing number of years of data to consider when
+estimating point prevalence. If this value is greater than \code{num_registry_years},
+incident cases for the difference will be simulated.}
 
 \item{population_size}{Integer corresponding to the size of the population.}
 
@@ -56,34 +59,10 @@ where each row is the mortality rate for a person of that age and gender. Ideall
 Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
 providing custom ones.}
 
-\item{object}{A \code{prevalence} object.}
-
-\item{num_years_to_estimate}{Vector of integers representing number of years of data to consider when
-estimating point prevalence. If this value is greater than \code{num_registry_years},
-incident cases for the difference will be simulated.}
-
 \item{num_cores}{The number of CPU cores to run the fitting of the bootstrapped survival models across.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
 \value{
-A list with the following attributes:
-Estimates prevalence at a specific index date using a combination of available registry
-data, and Monte Carlo simulated incident data.
-
-The most important parameter is \code{num_years_to_estimate}, which governs the number of
-previous years of data to use when estimating the prevalence at the index date. If this
-parameter is greater than the number of years of known incident cases available in the
-supplied registry data (specified with argument \code{num_registry_years}), then the
-remaining \code{num_years_to_estimate - num_registry_years} years of incident data
-will be simulated using Monte Carlo simulation.
-
-The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
-provided an adequate survival model can be fitted to the registry data. It is therefore
-important to provide as much clean registry data as possible.
-
-Simulated cases are marked with age and sex to enable agreement with population survival
-data where a cure model is used, and calculation of the posterior distributions of each.
-
 An S3 object of class \code{prevalence} with the following attributes:
 \item{estimates}{Estimated prevalence at the index date for each of the years in \code{num_years_to_estimate}.}
 \item{simulated}{A list containing items related to the simulation of prevalence contributions, see \code{prevalence_simulated}}.
@@ -93,9 +72,26 @@ An S3 object of class \code{prevalence} with the following attributes:
 \item{known_inc_rate}{The known incidence rate for years included in the registry.}
 \item{nregyears}{Number of years of registry data that were used.}
 \item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
+\item{pval}{The p-value resulting from the chi-square test between the simulated and counted prevalent cases for the years of
+registry data available.}
+\item{y}{The Surv object used as the response in the survival modeling.}
+\item{means}{The co-variate means from the data.}
 }
 \description{
-Calculate predicted prevalence for a given number of years.
+The most important parameter is \code{num_years_to_estimate}, which governs the number of
+previous years of data to use when estimating the prevalence at the index date. If this
+parameter is greater than the number of years of known incident cases available in the
+supplied registry data (specified with argument \code{num_registry_years}), then the
+remaining \code{num_years_to_estimate - num_registry_years} years of incident data
+will be simulated using Monte Carlo simulation.
+}
+\details{
+The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
+provided an adequate survival model can be fitted to the registry data. It is therefore
+important to provide as much clean registry data as possible.
+
+Simulated cases are marked with age and sex to enable agreement with population survival
+data where a cure model is used, and calculation of the posterior distributions of each.
 }
 \examples{
 data(prevsim)
