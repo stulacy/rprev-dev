@@ -88,6 +88,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' \item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
 #' \item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
 #' \item{y}{The Surv object used as the response in the survival modeling.}
+#' \item{means}{The co-variate means from the data.}
 #' @examples
 #' data(prevsim)
 #'
@@ -173,9 +174,14 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     }
     by_year_avg <- rowMeans(by_year_samples)
 
-    prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist, yearly_contributions=by_year_samples,
-                     known_inc_rate=fix_rate,
-                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot, y=survobj)
+    # Calculate covariate means
+    mean_df <- data[, c(age_var, sex_var)]
+    mean_df <- apply(mean_df, 2, as.numeric)
+    means <- colMeans(mean_df)
+
+    prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist,
+                     yearly_contributions=by_year_samples, known_inc_rate=fix_rate,
+                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot, y=survobj, means=means)
     prev_out
 }
 
