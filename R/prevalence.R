@@ -174,7 +174,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
     prev_out <- list(mean_yearly_contributions=by_year_avg, posterior_age=post_age_dist, yearly_contributions=by_year_samples,
                      known_inc_rate=fix_rate,
-                     pop_mortality=surv_functions, nbootstraps=N_boot)
+                     pop_mortality=surv_functions, nbootstraps=N_boot, coefs=wb_boot)
     prev_out
 }
 
