@@ -15,8 +15,8 @@
 #' sim_check(inc)
 #' @export sim_check
 sim_check <- function(data, N_sim = 100000) {
-  var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
-  c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
+    var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(data), mean(data))), numeric(1))
+    c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
 
 #' Plots the age distribution of incident cases in the registry data.
@@ -31,11 +31,11 @@ sim_check <- function(data, N_sim = 100000) {
 #' @export incidence_age_distribution
 incidence_age_distribution <- function(agedata, df=10) {
 
-  ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
+    ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
 
-  plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
-  smage <- smooth.spline(0:99, ages[1:100], df=df)
-  lines(smage, col="blue", lwd=2)
+    plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
+    smage <- smooth.spline(0:99, ages[1:100], df=df)
+    lines(smage, col="blue", lwd=2)
 
 }
 
@@ -61,48 +61,48 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @importFrom survival coxph
 functional_form_age <- function(form, data, df=4) {
 
-  ### TO DO/discuss:
-  # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
-  # ?How to neaten up the output; control side effects, do we need both plots etc
-  # ?Too much duplication of code here with prevalence()
-  ###
+    ### TO DO/discuss:
+    # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
+    # ?How to neaten up the output; control side effects, do we need both plots etc
+    # ?Too much duplication of code here with prevalence()
+    ###
 
-  # Extract required column names from formula
-  terms <- terms(form, 'age')
-  special_indices <- attr(terms, 'specials')
+    # Extract required column names from formula
+    terms <- terms(form, 'age')
+    special_indices <- attr(terms, 'specials')
 
-  if (any(sapply(special_indices, is.null)))
-    stop("Error: provide function term for age.")
+    if (any(sapply(special_indices, is.null)))
+        stop("Error: provide function term for age.")
 
-  v <- as.list(attr(terms, 'variables'))[-1]
-  var_names <- unlist(lapply(special_indices, function(i) v[i]))
-  age_var <- .extract_var_name(var_names$age)
+    v <- as.list(attr(terms, 'variables'))[-1]
+    var_names <- unlist(lapply(special_indices, function(i) v[i]))
+    age_var <- .extract_var_name(var_names$age)
 
-  # Extract survival formula
-  response_index <- attr(terms, 'response')
-  resp <- v[response_index][[1]]
+    # Extract survival formula
+    response_index <- attr(terms, 'response')
+    resp <- v[response_index][[1]]
 
-  psp_surv_form <- as.formula(paste(deparse(resp), '~ pspline(',
-                                    age_var, ', ', df, ')', sep=''))
+    psp_surv_form <- as.formula(paste(deparse(resp), '~ pspline(',
+                                      age_var, ', ', df, ')', sep=''))
 
-  cxnl <- survival::coxph(psp_surv_form, data)
-  output1 <- summary(cxnl)
+    cxnl <- survival::coxph(psp_surv_form, data)
+    output1 <- summary(cxnl)
 
-  plt1 <- termplot(cxnl)
+    plt1 <- termplot(cxnl)
 
-  f <<- rms::datadist(data)
-  options(datadist="f")
+    f <<- rms::datadist(data)
+    options(datadist="f")
 
-  rcs_surv_form <- as.formula(paste(deparse(resp), '~ rcs(',
-                                    age_var, ', ', df, ')', sep=''))
+    rcs_surv_form <- as.formula(paste(deparse(resp), '~ rcs(',
+                                      age_var, ', ', df, ')', sep=''))
 
-  mod_rms <- rms::cph(rcs_surv_form, data, x=TRUE, y=TRUE, surv=T, time.inc=1)
-  output2 <- anova(mod_rms)
-  output3 <- summary(mod_rms)
+    mod_rms <- rms::cph(rcs_surv_form, data, x=TRUE, y=TRUE, surv=T, time.inc=1)
+    output2 <- anova(mod_rms)
+    output3 <- summary(mod_rms)
 
-  plt2 <- plot(eval(parse(text=paste('Predict(mod_rms, ', age_var,')', sep = ''))), lwd=3, adj.subtitle=T)
+    plt2 <- plot(eval(parse(text=paste('Predict(mod_rms, ', age_var,')', sep = ''))), lwd=3, adj.subtitle=T)
 
-  list(plt1, plt2, output1, output2, output3)
+    list(plt1, plt2, output1, output2, output3)
 }
 
 #' ?
@@ -112,12 +112,12 @@ functional_form_age <- function(form, data, df=4) {
 #' @param wb Weibull model fitted to the data.
 #' @return ?
 dfr_sc <- function(age, sex, wb) {
-  if (sex == "Male") {
-    sexn <- 0
-  } else {
-    sexn <- 1
-  }
-  return(exp(wb$coef[1] + age*wb$coef[2] + sexn*wb$coef[3]))
+    if (sex == "Male") {
+        sexn <- 0
+    } else {
+        sexn <- 1
+    }
+    return(exp(wb$coef[1] + age*wb$coef[2] + sexn*wb$coef[3]))
 }
 
 #' ?
@@ -127,7 +127,7 @@ dfr_sc <- function(age, sex, wb) {
 #' @param scale ?
 #' @return ?
 wb_Su <- function(t, shape, scale) {
-  return(exp(-(t/scale)^shape))
+    return(exp(-(t/scale)^shape))
 }
 
 #' ?
@@ -137,7 +137,7 @@ wb_Su <- function(t, shape, scale) {
 #' @param scale ?
 #' @return ?
 wb_haz <- function(t, shape, scale) {
-  return((shape/scale)*(t/scale)^(shape-1))
+    return((shape/scale)*(t/scale)^(shape-1))
 }
 
 #' ?
@@ -148,10 +148,10 @@ wb_haz <- function(t, shape, scale) {
 #' @param wb Weibull model fitted to the data.
 #' @return ?
 plot_haz <- function(age, sex, the_length=3000, wb) {
-  s_time <- seq(0, the_length, by=1)
-  haz <- wb_haz(s_time, dfr_sh, dfr_sc(age, sex, wb))
-  plot(s_time, haz, type="l", lwd=2, col="red", ylim=c(0,0.002),
-       main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
+    s_time <- seq(0, the_length, by=1)
+    haz <- wb_haz(s_time, dfr_sh, dfr_sc(age, sex, wb))
+    plot(s_time, haz, type="l", lwd=2, col="red", ylim=c(0,0.002),
+         main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
 }
 
 #' ?
@@ -162,11 +162,11 @@ plot_haz <- function(age, sex, the_length=3000, wb) {
 #' @param the_length Number of days to predict.
 #' @return ?
 plot_population_hazard <- function(data, age, sex, the_length=3000) {
-  if(sex == "Male") sex = "Males"
-  if(sex == "Female") sex = "Females"
-  daily_survival_rate <- function(data, sex)
-  lines(0:(the_length-1), daily_survival_rate[(365*age):(365*age + the_length - 1)],
-        col="blue", lwd=2)
+    if(sex == "Male") sex = "Males"
+    if(sex == "Female") sex = "Females"
+    daily_survival_rate <- function(data, sex)
+        lines(0:(the_length-1), daily_survival_rate[(365*age):(365*age + the_length - 1)],
+              col="blue", lwd=2)
 }
 
 #' ?
@@ -177,10 +177,10 @@ plot_population_hazard <- function(data, age, sex, the_length=3000) {
 #' @param wb Weibull model fitted to the data.
 #' @return ?
 plot_Su <- function(age, sex, the_length=3000, wb) {
-  s_time <- seq(0, the_length, by=1)
-  Su <- wb_Su(s_time, dfr_sh, dfr_sc(age, sex, wb))
-  plot(s_time, Su, type="l", lwd=2, col="red", ylim=c(0,1),
-       main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
+    s_time <- seq(0, the_length, by=1)
+    Su <- wb_Su(s_time, dfr_sh, dfr_sc(age, sex, wb))
+    plot(s_time, Su, type="l", lwd=2, col="red", ylim=c(0,1),
+         main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
 }
 
 #' ?
@@ -191,11 +191,11 @@ plot_Su <- function(age, sex, the_length=3000, wb) {
 #' @param the_length Number of days to predict.
 #' @return ?
 plot_pop_Su <- function(data, age, sex, the_length=3000) {
-  if(sex == "Male") sex = "Males"
-  if(sex == "Female") sex = "Females"
-  daily_survival_rate <- function(data, sex)
-  lines(1:the_length, cumprod(1 - daily_survival_rate[(age*365):(age*365 + the_length - 1)]),
-        col="cyan", lwd=2)
+    if(sex == "Male") sex = "Males"
+    if(sex == "Female") sex = "Females"
+    daily_survival_rate <- function(data, sex)
+        lines(1:the_length, cumprod(1 - daily_survival_rate[(age*365):(age*365 + the_length - 1)]),
+              col="cyan", lwd=2)
 }
 
 #' ?
@@ -210,16 +210,16 @@ plot_pop_Su <- function(data, age, sex, the_length=3000) {
 #' @return ?
 plot_km <- function(data, registry_years, registry_start_year, age,
                     sex, limits, colour="green") {
-  if (sex == "Male") {
-    sexn <- 0
-  } else {
-    sexn <- 1
-  }
-  dfr_r <- data[data$date_initial >= registry_years[registry_start_year],]
-  kma <- survfit(Surv(survival_time, indicator) ~ 1,
-                 data=dfr_r[dfr_r$sex == sexn & dfr_r$age_initial > age-limits &
-                              dfr_r$age_initial < age + limits, ])
-  lines(kma, lwd=1, col=colour, conf.int=T)
+    if (sex == "Male") {
+        sexn <- 0
+    } else {
+        sexn <- 1
+    }
+    dfr_r <- data[data$date_initial >= registry_years[registry_start_year],]
+    kma <- survfit(Surv(survival_time, indicator) ~ 1,
+                   data=dfr_r[dfr_r$sex == sexn & dfr_r$age_initial > age-limits &
+                                  dfr_r$age_initial < age + limits, ])
+    lines(kma, lwd=1, col=colour, conf.int=T)
 }
 
 #' Inspect bootstrapped survival curves for an example patient with a given age and sex.
@@ -254,145 +254,145 @@ plot_km <- function(data, registry_years, registry_start_year, age,
 #'                     sex = "Male")
 boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
-  spec <- c('age', 'sex', 'entry')
-  terms <- terms(form, spec)
-  special_indices <- attr(terms, 'specials')
+    spec <- c('age', 'sex', 'entry')
+    terms <- terms(form, spec)
+    special_indices <- attr(terms, 'specials')
 
-  if (any(sapply(special_indices, is.null)))
-      stop("Error: provide function terms for age, sex, and entry date.")
+    if (any(sapply(special_indices, is.null)))
+        stop("Error: provide function terms for age, sex, and entry date.")
 
-  v <- as.list(attr(terms, 'variables'))[-1]
-  var_names <- unlist(lapply(special_indices, function(i) v[i]))
+    v <- as.list(attr(terms, 'variables'))[-1]
+    var_names <- unlist(lapply(special_indices, function(i) v[i]))
 
-  age_var <- .extract_var_name(var_names$age)
-  sex_var <- .extract_var_name(var_names$sex)
-  entry_var <- .extract_var_name(var_names$entry)
+    age_var <- .extract_var_name(var_names$age)
+    sex_var <- .extract_var_name(var_names$sex)
+    entry_var <- .extract_var_name(var_names$entry)
 
-  # Extract survival formula
-  response_index <- attr(terms, 'response')
-  resp <- v[response_index][[1]]
-  non_covariate_inds <- c(response_index, unlist(special_indices))
-  covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+    # Extract survival formula
+    response_index <- attr(terms, 'response')
+    resp <- v[response_index][[1]]
+    non_covariate_inds <- c(response_index, unlist(special_indices))
+    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
 
-  if (length(covar_names) > 0)
-      stop("Error: functionality isn't currently provided for additional covariates.")
+    if (length(covar_names) > 0)
+        stop("Error: functionality isn't currently provided for additional covariates.")
 
-  data[, sex_var] <- as.factor(data[, sex_var])
-  if (length(levels(data[, sex_var])) > 2)
-      stop("Error: function can't currently function with more than two levels of sex.")
+    data[, sex_var] <- as.factor(data[, sex_var])
+    if (length(levels(data[, sex_var])) > 2)
+        stop("Error: function can't currently function with more than two levels of sex.")
 
-  # Determine the registry years of interest from assessing the code
-  if (is.null(start))
-      start <- min(data[, entry_var])
+    # Determine the registry years of interest from assessing the code
+    if (is.null(start))
+        start <- min(data[, entry_var])
 
-  req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
-  surv_form <- as.formula(paste(deparse(resp), '~',
-                                req_covariate,
-                                paste(covar_names, collapse='+')))
+    req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
+    surv_form <- as.formula(paste(deparse(resp), '~',
+                                  req_covariate,
+                                  paste(covar_names, collapse='+')))
 
-  data_r = data[data[, entry_var] >= start, ]
-  wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
+    data_r = data[data[, entry_var] >= start, ]
+    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
 
-  wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
-  n <- seq(5000)
+    wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
+    n <- seq(5000)
 
-  if (sex == "Male") {
-    wb_lines <- sapply(seq(N_boot),
-                       function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
-  } else {
-    wb_lines <- sapply(seq(N_boot),
-                         function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
-                                                                   wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
-  }
+    if (sex == "Male") {
+        wb_lines <- sapply(seq(N_boot),
+                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
+    } else {
+        wb_lines <- sapply(seq(N_boot),
+                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
+                                                                     wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
+    }
 
-  plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
-  sapply(seq(N_boot),
-         function(i) lines(wb_lines[, i], lwd=1, col="grey"))
+    plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
+    sapply(seq(N_boot),
+           function(i) lines(wb_lines[, i], lwd=1, col="grey"))
 
-  wb <- survreg(surv_form, data_r)
+    wb <- survreg(surv_form, data_r)
 
-  if (sex == "Male") {
-    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
-    lines(A, col="orange", lwd=3, lty=3)
-  } else {
-    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
-    lines(A, col="orange", lwd=3, lty=3)
-  }
+    if (sex == "Male") {
+        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
+        lines(A, col="orange", lwd=3, lty=3)
+    } else {
+        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
+        lines(A, col="orange", lwd=3, lty=3)
+    }
 
 }
 
 boot_eg_dev <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
 
-  spec <- c('age', 'sex', 'entry')
-  terms <- terms(form, spec)
-  special_indices <- attr(terms, 'specials')
+    spec <- c('age', 'sex', 'entry')
+    terms <- terms(form, spec)
+    special_indices <- attr(terms, 'specials')
 
-  if (any(sapply(special_indices, is.null)))
-      stop("Error: provide function terms for age, sex, and entry date.")
+    if (any(sapply(special_indices, is.null)))
+        stop("Error: provide function terms for age, sex, and entry date.")
 
-  v <- as.list(attr(terms, 'variables'))[-1]
-  var_names <- unlist(lapply(special_indices, function(i) v[i]))
+    v <- as.list(attr(terms, 'variables'))[-1]
+    var_names <- unlist(lapply(special_indices, function(i) v[i]))
 
-  age_var <- .extract_var_name(var_names$age)
-  sex_var <- .extract_var_name(var_names$sex)
-  entry_var <- .extract_var_name(var_names$entry)
+    age_var <- .extract_var_name(var_names$age)
+    sex_var <- .extract_var_name(var_names$sex)
+    entry_var <- .extract_var_name(var_names$entry)
 
-  # Extract survival formula
-  response_index <- attr(terms, 'response')
-  resp <- v[response_index][[1]]
-  non_covariate_inds <- c(response_index, unlist(special_indices))
-  covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
+    # Extract survival formula
+    response_index <- attr(terms, 'response')
+    resp <- v[response_index][[1]]
+    non_covariate_inds <- c(response_index, unlist(special_indices))
+    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
 
-  if (length(covar_names) > 0)
-      stop("Error: functionality isn't currently provided for additional covariates.")
+    if (length(covar_names) > 0)
+        stop("Error: functionality isn't currently provided for additional covariates.")
 
-  data[, sex_var] <- as.factor(data[, sex_var])
-  if (length(levels(data[, sex_var])) > 2)
-      stop("Error: function can't currently function with more than two levels of sex.")
+    data[, sex_var] <- as.factor(data[, sex_var])
+    if (length(levels(data[, sex_var])) > 2)
+        stop("Error: function can't currently function with more than two levels of sex.")
 
-  # Determine the registry years of interest from assessing the code
-  if (is.null(start))
-      start <- min(data[, entry_var])
+    # Determine the registry years of interest from assessing the code
+    if (is.null(start))
+        start <- min(data[, entry_var])
 
-  req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
-  surv_form <- as.formula(paste(deparse(resp), '~',
-                                req_covariate,
-                                paste(covar_names, collapse='+')))
+    req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
+    surv_form <- as.formula(paste(deparse(resp), '~',
+                                  req_covariate,
+                                  paste(covar_names, collapse='+')))
 
-  data_r = data[data[, entry_var] >= start, ]
-  wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
+    data_r = data[data[, entry_var] >= start, ]
+    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
 
-  ##########################################################################################################################
-  ##########################################################################################################################
-  #                      UP TO HERE, IS REPEATED CODE FROM PREVALENCE! JUST RETURN COEFS IN OBJECT?
-  ##########################################################################################################################
-  ##########################################################################################################################
+    ##########################################################################################################################
+    ##########################################################################################################################
+    #                      UP TO HERE, IS REPEATED CODE FROM PREVALENCE! JUST RETURN COEFS IN OBJECT?
+    ##########################################################################################################################
+    ##########################################################################################################################
 
-  wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
-  n <- seq(5000)
+    wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
+    n <- seq(5000)
 
-  if (sex == "Male") {
-    wb_lines <- sapply(seq(N_boot),
-                       function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
-  } else {
-    wb_lines <- sapply(seq(N_boot),
-                         function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
-                                                                   wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
-  }
+    if (sex == "Male") {
+        wb_lines <- sapply(seq(N_boot),
+                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
+    } else {
+        wb_lines <- sapply(seq(N_boot),
+                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
+                                                                     wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
+    }
 
-  plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
-  sapply(seq(N_boot),
-         function(i) lines(wb_lines[, i], lwd=1, col="grey"))
+    plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
+    sapply(seq(N_boot),
+           function(i) lines(wb_lines[, i], lwd=1, col="grey"))
 
-  wb <- survreg(surv_form, data_r)
+    wb <- survreg(surv_form, data_r)
 
-  if (sex == "Male") {
-    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
-    lines(A, col="orange", lwd=3, lty=3)
-  } else {
-    A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
-    lines(A, col="orange", lwd=3, lty=3)
-  }
+    if (sex == "Male") {
+        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
+        lines(A, col="orange", lwd=3, lty=3)
+    } else {
+        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
+        lines(A, col="orange", lwd=3, lty=3)
+    }
 
 }
 #' Chi squared test between prevalence prediction and observed values in the registry.
