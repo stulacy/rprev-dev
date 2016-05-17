@@ -219,7 +219,7 @@ summary(prevalence_total)
 Whether the model is predicting good numbers for the recent years for which we have data can be assessed using a chi squared test. It uses `simulated_cases`, extracted from the prevalence object, which is a vector of the estimated absolute prevalence per year of the registry:
 
 ```{r test, error = TRUE}
-prev_chisq(prevalence_total)
+test_prevalence_fit(prevalence_total)
 ```
 
 ### N-year prevalence with estimation of uncertainty

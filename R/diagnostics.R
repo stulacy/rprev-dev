@@ -367,9 +367,9 @@ plot.survfit.prev <- function(object, pct_show=0.5) {
 #'                   start = "2005-09-01",
 #'                   num_reg_years = 8, cure = 5)
 #'
-#' prev_chisq(obj)
-#' @export prev_chisq
-prev_chisq <- function(object) {
+#' test_prevalence_fit(obj)
+#' @export test_prevalence_fit
+test_prevalence_fit <- function(object) {
     observed <- object$counted
     predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
     chi <- sum(((observed - predicted)^2)/predicted)

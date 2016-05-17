@@ -419,7 +419,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     object$means <- colMeans(mean_df)
     object$y <- survobj
 
-    object$pval <- prev_chisq(object)
+    object$pval <- test_prevalence_fit(object)
 
     attr(object, 'class') <- 'prevalence'
     object
