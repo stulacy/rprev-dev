@@ -12,20 +12,14 @@ vignette: >
 This document demonstrates how predictions of prevalence are calculated from a synthetic patient dataset. For the purposes of this document, the term prevalence refers to estimates of point prevalence at an index date. Where we calculate prevalence for a specific number of years, *n-years*, this means the number of years working back from the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included, and the greater the value of the prevalence estimate. We would argue that the higher the value of *n*, the more accurate the prevalence prediction, until the number of years simulated is markedly disproportionate to the number of years of registry data available. 
 
 ```{r, echo = FALSE, message = FALSE}
-library(devtools)
 devtools::load_all()
 ```
 
 # Basic setup and summary of data
 
 ```{r setup, message = FALSE, warning = FALSE}
-library(dplyr)
-library(abind)
-library(rms)
+library(prevR)
 library(survival)
-library(knitr)
-library(tidyr)
-library(dplyr)
 data(prevsim)
 num_years_to_estimate <- 10
 cure <- 3
@@ -58,6 +52,8 @@ It can be concluded that the disease has around 100 new cases each year. To asse
 sim_check(raw_incidence)
 ```
 
+**NOTE these are p-values for over and underdispersion**
+
 ```{r, fig.width = 7, fig.height = 7, include = TRUE, results="hide"}
 par(mfrow=c(2,2))
 c_inc <- cumulative_incidence(prevsim$entrydate, start = "2004-01-30", num_reg_years = 9)
@@ -78,6 +74,8 @@ inspect_incidence(c_inc)
 
 poisson_incidence_sim(c_inc)
 ```
+
+**What do these plots show?**
 
 ```{r}
 summary(c_inc)
@@ -101,6 +99,8 @@ mean_incidence_rate(prevsim$entrydate, population_size = 3.5e6,
 ## Survival modelling
 
 It is recommended that the user inspects the survival data for consistency between years of the registry and with a Cox Proportional Hazards model as follows:
+
+**How do these plots show that?, what are the CIs, the colours, the smooths etc... all showing?**
 
 ```{r survivaldiag, fig.width = 7, fig.height = 7}
 par(mfrow=c(2,2))
@@ -157,6 +157,8 @@ As an alternative to extrapolation from the Weibull model alone when modelling l
 
 The `boot_eg` function can be used to provide a visual impression of the variance in survival models fitted to bootstrapped samples. Below, we look at the survival curves for a 65 year old male patient:
 
+**Explain precisely what the colours and grey lines mean**
+
 ```{r bootstrapping_eg, fig.width = 7, fig.height = 4, error = TRUE}
 boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
                                                        data = prevsim,
@@ -168,6 +170,8 @@ boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
 ### Population survival
 
 General population period survival data for the UK is loaded and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`. 
+
+**Hide hard to follow plotting code, just display the code which uses our library. Although debatable as they could be interested in seeing what is returned from function**
 
 ```{r popsurv, fig.width = 6, fig.height = 4, error = TRUE}
 data(UKmortality)
@@ -185,13 +189,13 @@ legend("topright", legend = c("Males", "Females"),
 
 ### Counts
 
-In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* dataset where there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in methods of incidence and survival data collection, `r last(determine_registry_years(start='2004-01-30', num_reg_years=9))` is the index date. This is calculated to be the last date of the last year of registry data included by the user. In `counted_prevalence()`, all cases alive after the index date are censored. 
+In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* dataset where there is a discrepency between the last recorded incident case and the last date of follow-up owing to a systematic difference in methods of incidence and survival data collection, `r data.table::last(determine_registry_years(start='2004-01-30', num_reg_years=9))` is the index date. This is calculated to be the last date of the last year of registry data included by the user. In `prevalence_counted()`, all cases alive after the index date are censored. 
 
 ```{r survival, error = TRUE}
-counted_prevalence(prevsim$entrydate, 
-                     prevsim$eventdate, 
-                     prevsim$status, 
-                     start="2004-01-30", 9)
+prevalence_counted(prevsim$entrydate, 
+                   prevsim$eventdate, 
+                   prevsim$status, 
+                   start="2004-01-30", 9)
 ```
 
 NB: all follow-up data for the available incident cases is still used in survival modelling.
@@ -201,8 +205,8 @@ NB: all follow-up data for the available incident cases is still used in surviva
 Prevalence is estimated using simulation by calling `prevalence()`. `num_years_to_estimate` corresponds to the number of years preceding the index date that contribute incident cases:
 
 ```{r prevalencetotal, error = TRUE}
-prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate),
-                               prevsim, num_years_to_estimate, cure, 
+prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                               prevsim, num_years_to_estimate, population_size=1e6, cure, 
                                start='2004-01-30', num_reg_years=9)
 
 print(prevalence_total)
@@ -240,7 +244,7 @@ prevsim_r$status2 <- ifelse(prevsim_r$eventdate > "2013-01-30",
 observed_post_age_dist_total <- 
   prevsim_r$age[prevsim_r$status2 == 0]
 
-post_age_dist_total <- prevalence_total$post_covar
+post_age_dist_total <- prevalence_total$simulated$posterior_age
 
 hist(observed_post_age_dist_total, 
      col=rgb(0.1, 0.1, 0.1, 0.5), xlim=c(0,100), ylim=c(0,0.045), 
