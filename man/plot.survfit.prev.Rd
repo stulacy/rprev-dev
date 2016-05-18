@@ -4,7 +4,7 @@
 \alias{plot.survfit.prev}
 \title{Plots survival curves for a \code{survfit.prev} object.}
 \usage{
-\method{plot}{survfit.prev}(object, pct_show = 0.5)
+\method{plot}{survfit.prev}(object, pct_show = 0.9)
 }
 \arguments{
 \item{object}{A \code{survfit.prev} object.}

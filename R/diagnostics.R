@@ -51,21 +51,17 @@ test_prevalence_fit <- function(object) {
 #'
 #' incidence_age_distribution(prevsim$age)
 #' @export incidence_age_distribution
+#' @import ggplot2
 incidence_age_distribution <- function(agedata, df=10) {
 
     ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
-
-    plot(0:99, ages[1:100], pch=20, xlab="age (years)", ylab="incident cases")
-    smage <- smooth.spline(0:99, ages[1:100], df=df)
-    lines(smage, col="blue", lwd=2)
-
-    library(ggplot2)
-
-    ggplot(data.frame(count=ages, age=seq(100)), aes(x=age, y=count)) +
-        geom_point() +
-        geom_smooth(method='lm', formula=y ~ poly(x, df, raw=TRUE)) +
-        xlim(0, 100) +
-        theme_bw()
+    p <- ggplot2::ggplot(data.frame(count=ages, age=seq(100)), ggplot2::aes(x=age, y=count)) +
+            ggplot2::geom_point() +
+            ggplot2::geom_smooth(method='lm', formula=y ~ poly(x, df, raw=TRUE)) +
+            ggplot2::xlim(0, 100) +
+            ggplot2::labs(x='Age (years)', y='Number incident cases') +
+            ggplot2::theme_bw()
+    p
 }
 
 #' Inspect whether a non-linear transform of age is appropriate.
