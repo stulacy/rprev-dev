@@ -150,7 +150,7 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
 #' @import dplyr
 #' @import ggplot2
 #' @importFrom tidyr gather
-plot.survfit.prev <- function(object, pct_show=0.5) {
+plot.survfit.prev <- function(object, pct_show=0.9) {
     num_boot <- dim(object$surv)[1]
     num_days <- dim(object$surv)[2]
     if (num_days != length(object$time))
