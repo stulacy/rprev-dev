@@ -418,8 +418,36 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 
     attr(object, 'class') <- 'prevalence'
     object
-
 }
+
+print.prevalence <- function(object, ...) {
+    cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
+    lapply(names(object$estimates), function(x) {
+        year <- strsplit(x, 'y')[[1]][2]
+        prev_est <- object$estimates[[x]][2]
+        cat(paste(year, "years:", prev_est, "\n"))
+    })
+}
+
+summary.prevalence <- function(object, ...) {
+    cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("Index date:", object$index_date, "\n")
+    cat("Start year:", object$start_date, "\n")
+    cat("Number of years:", length(object$known_inc_rate), "\n")
+    cat("Known incidence rate:\n")
+    cat(object$known_inc_rate, "\n")
+    cat("Counted prevalent cases:\n")
+    cat(object$counted)
+
+    cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
+    cat("Iterations:", object$simulated$nbootstraps, "\n")
+    cat("Posterior age distribution summary:\n")
+    print(summary(object$simulated$posterior_age))
+    cat("Average simulated prevalent cases per year:\n")
+    cat(round(rev(object$simulated$mean_yearly_contributions)), "\n")
+    cat("P-value from chi-square test:", object$pval)
+}
+
 
 .point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3, level=0.95, precision=2) {
 

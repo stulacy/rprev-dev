@@ -127,3 +127,22 @@ poisson_incidence_sim <- function(object, N_sim=1000, level=0.95, df=4){
   lines(x, apply(boot_out, 2, quantile, probs=1-((1+level)/2)), col="blue")
 
 }
+
+print.cincidence <- function(object, ...) {
+    object
+}
+
+summary.cincidence <- function(object, ...) {
+    cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("Number of years:", length(object$raw_incidence), "\n")
+
+    cat("\n\nIncidence\n~~~~~~~~~\n")
+
+    cat("Known incidence by year:", object$raw_incidence, "\n")
+
+    cat("Diagnoses (time since registry began):\n")
+    print(summary(object$ordered_diagnoses))
+
+    cat("Fitted smooth:\n")
+    print(object$smooth)
+}

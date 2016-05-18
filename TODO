@@ -1,3 +1,4 @@
   - More rigorous stress testing!
+  - Clean up cumulative_incidence
   - print method for cincidence
-  - Get unit tests working
+  - Should docstring examples include library(prevR)?

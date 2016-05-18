@@ -12,6 +12,7 @@
 #' data(prevsim)
 #'
 #' inc <- incidence(prevsim$entrydate)
+#'
 #' test_poisson_fit(inc)
 #' @export test_poisson_fit
 test_poisson_fit <- function(data, N_sim = 100000) {
