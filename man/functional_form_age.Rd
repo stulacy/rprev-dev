@@ -2,31 +2,35 @@
 % Please edit documentation in R/diagnostics.R
 \name{functional_form_age}
 \alias{functional_form_age}
-\title{Inspect functional form of age.}
+\title{Inspect whether a non-linear transform of age is appropriate.}
 \usage{
-functional_form_age(form, data, df = 4)
+functional_form_age(form, data, df = 4, plot_fit = T)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS
-has the function argument \code{age} to specify the column containing age data.
-
-This formula is used in the following way:
-
-\code{Surv(time, status) ~ age(age_column_name)}}
+provides the name of the variable containing age in the supplied dataset.}
 
 \item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
-\item{df}{The desired degrees of freedom for the smooth.}
+\item{df}{The desired degrees of freedom for the cubic spline..}
+
+\item{plot_fit}{Whether to plot the relationship between age and relative hazard.}
 }
 \value{
-Plots and model summary relating to the functional form of age.
+An \code{rms::cph} object containing the Cox model fit between a cubic spline transform
+of age and the survival outcomes.
 }
 \description{
-Inspect functional form of age.
+Inspect whether a non-linear transform of age is appropriate.
 }
 \examples{
 data(prevsim)
 
-functional_form_age(Surv(time, status) ~ age(age), prevsim)
+functional_form_age(Surv(time, status) ~ age, prevsim)
+
+functional_form_age(Surv(time, status) ~ age, prevsim, df=2)
+
+functional_form_age(Surv(time, status) ~ age, prevsim, df=2, plot_fit=F)
+
 }
 

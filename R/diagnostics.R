@@ -39,71 +39,56 @@ incidence_age_distribution <- function(agedata, df=10) {
 
 }
 
-#' Inspect functional form of age.
+#' Inspect whether a non-linear transform of age is appropriate.
 #'
 #' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS
-#' has the function argument \code{age} to specify the column containing age data.
-#'
-#' This formula is used in the following way:
-#'
-#' \code{Surv(time, status) ~ age(age_column_name)}
+#' provides the name of the variable containing age in the supplied dataset.
 #' @param data A data frame with the corresponding column names provided in \code{form}.
-#' @param df The desired degrees of freedom for the smooth.
-#' @return Plots and model summary relating to the functional form of age.
+#' @param df The desired degrees of freedom for the cubic spline..
+#' @param plot_fit Whether to plot the relationship between age and relative hazard.
+#' @return An \code{rms::cph} object containing the Cox model fit between a cubic spline transform
+#' of age and the survival outcomes.
 #' @examples
 #' data(prevsim)
 #'
-#' functional_form_age(Surv(time, status) ~ age(age), prevsim)
+#' functional_form_age(Surv(time, status) ~ age, prevsim)
+#'
+#' functional_form_age(Surv(time, status) ~ age, prevsim, df=2)
+#'
+#' functional_form_age(Surv(time, status) ~ age, prevsim, df=2, plot_fit=F)
+#'
 #' @export functional_form_age
-#' @importFrom rms datadist
-#' @importFrom rms cph
-#' @importFrom rms rcs
-#' @importFrom rms Predict
-#' @importFrom survival coxph
-functional_form_age <- function(form, data, df=4) {
+#' @import rms
+#' @importFrom ggplot2 ggplot
+#' @importFrom ggplot2 geom_ribbon
+#' @importFrom ggplot2 geom_line
+#' @importFrom ggplot2 aes
+functional_form_age <- function(form, data, df=4, plot_fit=T) {
+    trms <- attr(terms(form), 'variables')
+    if (length(trms) != 3)
+        stop("Error: Please provide just Surv and age terms in the formula.")
 
-    ### TO DO/discuss:
-    # ?No reason why this can't be applied to any continuous covariate, just need to change age() and age_ prefixes
-    # ?How to neaten up the output; control side effects, do we need both plots etc
-    # ?Too much duplication of code here with prevalence()
-    ###
+    resp <- trms[[2]]
+    age_var <- trms[[3]]
+    survobj <- eval(resp, data)
+    mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, prevsim))
 
-    # Extract required column names from formula
-    terms <- terms(form, 'age')
-    special_indices <- attr(terms, 'specials')
-
-    if (any(sapply(special_indices, is.null)))
-        stop("Error: provide function term for age.")
-
-    v <- as.list(attr(terms, 'variables'))[-1]
-    var_names <- unlist(lapply(special_indices, function(i) v[i]))
-    age_var <- .extract_var_name(var_names$age)
-
-    # Extract survival formula
-    response_index <- attr(terms, 'response')
-    resp <- v[response_index][[1]]
-
-    psp_surv_form <- as.formula(paste(deparse(resp), '~ pspline(',
-                                      age_var, ', ', df, ')', sep=''))
-
-    cxnl <- survival::coxph(psp_surv_form, data)
-    output1 <- summary(cxnl)
-
-    plt1 <- termplot(cxnl)
-
-    f <<- rms::datadist(data)
+    f <<- rms::datadist(mydf)
     options(datadist="f")
 
-    rcs_surv_form <- as.formula(paste(deparse(resp), '~ rcs(',
-                                      age_var, ', ', df, ')', sep=''))
+    myform <- survival::Surv(time, status) ~ rms::rcs(age, df)
+    mod_rms <- rms::cph(myform, mydf, x=TRUE, y=TRUE, surv=T, time.inc=1)
 
-    mod_rms <- rms::cph(rcs_surv_form, data, x=TRUE, y=TRUE, surv=T, time.inc=1)
-    output2 <- anova(mod_rms)
-    output3 <- summary(mod_rms)
+    if (plot_fit) {
+        preds <- rms::Predict(mod_rms, age)
+        p <- ggplot2::ggplot(preds, ggplot2::aes(x=age, y=yhat)) +
+            ggplot2::geom_ribbon(ggplot2::aes(ymin=lower, ymax=upper), colour='#d2d2d2', alpha=0.05) +
+            ggplot2::geom_line(colour='#0080ff', size=1.2) +
+            ggplot2::theme_bw()
+        print(p)
+    }
 
-    plt2 <- plot(eval(parse(text=paste('Predict(mod_rms, ', age_var,')', sep = ''))), lwd=3, adj.subtitle=T)
-
-    list(plt1, plt2, output1, output2, output3)
+    mod_rms
 }
 
 #' ?
