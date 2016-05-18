@@ -50,7 +50,7 @@ test_that("test_poisson_fit returns the correct number of values", {
 
 test_that("functional_form_age returns a list", {
     expect_list <- function(data) {
-        expect_match(typeof(functional_form_age(Surv(time, status) ~ age(age), data)), 'list')
+        expect_match(typeof(functional_form_age(Surv(time, status) ~ age, data)), 'list')
     }
 
     expect_list(prevsim)

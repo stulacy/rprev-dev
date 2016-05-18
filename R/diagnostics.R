@@ -50,6 +50,9 @@ test_prevalence_fit <- function(object) {
 #' data(prevsim)
 #'
 #' incidence_age_distribution(prevsim$age)
+#'
+#' incidence_age_distribution(prevsim$age, df=5)
+#'
 #' @export incidence_age_distribution
 #' @import ggplot2
 incidence_age_distribution <- function(agedata, df=10) {

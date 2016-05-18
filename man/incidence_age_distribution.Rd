@@ -21,5 +21,8 @@ Plots the age distribution of incident cases in the registry data.
 data(prevsim)
 
 incidence_age_distribution(prevsim$age)
+
+incidence_age_distribution(prevsim$age, df=5)
+
 }
 

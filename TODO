@@ -1,6 +1,3 @@
   - More rigorous stress testing!
-  - Summary and print methods for survfit.prev object
-  - Agree with Simon best way to display plot.survfit.prev
-  - Agree best way to display incidence_age_distribution
-  - Documentation for prevalence object and survfit.prev object?
+  - print method for cincidence
   - Get unit tests working

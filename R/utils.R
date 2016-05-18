@@ -1,7 +1,7 @@
-#' Generate a summary of the cumulative_incidence object.
-#'
-#' @param object A \code{cumulative_incidence} object.
-#' @export summary.cincidence
+print.cincidence <- function(object, ...) {
+    object
+}
+
 summary.cincidence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$raw_incidence), "\n")
@@ -17,10 +17,6 @@ summary.cincidence <- function(object, ...) {
     print(object$smooth)
 }
 
-#' Print the current value of the prevalence object.
-#'
-#' @param object A \code{prevalence} object.
-#' @export print.prevalence
 print.prevalence <- function(object, ...) {
     cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
     lapply(names(object$estimates), function(x) {
@@ -28,14 +24,8 @@ print.prevalence <- function(object, ...) {
         prev_est <- object$estimates[[x]][2]
         cat(paste(year, "years:", prev_est, "\n"))
     })
-
-   # cat(paste("Estimated ", object$nyears, " year prevalence is ", sum(object$mean_yearly_contributions), ".\n", sep=''))
 }
 
-#' Generate a summary of the prevalence object.
-#'
-#' @param object A \code{prevalence} object.
-#' @export summary.prevalence
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Index date:", object$index_date, "\n")
@@ -118,6 +108,55 @@ survfit.prevalence <- function(object, newdata=NULL) {
     result <- list(time=times, surv=t(survprobs), fullsurv=full_survprobs)
     attr(result, 'class') <- 'survfit.prev'
     result
+}
+
+print.survfit.prev <- function(object, ...) {
+    cat("Survival probability calculated at", length(object$time), "timepoints, across", dim(object$surv)[1], "bootstraps.")
+}
+
+#' Summarises survival information at pre-specified years of interest on a
+#' \code{survfit.prev} object.
+#'
+#' Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
+#' timepoint, with the 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
+#' can only be estimated at timepoints less than the maximum survival time in the original fitting of
+#' the \code{prevalence} object.
+#'
+#' @param object A \code{survfit.prev} object.
+#' @param years A vector of years at which to estimate survival probability from the bootstrapped
+#' survival curves.
+#' @return None, instead displays the survival probabilities to screen as a side-effect.
+#' @examples
+#' data(prevsim)
+#'
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                        start = "2005-09-01",
+#'                        num_reg_years = 8, cure = 5)
+#'
+#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+#'
+#' summary(survobj)
+#'
+#' summary(survobj, years=c(1, 3, 5, 7))
+#'
+#' @export summary.survfit.prev
+summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
+
+    # Truncate years to the maximum number allowed
+    max_years <- floor(dim(object$surv)[2] / 365.25)
+    if (sum(years > max_years) > 0)
+        message("Cannot estimate survival probabilities beyond the ", max_years, " years provided in the dataset.")
+    years <- years[years <= max_years]
+    days <- sapply(years, function(x) floor(x * 365.25))
+
+    probs <- colMeans(as.matrix(object$surv[, days]))
+    lower <- apply(object$surv[, days], 2, function(x) quantile(x, 0.025))
+    upper <- apply(object$surv[, days], 2, function(x) quantile(x, 0.975))
+
+    cat("Survival probability estimated using", dim(object$surv)[1], "bootstrap survival curves:\n")
+    f <- mapply(function(x, y, l, u) cat(x, " year survival: ", y, " (", l, " - ", u, ") \n", sep=''),
+                years, round(probs, 3), round(lower, 3), round(upper, 3))
 }
 
 .calculate_survival_probability <- function(coef, data, times) {
