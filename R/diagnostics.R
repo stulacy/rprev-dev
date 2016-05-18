@@ -19,6 +19,28 @@ test_poisson_fit <- function(data, N_sim = 100000) {
     c(length(var_sim[var_sim > var(data)])/N_sim, length(var_sim[var_sim <= var(data)])/N_sim)
 }
 
+#' Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.
+#'
+#' @param object A \code{prevalence} object.
+#' @return P-value from a chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
+#' @examples
+#' data(prevsim)
+#'
+#' obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                   data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                   start = "2005-09-01",
+#'                   num_reg_years = 8, cure = 5)
+#'
+#' test_prevalence_fit(obj)
+#' @export test_prevalence_fit
+test_prevalence_fit <- function(object) {
+    observed <- object$counted
+    predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
+    chi <- sum(((observed - predicted)^2)/predicted)
+    1 - pchisq(chi, object$nregyears - 1)
+}
+
+
 #' Plots the age distribution of incident cases in the registry data.
 #'
 #' @param agedata Vector of ages at diagnosis for each patient in the registry.
@@ -37,6 +59,13 @@ incidence_age_distribution <- function(agedata, df=10) {
     smage <- smooth.spline(0:99, ages[1:100], df=df)
     lines(smage, col="blue", lwd=2)
 
+    library(ggplot2)
+
+    ggplot(data.frame(count=ages, age=seq(100)), aes(x=age, y=count)) +
+        geom_point() +
+        geom_smooth(method='lm', formula=y ~ poly(x, df, raw=TRUE)) +
+        xlim(0, 100) +
+        theme_bw()
 }
 
 #' Inspect whether a non-linear transform of age is appropriate.
@@ -71,7 +100,7 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
     resp <- trms[[2]]
     age_var <- trms[[3]]
     survobj <- eval(resp, data)
-    mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, prevsim))
+    mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, data))
 
     f <<- rms::datadist(mydf)
     options(datadist="f")
@@ -89,6 +118,67 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
     }
 
     mod_rms
+}
+
+#' Plots survival curves for a \code{survfit.prev} object.
+#'
+#' The survival curve for a model formed on all the data is displayed in orange,
+#' while the 95% confidence interval for the bootstrapped models are displayed as a grey ribbon.
+#' Outlying survival curves are displayed in full, where the \code{pct_show} argument details the
+#' proportion of points outside of the confidence interval for a survival curve to be deemed as an outlier.
+#'
+#' @param object A \code{survfit.prev} object.
+#' @param pct_show A list or dataframe with the co-variate values to calculate survival probabilities
+#' @return An S3 object of class \code{survfit.prev} with the following attributes:
+#' @examples
+#' data(prevsim)
+#'
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                        start = "2005-09-01",
+#'                        num_reg_years = 8, cure = 5)
+#'
+#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+#'
+#' plot(survobj)
+#'
+#' plot(survobj, pct_show=0)  # Display curves with any outlying points
+#' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
+#' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
+#'
+#' @export plot.survfit.prev
+#' @import dplyr
+#' @import ggplot2
+#' @importFrom tidyr gather
+plot.survfit.prev <- function(object, pct_show=0.5) {
+    num_boot <- dim(object$surv)[1]
+    num_days <- dim(object$surv)[2]
+    if (num_days != length(object$time))
+        stop("Error: Number of survival probabilities not consistent with time variable.")
+
+    df <- data.frame(object$surv)
+    colnames(df) <- seq(num_days)
+    df$bootstrap <- seq(num_boot)
+
+    gathered <- tidyr::gather(df, time, survprob, -bootstrap)
+
+    smooth <- gathered %>%
+        dplyr::group_by(time) %>%
+        dplyr::summarise(mx=quantile(survprob, 0.975),
+                         mn=quantile(survprob, 0.025)) %>%
+        dplyr::arrange(as.numeric(time))
+
+    row_inds <- apply(df[, -ncol(df)], 1, function(x) mean(x > smooth$mx | x < smooth$mn) > pct_show)
+
+    outliers <- df[row_inds, ] %>%
+                    tidyr::gather(time, survprob, -bootstrap)
+
+    ggplot2::ggplot() +
+        ggplot2::geom_line(data=outliers, ggplot2::aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap))) +
+        ggplot2::geom_ribbon(data=smooth, ggplot2::aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.2) +
+        ggplot2::geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
+                           ggplot2::aes(x=as.numeric(time), y=survprob), colour='orange', size=1) +
+        ggplot2::theme_bw()
 }
 
 #' ?
@@ -208,183 +298,3 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
     lines(kma, lwd=1, col=colour, conf.int=T)
 }
 
-#' Inspect bootstrapped survival curves for an example patient with a given age and sex.
-#'
-#' @param form Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
-#' \code{age}, the column where age is located;
-#' \code{sex}, the column where sex is located; and
-#' \code{entry}, the column where dates of entry to the registry are located.
-#'
-#' This formula is used in the following way:
-#'
-#' \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) + entry(entry_column_name)}
-#'
-#' Using the supplied \code{prevsim} dataset, it is therefore called with:
-#'
-#' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate)}
-#' @param data A data frame with the corresponding column names provided in \code{form}.
-#' @param start Date from which incident cases are included, in the format YYYY-MM-DD. Defaults to the earliest incident case in
-#' the supplied registry.
-#' @param age Age of example patient.
-#' @param sex Sex of example patient.
-#' @param N_boot Number of replicates.
-#' @return Generates a plot of survival curves fitted to each bootstrapped sample (grey) with the survival curve plotted
-#' to the raw data overlaid (orange).
-#' @examples
-#' data(prevsim)
-#'
-#' boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-#'                     data = prevsim,
-#'                     start = "2004-01-30",
-#'                     age = 65,
-#'                     sex = "Male")
-boot_eg <- function(form, data, age, sex, start=NULL, N_boot = 1000) {
-
-    spec <- c('age', 'sex', 'entry')
-    terms <- terms(form, spec)
-    special_indices <- attr(terms, 'specials')
-
-    if (any(sapply(special_indices, is.null)))
-        stop("Error: provide function terms for age, sex, and entry date.")
-
-    v <- as.list(attr(terms, 'variables'))[-1]
-    var_names <- unlist(lapply(special_indices, function(i) v[i]))
-
-    age_var <- .extract_var_name(var_names$age)
-    sex_var <- .extract_var_name(var_names$sex)
-    entry_var <- .extract_var_name(var_names$entry)
-
-    # Extract survival formula
-    response_index <- attr(terms, 'response')
-    resp <- v[response_index][[1]]
-    non_covariate_inds <- c(response_index, unlist(special_indices))
-    covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
-
-    if (length(covar_names) > 0)
-        stop("Error: functionality isn't currently provided for additional covariates.")
-
-    data[, sex_var] <- as.factor(data[, sex_var])
-    if (length(levels(data[, sex_var])) > 2)
-        stop("Error: function can't currently function with more than two levels of sex.")
-
-    # Determine the registry years of interest from assessing the code
-    if (is.null(start))
-        start <- min(data[, entry_var])
-
-    req_covariate <- ifelse(length(levels(data[, sex_var])) == 1, age_var, paste(age_var, sex_var, sep='+'))
-    surv_form <- as.formula(paste(deparse(resp), '~',
-                                  req_covariate,
-                                  paste(covar_names, collapse='+')))
-
-    data_r = data[data[, entry_var] >= start, ]
-    wb_boot <- .registry_survival_bootstrapped(surv_form, data_r)
-
-    wb_lines <- matrix(0, nrow=N_boot, ncol=5000)
-    n <- seq(5000)
-
-    if (sex == "Male") {
-        wb_lines <- sapply(seq(N_boot),
-                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2]), shape=1/wb_boot[i, 4]))
-    } else {
-        wb_lines <- sapply(seq(N_boot),
-                           function(i) 1 - pweibull(n, scale=exp(wb_boot[i, 1] + age*wb_boot[i, 2] +
-                                                                     wb_boot[i, 3]), shape=1/wb_boot[i, 4]))
-    }
-
-    plot(NA, xlim=c(1,5000), ylim=c(0,1), main = paste("age = ", age, ", sex = ", sex))
-    sapply(seq(N_boot),
-           function(i) lines(wb_lines[, i], lwd=1, col="grey"))
-
-    wb <- survreg(surv_form, data_r)
-
-    if (sex == "Male") {
-        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2]), shape=1/wb$scale)
-        lines(A, col="orange", lwd=3, lty=3)
-    } else {
-        A <- 1 - pweibull(n, scale=exp(wb$coef[1] + age*wb$coef[2] + wb$coef[3]), shape=1/wb$scale)
-        lines(A, col="orange", lwd=3, lty=3)
-    }
-
-}
-
-#' Plots survival curves for a \code{survfit.prev} object.
-#'
-#' The survival curve for a model formed on all the data is displayed in orange,
-#' while the 95% confidence interval for the bootstrapped models are displayed as a grey ribbon.
-#' Outlying survival curves are displayed in full, where the \code{pct_show} argument details the
-#' proportion of points outside of the confidence interval for a survival curve to be deemed as an outlier.
-#'
-#' @param object A \code{survfit.prev} object.
-#' @param pct_show A list or dataframe with the co-variate values to calculate survival probabilities
-#' @return An S3 object of class \code{survfit.prev} with the following attributes:
-#' @examples
-#' data(prevsim)
-#'
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'                        start = "2005-09-01",
-#'                        num_reg_years = 8, cure = 5)
-#'
-#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
-#'
-#' plot(survobj)
-#'
-#' plot(survobj, pct_show=0)  # Display curves with any outlying points
-#' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
-#' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
-#'
-#' @export plot.survfit.prev
-#' @import dplyr
-#' @import ggplot2
-#' @importFrom tidyr gather
-plot.survfit.prev <- function(object, pct_show=0.5) {
-    num_boot <- dim(object$surv)[1]
-    num_days <- dim(object$surv)[2]
-    if (num_days != length(object$time))
-        stop("Error: Number of survival probabilities not consistent with time variable.")
-
-    df <- data.frame(object$surv)
-    colnames(df) <- seq(num_days)
-    df$bootstrap <- seq(num_boot)
-
-    gathered <- tidyr::gather(df, time, survprob, -bootstrap)
-
-    smooth <- gathered %>%
-        dplyr::group_by(time) %>%
-        dplyr::summarise(mx=quantile(survprob, 0.975),
-                         mn=quantile(survprob, 0.025)) %>%
-        dplyr::arrange(as.numeric(time))
-
-    row_inds <- apply(df[, -ncol(df)], 1, function(x) mean(x > smooth$mx | x < smooth$mn) > pct_show)
-
-    outliers <- df[row_inds, ] %>%
-                    tidyr::gather(time, survprob, -bootstrap)
-
-    ggplot2::ggplot() +
-        ggplot2::geom_line(data=outliers, aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap))) +
-        ggplot2::geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
-                           aes(x=as.numeric(time), y=survprob), colour='orange') +
-        ggplot2::geom_ribbon(data=smooth, aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
-        ggplot2::theme_bw()
-}
-
-#' Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.
-#'
-#' @param object A \code{prevalence} object.
-#' @return P-value from a chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
-#' @examples
-#' data(prevsim)
-#'
-#' obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'                   data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'                   start = "2005-09-01",
-#'                   num_reg_years = 8, cure = 5)
-#'
-#' test_prevalence_fit(obj)
-#' @export test_prevalence_fit
-test_prevalence_fit <- function(object) {
-    observed <- object$counted
-    predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
-    chi <- sum(((observed - predicted)^2)/predicted)
-    1 - pchisq(chi, object$nregyears - 1)
-}

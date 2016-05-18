@@ -1,6 +1,6 @@
   - More rigorous stress testing!
-  - Improve functional_form_age to only plot rcs and return 2 summaries, working with rms loading!
   - Summary and print methods for survfit.prev object
   - Agree with Simon best way to display plot.survfit.prev
-  - See if there's a way to get rms package working without the datadist <<- stuff, as it messes up scope!
-  - Get functional_form_age working correctly with imports
+  - Agree best way to display incidence_age_distribution
+  - Documentation for prevalence object and survfit.prev object?
+  - Get unit tests working

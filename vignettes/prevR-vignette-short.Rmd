@@ -139,7 +139,7 @@ cox.zph(cx)
 `functional_form_age()` is provided so that the user can determine if modelling the effect of age as linear is appropriate. 
 
 ```{r ageform2, fig.width = 7, fig.height = 4, error = TRUE}
-functional_form_age(Surv(time, status) ~ age(age), prevsim_r)
+functional_form_age(Surv(time, status) ~ age, prevsim_r)
 ```
 
 ### Weibull model
