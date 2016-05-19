@@ -21,7 +21,10 @@
 #'
 #' @return Object containing incidence for each year of the registry, the cumulative incidence functions and corresponding deviations.
 #' @examples
-#' c_inc <- cumulative_incidence(registry_data$entrydate, start = "2004-01-30", num_reg_years = 9)
+#' data(prevsim)
+#'
+#' c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
+#'
 #' ordered_diagnoses <- c_inc$ordered_diagnoses
 #' cum_inc <- c_inc$cumulative_incidence
 #' smooth <- c_inc$smooth
@@ -45,13 +48,19 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
+    reg_years <- determine_registry_years(start, num_reg_years)
+    index_date <- reg_years[length(reg_years)]
+
+    entry_trunc <- entry[entry >= start & entry < index_date]
+
     # Slightly confused that the following are not all integers:
-    diags <- sort(as.numeric(difftime(entry, min(entry), units='days')))
+    diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
     smo <- smooth.spline(diags, seq(length(diags)), df=df)
 
     cumulative_inc_out <- list(raw_incidence = incidence(entry, start, num_reg_years),
-                                ordered_diagnoses = diags,
-                                smooth = smo)
+                               ordered_diagnoses = diags,
+                               smooth = smo,
+                               index_dates = reg_years)
     attr(cumulative_inc_out, 'class') <- 'cincidence'
     cumulative_inc_out
 }
@@ -65,29 +74,51 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
 #' @param object A \code{cincidence} object.
 #' @param level The desired confidence interval width.
 #' @return Plot of incidence rate, confidence interval and smoothed incidence function.
+#' @examples
+#' TODO
+#'
 #' inspect_incidence(c_inc)
+#' @export inspect_incidence
+#' @importFrom ggplot2 ggplot
+#' @importFrom ggplot2 geom_point
+#' @importFrom ggplot2 geom_line
+#' @importFrom ggplot2 geom_hline
+#' @importFrom ggplot2 labs
+#' @importFrom ggplot2 theme_bw
+#' @importFrom ggplot2 ylim
+#' @importFrom ggplot2 aes
+#' @importFrom ggplot2 scale_colour_manual
 inspect_incidence <- function(object, level=0.95){
-
     raw_incidence <- object$raw_incidence
     mean_rate <- mean(raw_incidence)
-    day_mean_rate <- mean_rate/365
+    day_mean_rate <- mean_rate / 365
 
     z_conf <- qnorm((1+level)/2)
     CI_lim <- z_conf * sqrt(mean_rate)/365
     pl_lim <- CI_lim * 2.0
     num_reg_years <- length(raw_incidence)
 
-    plot(365*(1:num_reg_years) - 182.5, raw_incidence/365, pch=20, col="red",
-         xlab="days", ylab="incidence rate",
-         ylim=c(day_mean_rate-pl_lim, day_mean_rate+pl_lim ))
-    lines(365*(1:num_reg_years) - 182.5, raw_incidence/365, col="red",lwd=2)
-    lines(predict(object$smooth, 1:(365*num_reg_years), deriv=1), type="l", lwd=2, col="green")
+    inc_rate <- data.frame(inc=raw_incidence/365, day=as.Date(object$index_dates[-length(object$index_dates)]) + 182)
+    pred_rate <- predict(object$smooth, seq(num_reg_years*365), deriv=1)
+    smooth_rate <- data.frame(rate=pred_rate$y, day=as.Date(object$index_dates[1]) + pred_rate$x)
+    mean_rate <- data.frame(mean=day_mean_rate, upper=day_mean_rate+CI_lim,
+                            lower=day_mean_rate-CI_lim)
+    ci_diff <- 0.5 * (mean_rate$upper - mean_rate$lower)
 
-    abline(h = day_mean_rate, lty=2)
-    abline(h = day_mean_rate - CI_lim, lty=3, col="blue")
-    abline(h = day_mean_rate + CI_lim, lty=3, col="blue")
-    abline(v=(1:num_reg_years)*365, col="pink", lty=2)
-
+    ggplot2::ggplot() +
+        ggplot2::geom_point(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r')) +
+        ggplot2::geom_line(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r'), size=1) +
+        ggplot2::geom_line(data=smooth_rate, ggplot2::aes(x=day, y=rate, colour='g'),  size=1) +
+        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=mean, colour='b')) +
+        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=upper, colour='b'), linetype='dashed') +
+        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=lower, colour='b'), linetype='dashed') +
+        ggplot2::labs(x='Year', y='Daily incidence rate') +
+        ggplot2::theme_bw() +
+        ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
+        ggplot2::scale_colour_manual(name='Data',
+                                     values=c('r'='red', 'g'='green', 'b'='#0080ff'),
+                                     breaks=c('r', 'g', 'b'),
+                                     labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
 }
 
 #' Inspect consistency of incidence rate with an homogeneous Poisson process using simulation.

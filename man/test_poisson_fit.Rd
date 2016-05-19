@@ -24,6 +24,7 @@ simulated from a Poisson process with overall rate equal to the overall mean rat
 data(prevsim)
 
 inc <- incidence(prevsim$entrydate)
+
 test_poisson_fit(inc)
 }
 

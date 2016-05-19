@@ -1,4 +1,7 @@
   - More rigorous stress testing!
-  - Clean up cumulative_incidence
   - print method for cincidence
   - Should docstring examples include library(prevR)?
+  - Add reference to 2014 paper in docs
+  - Remove first 2 plots
+  - Documentation for inspect_incidence
+  - Improve fourth plot with 'density shading'
