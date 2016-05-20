@@ -14,6 +14,7 @@
 #' inclusion in the registry, ordered shortest to longest.}
 #' \item{smooth}{Smooth fitted to the cumulative incidence data.}
 #' \item{index_dates}{Dates delimiting the years in which incidence is calculated.}
+#' \item{dof}{Degrees of freedom of the smooth.}
 #' @examples
 #' data(prevsim)
 #'
@@ -51,7 +52,8 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
     cumulative_inc_out <- list(raw_incidence = incidence(entry, start, num_reg_years),
                                ordered_diagnoses = diags,
                                smooth = smo,
-                               index_dates = reg_years)
+                               index_dates = reg_years,
+                               dof=df)
     attr(cumulative_inc_out, 'class') <- 'cincidence'
     cumulative_inc_out
 }
@@ -125,41 +127,100 @@ inspect_incidence <- function(object, level=0.95){
 #' @param object A \code{cincidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.
 #' @param level The desired confidence interval width.
-#' @param df The desired degrees of freedom for the smoothening function.
 #' @return Plot of the smoothed incidence function and corresponding deviations.
 #' @examples
 #' poisson_incidence_sim(c_inc)
-poisson_incidence_sim <- function(object, N_sim=1000, level=0.95, df=4){
+poisson_incidence_sim <- function(object, N_sim=1000, level=0.95){
 
-  diags <- object$ordered_diagnoses
-  N <- length(diags)
-  boot_out <- matrix(NA, nrow = N_sim, ncol = N)
+    diags <- object$ordered_diagnoses
+    N <- length(diags)
+    boot_out <- matrix(NA, nrow = N_sim, ncol = N)
 
-  for (i in 1:N_sim){
-    x <- sort(runif(N, 0, max(diags)))
-    the_smo <- smooth.spline(x, 1:N, df=df)
-    boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
-  }
+    for (i in 1:N_sim){
+        x <- sort(runif(N, 0, max(diags)))
+        the_smo <- smooth.spline(x, 1:N, df=object$dof)
+        boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
+    }
 
-  plot(NA, xlim=c(0, max(diags)), ylim=c(-0.8*max(boot_out),0.8*max(boot_out)), xlab="days", ylab="deviation from smooth")
-  sapply(seq(N_sim),
-         function(i) lines(x, boot_out[i,], col="grey"))
+    plot(NA, xlim=c(0, max(diags)), ylim=c(-0.8*max(boot_out),0.8*max(boot_out)), xlab="days", ylab="deviation from smooth")
+    sapply(seq(N_sim),
+           function(i) lines(x, boot_out[i,], col="grey"))
 
-  lines(diags, seq(length(diags)) - predict(object$smooth, diags)$y, col="red")
-  lines(x, apply(boot_out, 2, quantile, probs=(1+level)/2), col="blue")
-  lines(x, apply(boot_out, 2, quantile, probs=1-((1+level)/2)), col="blue")
+    lines(diags, seq(length(diags)) - predict(object$smooth, diags)$y, col="red")
+    lines(x, apply(boot_out, 2, quantile, probs=(1+level)/2), col="blue")
+    lines(x, apply(boot_out, 2, quantile, probs=1-((1+level)/2)), col="blue")
 
 }
 
+poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95){
+    # Quantile regression taken from user eipi10 at stack overflow in response to a question I asked
+    # http://stackoverflow.com/questions/37326686/ggplot2-geom-ribbon-with-alpha-dependent-on-data-density-along-y-axis-for-each
+
+    library(quantreg)
+    library(splines)
+
+    diags <- object$ordered_diagnoses
+    N <- length(diags)
+
+    boot_out <- lapply(seq(N_sim), function(i) {
+        x <- sort(runif(N, 0, max(diags)))
+        smo <- smooth.spline(x, 1:N, df=object$dof)
+        data.frame(y=seq(N) - predict(smo, x)$y, x=x)
+    })
+
+    bootstraps = do.call(rbind, boot_out)
+
+    # Quantiles for density ribbons, here used 50 quantiles
+    qq = seq(0, 1, 0.02)
+
+    # Quantile regression for each quantile, used flexible spline function
+    # TODO Is a spline needed?
+    # TODO Can just use rms package and interface directly to quantreg?
+    m1 <- rq(y ~ ns(x, 4), data=bootstraps, tau=qq)
+
+    # Create dataframe of regression quantile predictions using predict
+    xvals = seq(min(bootstraps$x), max(bootstraps$x), length.out=N)
+    rqs = data.frame(x=xvals, predict(m1, newdata=data.frame(x=xvals)))
+    names(rqs) = c('x', paste0('p', N*qq))
+
+    # Reshape data so predictions for each quantile serve as ymin for one quantile and ymax for the next quantile in succession
+    # Missing last quantile
+    dat1 = rqs[, -length(rqs)]
+    names(dat1)[-1] = paste0(names(dat1)[-1])
+    # Missing first quantile
+    dat2 = rqs[, -2]
+    names(dat2)[-1] = paste0(names(dat1)[-1])
+
+    dat1 = tidyr::gather(dat1, group, min, -x)
+    dat2 = tidyr::gather(dat2, group, max, -x)
+
+    dat = dplyr::inner_join(dat1, dat2)
+
+    # Create the plot
+    ggplot() +
+        geom_ribbon(data=dat, aes(x=x, ymin=min,ymax=max, group=group, alpha=sort(group)),
+                    fill='blue', lwd=0, show.legend=F) +
+        theme_bw() +
+        scale_alpha_manual(values=c(seq(0.05, 0.9, length.out=floor(0.5*length(qq))),
+                                    seq(0.9, 0.05, length.out=floor(0.5*length(qq))))) +
+        geom_point(data=bootstraps, aes(x,y), alpha=0.1, size=0.7, colour='red') +
+        geom_line(data=bootstraps, aes(x,y), alpha=0.1, size=0.7, colour='red') +
+        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
+                           colour='orange', size=1)
+}
+
+
 print.cincidence <- function(object, ...) {
-    object
+    cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
+    cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
+
 }
 
 summary.cincidence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$raw_incidence), "\n")
 
-    cat("\n\nIncidence\n~~~~~~~~~\n")
+    cat("\nIncidence\n~~~~~~~~~\n")
 
     cat("Known incidence by year:", object$raw_incidence, "\n")
 

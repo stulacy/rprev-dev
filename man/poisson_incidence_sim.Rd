@@ -4,7 +4,7 @@
 \alias{poisson_incidence_sim}
 \title{Inspect consistency of incidence rate with an homogeneous Poisson process using simulation.}
 \usage{
-poisson_incidence_sim(object, N_sim = 1000, level = 0.95, df = 4)
+poisson_incidence_sim(object, N_sim = 1000, level = 0.95)
 }
 \arguments{
 \item{object}{A \code{cincidence} object.}
@@ -12,8 +12,6 @@ poisson_incidence_sim(object, N_sim = 1000, level = 0.95, df = 4)
 \item{N_sim}{Number of draws from a homogeneous Poisson process.}
 
 \item{level}{The desired confidence interval width.}
-
-\item{df}{The desired degrees of freedom for the smoothening function.}
 }
 \value{
 Plot of the smoothed incidence function and corresponding deviations.

@@ -250,8 +250,12 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 }
 
 
-#' Estimates point prevalence at a specific index date using a combination of available registry
-#' data, and Monte Carlo simulated incident data.
+#' Estimate point prevalence using a combination of available registry
+#' data and Monte Carlo simulated incident data.
+#'
+#' Point prevalence at a specific index date is estimated using contributions to prevalence
+#' from both available registry data, and from Monte Carlo simulations of the incidence
+#' and survival process, as outlined by Crouch et al (2004) (see References).
 #'
 #' The most important parameter is \code{num_years_to_estimate}, which governs the number of
 #' previous years of data to use when estimating the prevalence at the index date. If this
@@ -317,6 +321,10 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' registry data available.}
 #' \item{y}{The Surv object used as the response in the survival modeling.}
 #' \item{means}{The co-variate means from the data.}
+#'
+#' @references Crouch, Simon, et al.
+#' "Determining disease prevalence from incidence and survival using simulation techniques."
+#' Cancer epidemiology 38.2 (2014): 193-199.
 #' @examples
 #' data(prevsim)
 #'

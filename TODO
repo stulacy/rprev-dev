@@ -1,7 +1,3 @@
   - More rigorous stress testing!
-  - print method for cincidence
-  - Should docstring examples include library(prevR)?
-  - Add reference to 2014 paper in docs
-  - Remove first 2 plots
-  - Documentation for inspect_incidence
-  - Improve fourth plot with 'density shading'
+  - Improve poisson_sim_fit plot, it looks fine but is currently far far too slow! Get values for ribbon without needing quantreg
+  - Rename incidence functions?

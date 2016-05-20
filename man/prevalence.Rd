@@ -2,8 +2,8 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Estimates point prevalence at a specific index date using a combination of available registry
-data, and Monte Carlo simulated incident data.}
+\title{Estimate point prevalence using a combination of available registry
+data and Monte Carlo simulated incident data.}
 \usage{
 prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
   num_reg_years = NULL, cure = 10, N_boot = 1000,
@@ -78,14 +78,18 @@ registry data available.}
 \item{means}{The co-variate means from the data.}
 }
 \description{
+Point prevalence at a specific index date is estimated using contributions to prevalence
+from both available registry data, and from Monte Carlo simulations of the incidence
+and survival process, as outlined by Crouch et al (2004) (see References).
+}
+\details{
 The most important parameter is \code{num_years_to_estimate}, which governs the number of
 previous years of data to use when estimating the prevalence at the index date. If this
 parameter is greater than the number of years of known incident cases available in the
 supplied registry data (specified with argument \code{num_registry_years}), then the
 remaining \code{num_years_to_estimate - num_registry_years} years of incident data
 will be simulated using Monte Carlo simulation.
-}
-\details{
+
 The larger \code{num_years_to_estimate}, the more accurate the prevalence estimate will be,
 provided an adequate survival model can be fitted to the registry data. It is therefore
 important to provide as much clean registry data as possible.
@@ -107,5 +111,10 @@ prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(e
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
 
+}
+\references{
+Crouch, Simon, et al.
+"Determining disease prevalence from incidence and survival using simulation techniques."
+Cancer epidemiology 38.2 (2014): 193-199.
 }
 

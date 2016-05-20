@@ -2,7 +2,7 @@
 % Please edit documentation in R/cumulative_incidence.R
 \name{inspect_incidence}
 \alias{inspect_incidence}
-\title{Inspect incidence rate.}
+\title{Plots a comparison between the smoothed daily incidence function and the actual.}
 \usage{
 inspect_incidence(object, level = 0.95)
 }
@@ -12,16 +12,18 @@ inspect_incidence(object, level = 0.95)
 \item{level}{The desired confidence interval width.}
 }
 \value{
-Plot of incidence rate, confidence interval and smoothed incidence function.
+Plot of incidence rate, confidence interval and smoothed incidence function as a side-effect.
 }
 \description{
 This function generates a plot from the cumulative incidence object. The incidence rate per
-year of the registry is shown in red. Mean incidence rate is shown as a dashed black line,
+year of the registry is shown in red. Mean incidence rate is shown as a solid blue line,
 with the 95\% confidence interval shown with dashed blue lines. The smooth fitted to the
 cumulative incidence data is shown in green.
 }
 \examples{
-TODO
+data(prevsim)
+
+c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
 
 inspect_incidence(c_inc)
 }
