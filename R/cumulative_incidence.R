@@ -152,7 +152,67 @@ poisson_incidence_sim <- function(object, N_sim=1000, level=0.95){
 
 }
 
-poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95){
+poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
+    diags <- object$ordered_diagnoses
+    N <- length(diags)
+
+    boot_out <- lapply(seq(N_sim), function(i) {
+        x <- sort(runif(N, 0, max(diags)))
+        smo <- smooth.spline(x, 1:N, df=object$dof)
+        data.frame(y=seq(N) - predict(smo, x)$y, x=x)
+    })
+
+    bootstraps = do.call(rbind, boot_out)
+
+    num_bins_init <- floor(N / samples_per_bin)
+    num_bins <- ifelse(num_bins_init > max_bins, max_bins, num_bins_init)
+    bin_segments <- seq(0, max(diags), by=max(diags) / num_bins)
+    bin_segments[length(bin_segments)] <- bin_segments[length(bin_segments)] + 1  # Expand last bin to allow for max data point
+
+    bin_cis = lapply(seq(num_bins-1), function(i) {
+        vals <- lapply(boot_out, function(bootstrap) {
+            bootstrap[bootstrap$x >= bin_segments[i] & bootstrap$x < bin_segments[i+1], 'y']
+        })
+        avgs <- sapply(vals, mean)
+        data.frame(x=(sum(bin_segments[c(i, i+1)])) / 2, upper=quantile(avgs, (1+level)/2, na.rm=T),
+                   lower=quantile(avgs, 1-(1+level)/2, na.rm=T))
+    })
+    bin_cis_df <- do.call(rbind, bin_cis)
+
+    p <- ggplot2::ggplot() +
+        ggplot2::geom_vline(data=bin_cis_df, ggplot2::aes(xintercept=x), alpha=0.2, linetype='dotted') +
+        ggplot2::geom_ribbon(data=bin_cis_df, ggplot2::aes(x=x, ymin=lower, ymax=upper), alpha=0.1) +
+        ggplot2::theme_bw() +
+        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
+                           colour='orange', size=1) +
+        labs(x="Days", y="Deviation from smooth")
+    print(p)
+}
+
+
+print.cincidence <- function(object, ...) {
+    cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
+    cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
+
+}
+
+summary.cincidence <- function(object, ...) {
+    cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("Number of years:", length(object$raw_incidence), "\n")
+
+    cat("\nIncidence\n~~~~~~~~~\n")
+
+    cat("Known incidence by year:", object$raw_incidence, "\n")
+
+    cat("Diagnoses (time since registry began):\n")
+    print(summary(object$ordered_diagnoses))
+
+    cat("Fitted smooth:\n")
+    print(object$smooth)
+}
+
+# UNUSED FUNCTION, but want to keep the code for it still
+.poisson_incidence_sim_quantilereg <- function(object, N_sim=1000, level=0.95){
     # Quantile regression taken from user eipi10 at stack overflow in response to a question I asked
     # http://stackoverflow.com/questions/37326686/ggplot2-geom-ribbon-with-alpha-dependent-on-data-density-along-y-axis-for-each
 
@@ -199,7 +259,7 @@ poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95){
     # Create the plot
     ggplot() +
         geom_ribbon(data=dat, aes(x=x, ymin=min,ymax=max, group=group, alpha=sort(group)),
-                    fill='blue', lwd=0, show.legend=F) +
+                    fill='blue', lwd=0, show.legend=T) +
         theme_bw() +
         scale_alpha_manual(values=c(seq(0.05, 0.9, length.out=floor(0.5*length(qq))),
                                     seq(0.9, 0.05, length.out=floor(0.5*length(qq))))) +
@@ -207,26 +267,4 @@ poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95){
         geom_line(data=bootstraps, aes(x,y), alpha=0.1, size=0.7, colour='red') +
         ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
                            colour='orange', size=1)
-}
-
-
-print.cincidence <- function(object, ...) {
-    cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
-    cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
-
-}
-
-summary.cincidence <- function(object, ...) {
-    cat("Registry Data\n~~~~~~~~~~~~~\n")
-    cat("Number of years:", length(object$raw_incidence), "\n")
-
-    cat("\nIncidence\n~~~~~~~~~\n")
-
-    cat("Known incidence by year:", object$raw_incidence, "\n")
-
-    cat("Diagnoses (time since registry began):\n")
-    print(summary(object$ordered_diagnoses))
-
-    cat("Fitted smooth:\n")
-    print(object$smooth)
 }
