@@ -3,12 +3,12 @@
 #'
 #' @param object A \code{prevalence} object.
 #' @param newdata A list or dataframe with the covariate values to calculate survival probabilities
-#' for. Defaults to using the mean values from the training dataset.
+#' for. Defaults to using the mean values from the the original dataset that the model was fit to.
 #' @return An S3 object of class \code{survfit.prev} with the following attributes:
 #' \item{time}{A vector of time points at which survival probability has been calculated.}
 #' \item{surv}{A matrix of survival probabilities, where the rows represent a different bootstrapped
 #' Weibull model, and the columns are each timepoint.}
-#' \item{fullsurv}{A vector of survival probabilities for the model built on the full training set.}
+#' \item{fullsurv}{A vector of survival probabilities for the predictors provided in newdata.}
 #' @examples
 #' data(prevsim)
 #'
@@ -51,8 +51,7 @@ print.survfit.prev <- function(object, ...) {
     cat("Survival probability calculated at", length(object$time), "timepoints, across", dim(object$surv)[1], "bootstraps.")
 }
 
-#' Summarises survival information at pre-specified years of interest on a
-#' \code{survfit.prev} object.
+#' Summarises survival information at pre-specified years of interest on a \code{survfit.prev} object.
 #'
 #' Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
 #' timepoint, with 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
