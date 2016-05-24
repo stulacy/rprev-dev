@@ -4,9 +4,10 @@
 #' @param eventdate Vector of dates corresponding to the indicator variable in the format YYYY-MM-DD.
 #' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
 #' \code{entry}, \code{eventdate}, and \code{status} must all have the same length.
-#' @param start Date from which incident cases are included, defaults to the earliest date in \code{entry}.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is
-#' to be calculated, defaults to the number of complete years in the supplied data.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years.
 #' @return A vector of length \code{num_reg_years}, representing the number of incident cases in the corresponding year that contribute
 #' to the prevalence at the index date.
 #' @examples
@@ -63,10 +64,10 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' @param entry A vector of entry dates into the registry, in the format YYYY-MM-DD.
 #' @param num_years_to_estimate Integer representing number of years of data to estimate point prevalence for, if this value
 #' is greater than \code{num_registry_years} then incident cases for the difference will be simulated.
-#' @param start Date from which incident cases in the registry data are to be included in the prevalence estimation, in
-#' the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years. Note that if more registry years are supplied than the number of years
 #' to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.
 #' @param cure Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
 #' has their survival probability incorporating mortality rates of the underlying population.
@@ -289,10 +290,10 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' estimating point prevalence. If this value is greater than \code{num_registry_years},
 #' incident cases for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population.
-#' @param start Date from which incident cases in the registry data are to be included in the prevalence estimation, in
-#' the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.
-#' @param num_reg_years Integer representing the number of complete years of the registry for which incidence is to be calculated.
-#' Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years. Note that if more registry years are supplied than the number of years
 #' to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.
 #' @param cure Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
 #' has their survival probability incorporating mortality rates of the underlying population.

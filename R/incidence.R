@@ -1,10 +1,10 @@
 #' Calculate absolute incidence from registry data.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD,
-#' defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated,
-#' defaults to using all available complete years.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years.
 #' @return Vector of length num_reg_years of integers, representing the number of absolute incidence values
 #' for each included year of the registry.
 #' @examples
@@ -39,8 +39,10 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
 #' @param population_size The size of the population at risk.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD, defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated, defaults to using all available complete years.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years.
 #' @param precision The number of decimal places required.
 #' @param level The desired confidence interval width.
 #' @return A list with the following values:
