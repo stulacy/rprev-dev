@@ -1,5 +1,5 @@
 ---
-title: "prevR Vignette (Short)"
+title: "prevR User Guide"
 author: "Stephanie J. Lax"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
