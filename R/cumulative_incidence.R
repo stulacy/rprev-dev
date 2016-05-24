@@ -1,12 +1,12 @@
-#' Generates a smoothed cumulative incidence function, useful for inspecting deviations in the registry data
-#' and compare with the cumulative incidence for constant diagnosis rate.
+#' Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
+#' and comparing with the cumulative incidence for constant diagnosis rate.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD,
-#' defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated,
-#' defaults to using all available complete years.
-#' @param df The desired degrees of freedom for the smoothening function.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years.
+#' @param df The desired degrees of freedom of the smooth.
 #' @return An S3 object of class \code{cincidence} with the following attributes:
 #' \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
 #' as generated using \code{incidence()}.}
@@ -58,7 +58,7 @@ cumulative_incidence <- function(entry, start = NULL, num_reg_years = NULL, df=6
     cumulative_inc_out
 }
 
-#' Plots a comparison between the smoothed daily incidence function and the actual.
+#' Plots a comparison between the smoothed daily incidence function and actual incidence.
 #'
 #' This function generates a plot from the cumulative incidence object. The incidence rate per
 #' year of the registry is shown in red. Mean incidence rate is shown as a solid blue line,
@@ -152,6 +152,15 @@ poisson_incidence_sim <- function(object, N_sim=1000, level=0.95){
 
 }
 
+#' \code{poisson_incidence_sim} adapted for ggplot2.
+#'
+#' See \code{\link{poisson_incidence_sim}}.
+#'
+#' @param object A \code{cincidence} object.
+#' @param N_sim Number of draws from a homogeneous Poisson process.
+#' @param level The desired confidence interval width.
+#' @param samples_per_bin Number of samples per bin.
+#' @param max_bins Maximum number of bins.
 poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
     diags <- object$ordered_diagnoses
     N <- length(diags)
@@ -188,7 +197,6 @@ poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per
         labs(x="Days", y="Deviation from smooth")
     print(p)
 }
-
 
 print.cincidence <- function(object, ...) {
     cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
