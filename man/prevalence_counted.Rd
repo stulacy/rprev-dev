@@ -15,14 +15,15 @@ prevalence_counted(entry, eventdate, status, start = NULL,
 \item{status}{Vector of binary values indicating if an event has occurred for each patient in the registry.
 \code{entry}, \code{eventdate}, and \code{status} must all have the same length.}
 
-\item{start}{Date from which incident cases are included, defaults to the earliest date in \code{entry}.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
+Defaults to the earliest entry date.}
 
-\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is
-to be calculated, defaults to the number of complete years in the supplied data.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
+Defaults to using all available complete years.}
 }
 \value{
-A vector of length \code{num_reg_years}, representing the number of incident cases in the corresponding year that contribute
-to the prevalence at the index date.
+A vector of length \code{num_reg_years}, representing the number of incident cases in the
+corresponding year that contribute to the prevalence at the index date.
 }
 \description{
 Counts prevalence at a specific index date from registry data.

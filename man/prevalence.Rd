@@ -2,8 +2,8 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Estimate point prevalence using a combination of available registry
-data and Monte Carlo simulated incident data.}
+\title{Estimate point prevalence using a combination of available registry data and Monte Carlo
+simulated incident data.}
 \usage{
 prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
   num_reg_years = NULL, cure = 10, N_boot = 1000,
@@ -11,7 +11,8 @@ prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
   proportion = 1e+05, population_data = NULL, n_cores = 1)
 }
 \arguments{
-\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS has three special function arguments:
+\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and
+the RHS has three special function arguments:
 \code{age}, the column where age is located;
 \code{sex}, the column where sex is located;
 \code{entry}, the column where dates of entry to the registry are located; and
@@ -27,23 +28,25 @@ Using the supplied \code{prevsim} dataset, it is therefore called with:
 
 \item{data}{A data frame with the corresponding column names provided in \code{form}.}
 
-\item{num_years_to_estimate}{Vector of integers representing number of years of data to consider when
-estimating point prevalence. If this value is greater than \code{num_registry_years},
-incident cases for the difference will be simulated.}
+\item{num_years_to_estimate}{Number of years of data to consider when estimating point
+prevalence; multiple values can be specified in a vector. If any values are greater
+than \code{num_registry_years}, incident cases for the difference will be simulated.}
 
-\item{population_size}{Integer corresponding to the size of the population.}
+\item{population_size}{Integer corresponding to the size of the population at risk.}
 
-\item{start}{Date from which incident cases in the registry data are to be included in the prevalence estimation, in
-the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
+Defaults to the earliest entry date.}
 
-\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.
-Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
-to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be
+calculated. Defaults to using all available complete years. Note that if more registry
+years are supplied than the number of years to estimate prevalence for, the survival data
+from the surplus registry years are still involved in the survival model fitting.}
 
-\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
-has their survival probability incorporating mortality rates of the underlying population.}
+\item{cure}{Integer defining cure model assumption for the calculation (in years). A
+patient who has survived beyond the cure time has a probability of surviving derived
+from the mortality rate of the general population.}
 
-\item{N_boot}{Integer representing number of bootstrapped calculations to perform.}
+\item{N_boot}{Number of bootstrapped calculations to perform.}
 
 \item{max_yearly_incidence}{Integer larger than the expected yearly incidence
 to allow for variation in incidence between years.}
@@ -54,28 +57,30 @@ to allow for variation in incidence between years.}
 
 \item{proportion}{The population ratio to estimate prevalence for.}
 
-\item{population_data}{A dataframe which must contain the columns \code{age}, \code{rate}, and \code{sex},
-where each row is the mortality rate for a person of that age and gender. Ideally, age ranges from [0, 100].
-Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
-providing custom ones.}
+\item{population_data}{A dataframe that must contain the columns \code{age}, \code{rate},
+and \code{sex}, where each row is the mortality rate for a person of that age and
+sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
+for the format required for custom datasets.}
 
-\item{num_cores}{The number of CPU cores to run the fitting of the bootstrapped survival models across.
+\item{num_cores}{Number of CPU cores to run the fitting of the bootstrapped survival models.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
 \value{
 An S3 object of class \code{prevalence} with the following attributes:
 \item{estimates}{Estimated prevalence at the index date for each of the years in \code{num_years_to_estimate}.}
-\item{simulated}{A list containing items related to the simulation of prevalence contributions, see \code{prevalence_simulated}}.
-\item{counted}{Contributions to prevalence from each of the supplied registry years, see \code{prevalence_counted}.}
+\item{simulated}{A list containing items related to the simulation of prevalence contributions,
+see \code{\link{prevalence_simulated}}}.
+\item{counted}{Contributions to prevalence from each of the supplied registry years,
+see \code{\link{prevalence_counted}}.}
 \item{start_date}{The starting date of the registry data included in the estimation.}
 \item{index_date}{The index date at which the point prevalence was calculated for.}
 \item{known_inc_rate}{The known incidence rate for years included in the registry.}
 \item{nregyears}{Number of years of registry data that were used.}
-\item{nbootstraps}{The number of bootstrap survival models fitted during the calculation.}
-\item{pval}{The p-value resulting from the chi-square test between the simulated and counted prevalent cases for the years of
-registry data available.}
+\item{nbootstraps}{The number of bootstrapped survival models fitted during the calculation.}
+\item{pval}{The p-value resulting from the chi-square test between the simulated and counted
+prevalent cases for the years of registry data available.}
 \item{y}{The Surv object used as the response in the survival modeling.}
-\item{means}{The co-variate means from the data.}
+\item{means}{The covariate means from the data.}
 }
 \description{
 Point prevalence at a specific index date is estimated using contributions to prevalence

@@ -9,16 +9,16 @@
 \arguments{
 \item{object}{A \code{survfit.prev} object.}
 
-\item{pct_show}{A list or dataframe with the co-variate values to calculate survival probabilities}
+\item{pct_show}{A list or dataframe with the covariate values to calculate survival probabilities.}
 }
 \value{
 An S3 object of class \code{survfit.prev} with the following attributes:
 }
 \description{
-The survival curve for a model formed on all the data is displayed in orange,
-while the 95% confidence interval for the bootstrapped models are displayed as a grey ribbon.
-Outlying survival curves are displayed in full, where the \code{pct_show} argument details the
-proportion of points outside of the confidence interval for a survival curve to be deemed as an outlier.
+The survival curve for a model formed on all the data is displayed in orange, while the 95%
+confidence interval for the bootstrapped models are displayed as a grey ribbon. Outlying
+survival curves are displayed in full, where the \code{pct_show} argument details the proportion
+of points outside of the confidence interval for a survival curve to be deemed as an outlier.
 }
 \examples{
 data(prevsim)

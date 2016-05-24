@@ -15,10 +15,10 @@ frame has already been stratified by sex, or any other categorical variable of i
 \item{data}{Data frame of population mortality stratified by sex and age. The following columns
 must be present: \code{sex}, \code{age}, and \code{rate}.}
 
-\item{max_age}{Integer to specify the maximum age to calculate mortality for.}
+\item{max_age}{Maximum age to calculate mortality for.}
 }
 \value{
-An estimate of the survival rate per days of age, with \code{max_age} * 365 values.
+An estimate of the survival rate by age in days, with \code{max_age} * 365 values.
 }
 \description{
 Calculates the daily mortality probability for a given population stratified by age, based on
