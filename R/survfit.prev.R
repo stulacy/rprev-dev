@@ -2,7 +2,7 @@
 #' \code{prevalence} object.
 #'
 #' @param object A \code{prevalence} object.
-#' @param newdata A list or dataframe with the co-variate values to calculate survival probabilities
+#' @param newdata A list or dataframe with the covariate values to calculate survival probabilities
 #' for. Defaults to using the mean values from the training dataset.
 #' @return An S3 object of class \code{survfit.prev} with the following attributes:
 #' \item{time}{A vector of time points at which survival probability has been calculated.}
@@ -28,7 +28,7 @@ survfit.prevalence <- function(object, newdata=NULL) {
     } else {
         # Check names have same names as those in original data
         if (!all(sort(names(newdata)) == sort(names(object$means))))
-            stop("Error: Please provide a list with the same column names as in the orignal dataset.")
+            stop("Error: Please provide a list with the same column names as in the original dataset.")
 
         # Reorder new data to be in same order as original data
         use_df <- unlist(newdata)[names(object$means)]
@@ -55,14 +55,14 @@ print.survfit.prev <- function(object, ...) {
 #' \code{survfit.prev} object.
 #'
 #' Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
-#' timepoint, with the 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
-#' can only be estimated at timepoints less than the maximum survival time in the original fitting of
+#' timepoint, with 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
+#' can only be estimated at time points less than the maximum survival time in the original fitting of
 #' the \code{prevalence} object.
 #'
 #' @param object A \code{survfit.prev} object.
-#' @param years A vector of years at which to estimate survival probability from the bootstrapped
+#' @param years A vector of years for which to estimate survival probability from the bootstrapped
 #' survival curves.
-#' @return None, instead displays the survival probabilities to screen as a side-effect.
+#' @return Displays the survival probabilities to screen as a side-effect.
 #' @examples
 #' data(prevsim)
 #'
@@ -98,13 +98,13 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 
 #' Plots survival curves for a \code{survfit.prev} object.
 #'
-#' The survival curve for a model formed on all the data is displayed in orange,
-#' while the 95% confidence interval for the bootstrapped models are displayed as a grey ribbon.
-#' Outlying survival curves are displayed in full, where the \code{pct_show} argument details the
-#' proportion of points outside of the confidence interval for a survival curve to be deemed as an outlier.
+#' The survival curve for a model formed on all the data is displayed in orange, while the 95%
+#' confidence interval for the bootstrapped models are displayed as a grey ribbon. Outlying
+#' survival curves are displayed in full, where the \code{pct_show} argument details the proportion
+#' of points outside of the confidence interval for a survival curve to be deemed as outliers.
 #'
 #' @param object A \code{survfit.prev} object.
-#' @param pct_show A list or dataframe with the co-variate values to calculate survival probabilities
+#' @param pct_show A list or dataframe with the covariate values to calculate survival probabilities.
 #' @return An S3 object of class \code{survfit.prev} with the following attributes:
 #' @examples
 #' data(prevsim)
