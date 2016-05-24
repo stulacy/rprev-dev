@@ -9,13 +9,13 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-In this vignette we are going to demonstrate how predictions of prevalence are calculated from a synthetic patient dataset using `prevR`. We use the term prevalence to mean estimates of point prevalence of a disease at an index date calculated from incidence and modelled survival probability from registry data. Where we calculate prevalence for a specific number of years, *n* years, this means the number of years working back from the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+In this vignette we are going to demonstrate how predictions of prevalence are calculated from a synthetic patient dataset using `prevR`. We define the term *prevalence* as "*point estimates of disease prevalence at a specific index date*". This is typically estimated from incidence and modelled survival probability using registry data. We calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
 
 ![Estimating prevalence from registry data using prevR.](diagram.JPG)
 
 As prevalence is estimated for the simulated years using probability of survival from the disease, modelled on the available registry data, an appropriate value of *n* should be selected. If *n* is too low, the prevalence prediction will be an underestimate, as long-surviving cases may exist that were incident before *n* years preceding the index date. If *n* is too high relative to the length of the registry, the longer the simulation and the greater the reliance on extrapolation from the registry data. If the disease of interest is rapidly fatal or the registry is sufficiently long that survival is accurately modelled on the available data, larger values of *n* might be appropriate. It is necessary to keep in mind that, as survival is presently modelled with an asymptotic Weibull distribution, some long-surviving cases may appear to be immortal. To overcome the problem of extrapolating the survival of these patients, we recommend implementing our so-called *cure* model, which we will discuss in more detail later in this vignette. In short, the higher the value of *n*, the more accurate the prevalence prediction, as long as survival can be adequately modelled over *n* years from the available registry data. 
 
-In the following sections we aim to take the user through the successive stages of the modelling process, outlining the correct use of the basic functions, illustrating how the diagnostics provided are used to check the validity of the assumptions required for simulating years of interest before the registry, and checking the agreement between observed and simulated prevalence estimates. First, we will inspect the consistency of incidence data between years of the registry and determine if it can be appropriate modelled as an homogeneous Poisson process. Secondly, we will look at the consistency of the survival data between years of the registry and check the adequacy of a parametric model of survival. We will also introduce the population survival data and explain how it integrates with patient survival to produce a *cure* model, where it is desired. Lastly, we will introduce our functions for estimating prevalence, demonstrate how to check the resulting estimates are reasonable, and harvest the posterior distribution of a modelled covariate.
+In the following sections we aim to take the user through the successive stages of the modelling process, outlining the correct use of the basic functions, illustrating how the diagnostics provided are used to check the validity of the assumptions required for simulating years of interest before the registry, and checking the agreement between observed and simulated prevalence estimates. First, we will inspect the consistency of incidence data between years of the registry and determine if it can be appropriate modelled as an homogeneous Poisson process **we don't actually spend much time discussing this asssumption and how the plots/tests detail if it's met, or indeed what to do if it isn't met**. Second, we will look at the consistency of the survival data between years of the registry and check the adequacy of a parametric model of survival **again we just plot the figures without detailed explanation**. We will also introduce the population survival data and explain how it integrates with patient survival to produce a *cure* model, where it is desired. Lastly, we will introduce our functions for estimating prevalence, demonstrate how to check the resulting estimates are reasonable, and harvest the posterior distribution of a modelled covariate.
 
 ```{r, echo = FALSE, message = FALSE}
 devtools::load_all()
@@ -270,13 +270,19 @@ plot(prevsurv, pct_show=0.90)
 
 ## Comparison between simulated and counted prevalence
 
-Whether the model is predicting good numbers for the recent years for which we have data can be assessed using a chi squared test. `test_prevalence_fit` is a method of a `prevalence` object which calculates the chi-square test between the number of simulated prevalent contributions and those counted in the years for which registry data is available.
+The test whether the model is predicting reasonable values of prevalence, we can use the fact that we can directly measure the discrepancy between the predicted and actual prevalence for the available registry years. This difference can be formally tested using a chi-square test; the resulting p-value resulting is returned as an attribute of a `prevalence` object, called `pval`.
+
+```{r}
+prevalence_total$pval
+```
+
+For this model, there is no evidence to reject the null hypothesis.
+
+This can also be calculated manually with the `test_prevalence_fit` function.
 
 ```{r test, error = TRUE}
 test_prevalence_fit(prevalence_total)
 ```
-
-For this model, there is no evidence to reject the null hypothesis.
 
 ## Age distribution of prevalent cases
 
