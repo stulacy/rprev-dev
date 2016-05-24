@@ -9,6 +9,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+# Introduction
+
 In this vignette we are going to demonstrate how predictions of prevalence are calculated from a synthetic patient dataset using `prevR`. We define the term *prevalence* as "*point estimates of disease prevalence at a specific index date*". This is typically estimated from incidence and modelled survival probability using registry data. We calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
 
 ![Estimating prevalence from registry data using prevR.](diagram.JPG)
