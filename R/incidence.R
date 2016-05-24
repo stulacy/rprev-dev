@@ -34,11 +34,10 @@ incidence <- function(entry, start=NULL, num_reg_years=NULL) {
     per_year
 }
 
-#' Calculate average incidence rates per one hundred thousand over the specified number of years, with
-#' confidence intervals.
+#' Calculate the average incidence rate per one hundred thousand with confidence intervals.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param population_size The size of the population at risk.
+#' @param population_size The number of people in the population at risk.
 #' @param start Date from which incident cases are included in the format YYYY-MM-DD.
 #' Defaults to the earliest entry date.
 #' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
