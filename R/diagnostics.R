@@ -235,4 +235,3 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
                                   dfr_r$age_initial < age + limits, ])
     lines(kma, lwd=1, col=colour, conf.int=T)
 }
-
