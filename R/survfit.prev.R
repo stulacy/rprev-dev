@@ -55,13 +55,13 @@ print.survfit.prev <- function(object, ...) {
 #'
 #' Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
 #' timepoint, with 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
-#' can only be estimated at time points less than the maximum survival time in the original fitting of
-#' the \code{prevalence} object.
+#' can only be estimated at time points less than the maximum survival time in the original dataset that
+#' the \code{prevalence} object was fitted to.
 #'
 #' @param object A \code{survfit.prev} object.
 #' @param years A vector of years for which to estimate survival probability from the bootstrapped
 #' survival curves.
-#' @return Displays the survival probabilities to screen as a side-effect.
+#' @return None, displays the survival probabilities to screen as a side-effect.
 #' @examples
 #' data(prevsim)
 #'
@@ -100,7 +100,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' The survival curve for a model formed on all the data is displayed in orange, while the 95%
 #' confidence interval for the bootstrapped models are displayed as a grey ribbon. Outlying
 #' survival curves are displayed in full, where the \code{pct_show} argument details the proportion
-#' of points outside of the confidence interval for a survival curve to be deemed as outliers.
+#' of points outside of the confidence interval for a survival curve to be deemed as an outlier.
 #'
 #' @param object A \code{survfit.prev} object.
 #' @param pct_show A list or dataframe with the covariate values to calculate survival probabilities.
