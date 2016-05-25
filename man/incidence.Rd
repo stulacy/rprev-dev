@@ -9,11 +9,11 @@ incidence(entry, start = NULL, num_reg_years = NULL)
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD,
-defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
+Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated,
-defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
+Defaults to using all available complete years.}
 }
 \value{
 Vector of length num_reg_years of integers, representing the number of absolute incidence values

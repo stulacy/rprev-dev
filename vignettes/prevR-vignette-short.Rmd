@@ -1,5 +1,5 @@
 ---
-title: "prevR Vignette (Short)"
+title: "prevR User Guide"
 author: "Stephanie J. Lax"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -9,13 +9,15 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-In this vignette we are going to demonstrate how predictions of prevalence are calculated from a synthetic patient dataset using `prevR`. We use the term prevalence to mean estimates of point prevalence of a disease at an index date calculated from incidence and modelled survival probability from registry data. Where we calculate prevalence for a specific number of years, *n* years, this means the number of years working back from the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+# Introduction
+
+In this vignette we are going to demonstrate how predictions of prevalence are calculated from a synthetic patient dataset using `prevR`. We define the term *prevalence* as "*point estimates of disease prevalence at a specific index date*". This is typically estimated from incidence and modelled survival probability using registry data. We calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
 
 ![Estimating prevalence from registry data using prevR.](diagram.JPG)
 
 As prevalence is estimated for the simulated years using probability of survival from the disease, modelled on the available registry data, an appropriate value of *n* should be selected. If *n* is too low, the prevalence prediction will be an underestimate, as long-surviving cases may exist that were incident before *n* years preceding the index date. If *n* is too high relative to the length of the registry, the longer the simulation and the greater the reliance on extrapolation from the registry data. If the disease of interest is rapidly fatal or the registry is sufficiently long that survival is accurately modelled on the available data, larger values of *n* might be appropriate. It is necessary to keep in mind that, as survival is presently modelled with an asymptotic Weibull distribution, some long-surviving cases may appear to be immortal. To overcome the problem of extrapolating the survival of these patients, we recommend implementing our so-called *cure* model, which we will discuss in more detail later in this vignette. In short, the higher the value of *n*, the more accurate the prevalence prediction, as long as survival can be adequately modelled over *n* years from the available registry data. 
 
-In the following sections we aim to take the user through the successive stages of the modelling process, outlining the correct use of the basic functions, illustrating how the diagnostics provided are used to check the validity of the assumptions required for simulating years of interest before the registry, and checking the agreement between observed and simulated prevalence estimates. Firstly we will inspect the consistency of incidence data between years of the registry and determine if it can be appropriate modelled as an homogeneous Poisson process. Secondly, we will look at the consistency of the survival data between years of the registry and check the adequacy of a parametric model of survival. We will also introduce the population survival data and explain how it integrates with patient survival to produce a *cure* model, where it is desired. Lastly, we will introduce our functions for estimating prevalence, demonstrate how to check the resulting estimates are reasonable, and harvest the posterior distribution of a modelled covariate.
+In the following sections we aim to take the user through the successive stages of the modelling process, outlining the correct use of the basic functions, illustrating how the diagnostics provided are used to check the validity of the assumptions required for simulating years of interest before the registry, and checking the agreement between observed and simulated prevalence estimates. First, we will inspect the consistency of incidence data between years of the registry and determine if it can be appropriate modelled as an homogeneous Poisson process **we don't actually spend much time discussing this asssumption and how the plots/tests detail if it's met, or indeed what to do if it isn't met**. Second, we will look at the consistency of the survival data between years of the registry and check the adequacy of a parametric model of survival **again we just plot the figures without detailed explanation**. We will also introduce the population survival data and explain how it integrates with patient survival to produce a *cure* model, where it is desired. Lastly, we will introduce our functions for estimating prevalence, demonstrate how to check the resulting estimates are reasonable, and harvest the posterior distribution of a modelled covariate.
 
 ```{r, echo = FALSE, message = FALSE}
 devtools::load_all()
@@ -47,7 +49,7 @@ legend(3000, 1, c("Males", "Females"), lty = 1, col=c("blue","red"))
 
 The simulation of incident cases in the years for which registry data is not available relies upon the assumption of a homogeneous Poisson process. The package includes several functions for inspecting the incidence data, as well as diagnosing the validity of the Poisson fit.
 
-The `incidence` function calculates absolute incidence of disease for each selected year of the registry; the optional arguments *start* and *num_reg_years* allow for the specification of certain years. These are useful when there are doubts about the accuracy of the incidence data, e.g. during the first year of operation of the registry. The output is a vector of *num_reg_years* length, detailing the number of incident cases in the registry at yearly intervals starting at `start` date. For example, in the following output, the incidence between 2004-01-30 and 2005-01-30 is `r incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=1)`.
+The `incidence` function calculates absolute disease incidence for each selected year of the registry; the optional arguments *start* and *num_reg_years* allow for the specification of certain years. These are useful when there are doubts about the accuracy of the incidence data, e.g. during the first year of operation of the registry. The output is a vector of *num_reg_years* length, detailing the number of incident cases in the registry at yearly intervals starting at `start` date. For example, in the following output, the incidence between 2004-01-30 and 2005-01-30 is `r incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=1)`.
 
 ```{r totalincidence, error = TRUE}
 raw_incidence <- incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=9)
@@ -63,7 +65,7 @@ It can be concluded that the disease has around 100 new cases each year. To asse
 test_poisson_fit(raw_incidence)
 ```
 
-`inspect_incidence` and `poisson_incidence_sim` are both graphical means of validating the Poisson fit, and are methods of a `cincidence` object, for which the constructor is `cumulative_incidence`. This function calculates cumulative incidence for the registry data and fits a spline to it:
+`inspect_incidence` and `poisson_incidence_sim` are both graphical means of validating the Poisson fit, and are methods of a `cincidence` object, for which the constructor is `cumulative_incidence`. This latter function calculates cumulative incidence for the registry data and fits a spline to it.
 
 ```{r}
 c_inc <- cumulative_incidence(prevsim$entrydate, start = "2004-01-30", num_reg_years = 9)
@@ -79,12 +81,12 @@ inspect_incidence(c_inc)
 
 `poisson_incidence_sim` simulates a large number of incident case datasets, where the incident cases are randomly uniformly distributed between the start and end date of the original registry. Smooths are then fitted to these datasets. For both the smooth from the `cincidence` object and the simulated smooths, the deviations from the actual data are calculated. The deviations of the simulated smooths are plotted in grey, while the deviation from the actual smooth is displayed in red, with confidence intervals in grey.
 
-For an homogeneous incidence process, the deviation from the smooths will be normally distributed, and so this plot expects to see evidence of this if the assumption is met:
+For a homogeneous incidence process, the deviation from the smooths will be normally distributed, and so this plot expects to see evidence of this if the assumption is met:
 
 **Is this a correct summary? How to use this for diagnostic purposes?**
 
 ```{r, fig.width = 7, fig.height = 4}
-poisson_incidence_sim(c_inc)
+poisson_incidence_sim_gg(c_inc)
 ```
 
 Currently, the incidence process can only be modelled as a Poisson homogeneous process; if the diagnostics indicate this is not a suitable fit then the prevalence estimates will be inaccurate. Future releases of `prevR` will allow for custom incidence distributions.
@@ -110,12 +112,12 @@ The second component to the prevalence estimation is the survival modelling proc
 
 **How do these plots show that?, what are the CIs, the colours, the smooths etc... all showing?**
 
+It is always useful to plot the Kaplan-Meier estimator of the data, both as a whole and stratified by age to visually inspect for any inconsistencies.
+
 ```{r survivaldiag, fig.width = 7, fig.height = 4}
 km <- survfit(Surv(time, status) ~ 1, data=prevsim_r)
 plot(km, lwd=2, col="blue", xlab="Days", ylab="Survival probability")
 ```
-
-It is always useful to plot the Kaplan-Meier estimator of the data, both as a whole and stratified by age to visually inspect for any inconsistencies.
 
 ```{r survivaldiag2, fig.width = 7, fig.height = 4}
 ages = c(55, 65, 75, 85, 100)
@@ -256,13 +258,13 @@ prevsurv <- survfit(prevalence_total, newdata=list(age=60, sex=0))
 prevsurv
 ```
 
-The `summary.survfit.prev` method provides *n*-year survival probabilities, with *n* specified as an argument vector.
+The `summary.survfit.prev` method provides *N*-year survival probabilities, with *N* specified as an argument vector.
 
 ```{r}
 summary(prevsurv, years=c(1, 3, 5, 10))
 ```
 
-Plotting the `survfit.prev` object displays the survival curve of a Weibull model using the original dataset (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outliers curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval.
+Plotting the `survfit.prev` object displays the survival curve of a Weibull model using the original dataset (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval.
 
 ```{r, fig.width=7, fig.height=4}
 plot(prevsurv, pct_show=0.90)
@@ -270,13 +272,19 @@ plot(prevsurv, pct_show=0.90)
 
 ## Comparison between simulated and counted prevalence
 
-Whether the model is predicting good numbers for the recent years for which we have data can be assessed using a chi squared test. `test_prevalence_fit` is a method of a `prevalence` object which calculates the chi-square test between the number of simulated prevalent contributions and those counted in the years for which registry data is available.
+The test whether the model is predicting reasonable values of prevalence, we can use the fact that we can directly measure the discrepancy between the predicted and actual prevalence for the available registry years. This difference can be formally tested using a chi-square test; the resulting p-value resulting is returned as an attribute of a `prevalence` object, called `pval`.
+
+```{r}
+prevalence_total$pval
+```
+
+For this model, there is no evidence to reject the null hypothesis.
+
+This can also be calculated manually with the `test_prevalence_fit` function.
 
 ```{r test, error = TRUE}
 test_prevalence_fit(prevalence_total)
 ```
-
-For this model, there is no evidence to reject the null hypothesis.
 
 ## Age distribution of prevalent cases
 

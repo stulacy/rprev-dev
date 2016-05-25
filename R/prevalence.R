@@ -74,7 +74,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' survival data from the surplus registry years are still involved in the survival model
 #' fitting.
 #' @param cure Integer defining cure model assumption for the calculation (in years). A
-#' patient who has survived beyond the cure time has a probability of surviving derived
+#' patient who has survived beyond the cure time has a survival probability derived
 #' from the mortality rate of the general population.
 #' @param N_boot Number of bootstrapped calculations to perform.
 #' @param max_yearly_incidence Integer larger than the expected yearly incidence
@@ -83,7 +83,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' and \code{sex}, where each row is the mortality rate for a person of that age and
 #' sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
 #' for the format required for custom datasets.
-#' @param num_cores Number of CPU cores to run the fitting of the bootstrapped survival models.
+#' @param num_cores Number of CPU cores to run the fitting of the bootstrapped survival models across.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
 #' @return A list with the following attributes:
 #' \item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate},
@@ -294,9 +294,8 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate)}
 #' @param data A data frame with the corresponding column names provided in \code{form}.
 #' @param num_years_to_estimate Number of years of data to consider when estimating point
-#' prevalence. If this value is greater than \code{num_registry_years}, incident cases for
-#' the difference will be simulated. This can be an integer or vector or integers where
-#' multiple estimates are required.
+#' prevalence; multiple values can be specified in a vector. If any values are greater
+#' than \code{num_registry_years}, incident cases for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population at risk.
 #' @param start Date from which incident cases are included in the format YYYY-MM-DD.
 #' Defaults to the earliest entry date.
@@ -313,7 +312,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
 #' @param proportion The population ratio to estimate prevalence for.
-#' @param population_data A dataframe which must contain the columns \code{age}, \code{rate},
+#' @param population_data A dataframe that must contain the columns \code{age}, \code{rate},
 #' and \code{sex}, where each row is the mortality rate for a person of that age and
 #' sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
 #' for the format required for custom datasets.

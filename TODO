@@ -1,3 +1,4 @@
   - More rigorous stress testing!
-  - Improve poisson_sim_fit plot, it looks fine but is currently far far too slow! Get values for ribbon without needing quantreg
+  - Improve poisson_sim_fit plot with Simon's updated formulated of deviation from smooth
   - Rename incidence functions?
+  - Make incidence object which is built with 1 function (incidence...), and has p-values as attributes, and 1 plot method with 2 arguments detailing to plot as the possion_sim_fit or the inspect_incidence existing functions?!

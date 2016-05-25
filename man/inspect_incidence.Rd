@@ -2,7 +2,7 @@
 % Please edit documentation in R/cumulative_incidence.R
 \name{inspect_incidence}
 \alias{inspect_incidence}
-\title{Plots a comparison between the smoothed daily incidence function and the actual.}
+\title{Plots a comparison between the smoothed daily incidence function and actual incidence.}
 \usage{
 inspect_incidence(object, level = 0.95)
 }

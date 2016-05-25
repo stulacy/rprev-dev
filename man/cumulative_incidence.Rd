@@ -2,21 +2,21 @@
 % Please edit documentation in R/cumulative_incidence.R
 \name{cumulative_incidence}
 \alias{cumulative_incidence}
-\title{Generates a smoothed cumulative incidence function, useful for inspecting deviations in the registry data
-and compare with the cumulative incidence for constant diagnosis rate.}
+\title{Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
+and comparing with the cumulative incidence for constant diagnosis rate.}
 \usage{
 cumulative_incidence(entry, start = NULL, num_reg_years = NULL, df = 6)
 }
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD,
-defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
+Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated,
-defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
+Defaults to using all available complete years.}
 
-\item{df}{The desired degrees of freedom for the smoothening function.}
+\item{df}{The desired degrees of freedom of the smooth.}
 }
 \value{
 An S3 object of class \code{cincidence} with the following attributes:
@@ -29,8 +29,8 @@ inclusion in the registry, ordered shortest to longest.}
 \item{dof}{Degrees of freedom of the smooth.}
 }
 \description{
-Generates a smoothed cumulative incidence function, useful for inspecting deviations in the registry data
-and compare with the cumulative incidence for constant diagnosis rate.
+Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
+and comparing with the cumulative incidence for constant diagnosis rate.
 }
 \examples{
 data(prevsim)

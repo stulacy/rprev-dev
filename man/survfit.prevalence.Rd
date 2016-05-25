@@ -10,15 +10,15 @@
 \arguments{
 \item{object}{A \code{prevalence} object.}
 
-\item{newdata}{A list or dataframe with the co-variate values to calculate survival probabilities
-for. Defaults to using the mean values from the training dataset.}
+\item{newdata}{A list or dataframe with the covariate values to calculate survival probabilities
+for. Defaults to using the mean values from the the original dataset that the model was fit to.}
 }
 \value{
 An S3 object of class \code{survfit.prev} with the following attributes:
 \item{time}{A vector of time points at which survival probability has been calculated.}
 \item{surv}{A matrix of survival probabilities, where the rows represent a different bootstrapped
 Weibull model, and the columns are each timepoint.}
-\item{fullsurv}{A vector of survival probabilities for the model built on the full training set.}
+\item{fullsurv}{A vector of survival probabilities for the predictors provided in newdata.}
 }
 \description{
 Calculates bootstrapped survival probabilities from the Weibull models fitted to the

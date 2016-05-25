@@ -9,7 +9,8 @@ prevalence_simulated(survobj, age, sex, entry, num_years_to_estimate, start,
   population_data = NULL, n_cores = 1)
 }
 \arguments{
-\item{survobj}{\code{Surv} object from \code{survival} package. Currently only right censoring is supported.}
+\item{survobj}{\code{Surv} object from \code{survival} package. Currently only right
+censoring is supported.}
 
 \item{age}{A vector of ages from the registry.}
 
@@ -17,40 +18,45 @@ prevalence_simulated(survobj, age, sex, entry, num_years_to_estimate, start,
 
 \item{entry}{A vector of entry dates into the registry, in the format YYYY-MM-DD.}
 
-\item{num_years_to_estimate}{Integer representing number of years of data to estimate point prevalence for, if this value
-is greater than \code{num_registry_years} then incident cases for the difference will be simulated.}
+\item{num_years_to_estimate}{Number of years of data to estimate point prevalence for.
+If this value is greater than \code{num_registry_years} then incident cases for the
+difference will be simulated.}
 
-\item{start}{Date from which incident cases in the registry data are to be included in the prevalence estimation, in
-the format YYYY-MM-DD. Defaults to the earliest incident case in the supplied registry.}
+\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
+Defaults to the earliest entry date.}
 
-\item{num_reg_years}{Integer representing the number of complete years of the registry for which incidence is to be calculated.
-Defaults to the number of complete years of registry data. Note that if more registry years are supplied than the number of years
-to estimate prevalence for, the survival data from the surplus registry years are still involved in the survival model fitting.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to
+be calculated. Defaults to using all available complete years. Note that if more
+registry years are supplied than the number of years to estimate prevalence for, the
+survival data from the surplus registry years are still involved in the survival model
+fitting.}
 
-\item{cure}{Integer defining cure model assumption for the calculation (in years). A patient who has survived beyond the cure time
-has their survival probability incorporating mortality rates of the underlying population.}
+\item{cure}{Integer defining cure model assumption for the calculation (in years). A
+patient who has survived beyond the cure time has a survival probability derived
+from the mortality rate of the general population.}
 
-\item{N_boot}{Integer representing number of bootstrapped calculations to perform.}
+\item{N_boot}{Number of bootstrapped calculations to perform.}
 
 \item{max_yearly_incidence}{Integer larger than the expected yearly incidence
 to allow for variation in incidence between years.}
 
-\item{population_data}{A dataframe which must contain the columns \code{age}, \code{rate}, and \code{sex},
-where each row is the mortality rate for a person of that age and gender. Ideally, age ranges from [0, 100].
-Defaults to the supplied data \code{UKmortality}; see the documentation for this dataframe for help in
-providing custom ones.}
+\item{population_data}{A dataframe which must contain the columns \code{age}, \code{rate},
+and \code{sex}, where each row is the mortality rate for a person of that age and
+sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
+for the format required for custom datasets.}
 
-\item{num_cores}{The number of CPU cores to run the fitting of the bootstrapped survival models across.
+\item{num_cores}{Number of CPU cores to run the fitting of the bootstrapped survival models across.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
 \value{
 A list with the following attributes:
-\item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate}, representing the average number of
-prevalent cases subdivided by year of diagnosis across each bootstrap iteration.}
+\item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate},
+representing the average number of prevalent cases subdivided by year of diagnosis across
+each bootstrap iteration.}
 \item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
-\item{yearly_contributions}{Total simulated prevalent cases from every bootstrap sample.}
+\item{yearly_contributions}{Total simulated prevalent cases from every bootstrapped sample.}
 \item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-\item{nbootstraps}{Number of bootstrap samples used in the prevalence estimation.}
+\item{nbootstraps}{Number of bootstrapped samples used in the prevalence estimation.}
 \item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
 \item{full_coefs}{The Weibull coefficients from a model fitted to the full dataset.}
 }
