@@ -205,17 +205,17 @@ print.cincidence <- function(object, ...) {
 }
 
 summary.cincidence <- function(object, ...) {
-    cat("Registry Data\n~~~~~~~~~~~~~\n")
+    cat("~~~~~~~~~~~~~\nRegistry Data\n~~~~~~~~~~~~~\n")
     cat("Number of years:", length(object$raw_incidence), "\n")
 
-    cat("\nIncidence\n~~~~~~~~~\n")
+    cat("~~~~~~~~~~~~~\nIncidence\n~~~~~~~~~\n")
 
     cat("Known incidence by year:", object$raw_incidence, "\n")
 
     cat("Diagnoses (time since registry began):\n")
     print(summary(object$ordered_diagnoses))
 
-    cat("Fitted smooth:\n")
+    cat("~~~~~~~~~~~~~\nFitted smooth:\n~~~~~~~~~~~~~\n")
     print(object$smooth)
 }
 
