@@ -2,9 +2,11 @@
 % Please edit documentation in R/incidence.R
 \name{incidence}
 \alias{incidence}
-\title{Calculate absolute incidence from registry data.}
+\title{Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
+and comparing with the cumulative incidence for constant diagnosis rate.}
 \usage{
-incidence(entry, start = NULL, num_reg_years = NULL)
+incidence(entry, population_size, start = NULL, num_reg_years = NULL,
+  df = 6, precision = 2, level = 0.95)
 }
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
@@ -14,21 +16,38 @@ Defaults to the earliest entry date.}
 
 \item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
 Defaults to using all available complete years.}
+
+\item{df}{The desired degrees of freedom of the smooth.}
 }
 \value{
-Vector of length num_reg_years of integers, representing the number of absolute incidence values
-for each included year of the registry.
+An S3 object of class \code{cincidence} with the following attributes:
+\item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
+as generated using \code{incidence()}.}
+\item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
+inclusion in the registry, ordered shortest to longest.}
+\item{smooth}{Smooth fitted to the cumulative incidence data.}
+\item{index_dates}{Dates delimiting the years in which incidence is calculated.}
+\item{dof}{Degrees of freedom of the smooth.}
 }
 \description{
-Calculate absolute incidence from registry data.
+Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
+and comparing with the cumulative incidence for constant diagnosis rate.
 }
 \examples{
 data(prevsim)
 
-incidence(prevsim$entrydate, start="2004-01-01", 8)
-incidence(prevsim$entrydate)
-incidence(prevsim$entrydate, start="2005-05-01", 5)
-incidence(prevsim$entrydate, start="2005-05-01")
+c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
+ordered_diagnoses <- c_inc$ordered_diagnoses
 
+# Plot the smooth against the ordered diagnoses to see the model fit
+plot(ordered_diagnoses, c_inc$cumulative_incidence, pch=20,
+cex=0.7, xlab="days", ylab="cumulative diagnoses")
+abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)],
+col="red", lwd=2)
+lines(c_inc$smooth, col="green", lwd=2)
+
+# The following plot shows the deviation of the raw data from the fitted smooth by day:
+plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(c_inc$smooth, ordered_diagnoses)$y,
+type="l", xlab="days", ylab="deviation from smooth")
 }
 

@@ -4,23 +4,22 @@
 \alias{mean_incidence_rate}
 \title{Calculate the average incidence rate per one hundred thousand with confidence intervals.}
 \usage{
-mean_incidence_rate(entry, population_size, start = NULL,
-  num_reg_years = NULL, precision = 2, level = 0.95)
+mean_incidence_rate(raw_inc, population_size, precision = 2, level = 0.95)
 }
 \arguments{
-\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
-
 \item{population_size}{The number of people in the population at risk.}
+
+\item{precision}{The number of decimal places required.}
+
+\item{level}{The desired confidence interval width.}
+
+\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
 \item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
 Defaults to the earliest entry date.}
 
 \item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
 Defaults to using all available complete years.}
-
-\item{precision}{The number of decimal places required.}
-
-\item{level}{The desired confidence interval width.}
 }
 \value{
 A list with the following values:
