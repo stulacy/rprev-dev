@@ -17,7 +17,7 @@
 #' @export test_poisson_fit
 test_poisson_fit <- function(incidence, N_sim = 1e5) {
     var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(incidence), mean(incidence))), numeric(1))
-    c(length(var_sim[var_sim > var(incidence)])/N_sim, length(var_sim[var_sim <= var(incidence)])/N_sim)
+    c(sum(var_sim > var(incidence))/N_sim, sum(var_sim <= var(incidence))/N_sim)
 }
 
 #' Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.
