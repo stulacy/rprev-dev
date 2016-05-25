@@ -276,24 +276,21 @@ poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per
     print(p)
 }
 
-print.cincidence <- function(object, ...) {
+print.incidence <- function(object, ...) {
     cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
     cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
 
 }
 
-summary.cincidence <- function(object, ...) {
-    cat("~~~~~~~~~~~~~\nRegistry Data\n~~~~~~~~~~~~~\n")
-    cat("Number of years:", length(object$raw_incidence), "\n")
+summary.incidence <- function(object, ...) {
+    cat("Number of years of registry data:", length(object$raw_incidence), "\n")
 
-    cat("~~~~~~~~~~~~~\nIncidence\n~~~~~~~~~\n")
-
+    cat("\nIncidence\n~~~~~~~~~\n")
     cat("Known incidence by year:", object$raw_incidence, "\n")
-
     cat("Diagnoses (time since registry began):\n")
     print(summary(object$ordered_diagnoses))
 
-    cat("~~~~~~~~~~~~~\nFitted smooth:\n~~~~~~~~~~~~~\n")
+    cat("\nFitted smooth:\n~~~~~~~~~~~~~\n")
     print(object$smooth)
 }
 
