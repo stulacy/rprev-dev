@@ -2,66 +2,76 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence_simulated}
 \alias{prevalence_simulated}
-\title{Estimates prevalent cases at a specific index date by use of Monte Carlo simulation.}
+\title{Estimate prevalence using Monte Carlo simulation.}
 \usage{
 prevalence_simulated(survobj, age, sex, entry, num_years_to_estimate, start,
   num_reg_years, cure = 10, N_boot = 1000, max_yearly_incidence = 500,
   population_data = NULL, n_cores = 1)
 }
 \arguments{
-\item{survobj}{\code{Surv} object from \code{survival} package. Currently only right
-censoring is supported.}
+\item{survobj}{\code{Surv} object from \code{survival} package. Currently
+only right censoring is supported.}
 
 \item{age}{A vector of ages from the registry.}
 
-\item{sex}{A vector of sex, encoded as 0 and 1 for males and females respectively.}
+\item{sex}{A vector of sex, encoded as 0 and 1 for males and females
+respectively.}
 
-\item{entry}{A vector of entry dates into the registry, in the format YYYY-MM-DD.}
+\item{entry}{A vector of entry dates into the registry, in the format
+YYYY-MM-DD.}
 
-\item{num_years_to_estimate}{Number of years of data to consider when estimating point
-prevalence; multiple values can be specified in a vector. If any values are greater
-than \code{num_registry_years}, incident cases for the difference will be simulated.}
+\item{num_years_to_estimate}{Number of years of data to consider when
+estimating point prevalence; multiple values can be specified in a vector.
+If any values are greater than \code{num_registry_years}, incident cases
+for the difference will be simulated.}
 
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
-Defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be
-calculated. Defaults to using all available complete years. Note that if more registry
-years are supplied than the number of years to estimate prevalence for, the survival data
-from the surplus registry years are still involved in the survival model fitting.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years. Note
+that if more registry years are supplied than the number of years to
+estimate prevalence for, the survival data from the surplus registry years
+are still involved in the survival model fitting.}
 
-\item{cure}{Integer defining cure model assumption for the calculation (in years). A
-patient who has survived beyond the cure time has a probability of surviving derived
-from the mortality rate of the general population.}
+\item{cure}{Integer defining cure model assumption for the calculation (in
+years). A patient who has survived beyond the cure time has a probability
+of surviving derived from the mortality rate of the general population.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 
 \item{max_yearly_incidence}{Integer larger than the expected yearly incidence
 to allow for variation in incidence between years.}
 
-\item{population_data}{A dataframe that must contain the columns \code{age}, \code{rate},
-and \code{sex}, where each row is the mortality rate for a person of that age and
-sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
-for the format required for custom datasets.}
+\item{population_data}{A dataframe that must contain the columns \code{age},
+\code{rate}, and \code{sex}, where each row is the mortality rate for a
+person of that age and sex. Ideally, age ranges from [0, 100]. Defaults to
+the supplied data; see \code{\link{UKmortality}} for the format required
+for custom datasets.}
 
-\item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped survival models.
-Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
+\item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
+survival models. Defaults to 1; multi-core functionality is provided by the
+\code{doParallel} package.}
 }
 \value{
 A list with the following attributes:
-\item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate},
-representing the average number of prevalent cases subdivided by year of diagnosis across
-each bootstrap iteration.}
-\item{posterior_age}{Posterior distributions of age, sampled at every bootstrap iteration.}
-\item{yearly_contributions}{Total simulated prevalent cases from every bootstrapped sample.}
-\item{pop_mortality}{Population survival rates in the format of a list, stratified by sex.}
-\item{nbootstraps}{Number of bootstrapped samples used in the prevalence estimation.}
-\item{coefs}{The bootstrapped Weibull coefficients used by the survival models.}
-\item{full_coefs}{The Weibull coefficients from a model fitted to the full dataset.}
+  \item{mean_yearly_contributions}{A vector of length
+  \code{num_years_to_estimate}, representing the average number of prevalent
+  cases subdivided by year of diagnosis across each bootstrap iteration.}
+  \item{posterior_age}{Posterior distributions of age, sampled at every
+  bootstrap iteration.} \item{yearly_contributions}{Total simulated prevalent
+  cases from every bootstrapped sample.} \item{pop_mortality}{Population
+  survival rates in the format of a list, stratified by sex.}
+  \item{nbootstraps}{Number of bootstrapped samples used in the prevalence
+  estimation.} \item{coefs}{The bootstrapped Weibull coefficients used by the
+  survival models.} \item{full_coefs}{The Weibull coefficients from a model
+  fitted to the full dataset.}
 }
 \description{
-Simulated cases are marked with age and sex to enable agreement with population survival
-data where a cure model is used, and calculation of the posterior distributions of each.
+Estimates prevalent cases at a specific index date by use of Monte Carlo
+simulation. Simulated cases are marked with age and sex to enable agreement
+with population survival data where a cure model is used, and calculation of
+the posterior distributions of each.
 }
 \examples{
 data(prevsim)

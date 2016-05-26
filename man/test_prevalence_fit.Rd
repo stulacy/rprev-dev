@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostics.R
 \name{test_prevalence_fit}
 \alias{test_prevalence_fit}
-\title{Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.}
+\title{Test simulated prevalence fit.}
 \usage{
 test_prevalence_fit(object)
 }
@@ -10,10 +10,13 @@ test_prevalence_fit(object)
 \item{object}{A \code{prevalence} object.}
 }
 \value{
-P-value from a chi-squared test of difference between prevalence prediction and counted prevalence at the index date.
+P-value from a chi-squared test of difference between prevalence
+  prediction and counted prevalence at the index date.
 }
 \description{
-Chi squared test between predicted yearly contributions to prevalence, and the observed values obtained from the registry.
+Calculates a Chi squared test between predicted yearly contributions to
+prevalence, and the observed values obtained from the registry, indicating
+whether the simulated prevalence values are accurate.
 }
 \examples{
 data(prevsim)

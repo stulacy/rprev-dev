@@ -2,14 +2,16 @@
 % Please edit documentation in R/incidence.R
 \name{mean_incidence_rate}
 \alias{mean_incidence_rate}
-\title{Calculate the average incidence rate per one hundred thousand with confidence intervals.}
+\title{Mean disease incidence.}
 \usage{
 mean_incidence_rate(raw_inc, population_size, precision = 2, level = 0.95)
 }
 \arguments{
-\item{raw_inc}{Vector of incidence values by year, as returned by \code{\link{raw_incidence}}.}
+\item{raw_inc}{Vector of incidence values by year, as returned by
+\code{\link{raw_incidence}}.}
 
-\item{population_size}{Integer corresponding to the size of the population at risk.}
+\item{population_size}{Integer corresponding to the size of the population at
+risk.}
 
 \item{precision}{The number of decimal places required.}
 
@@ -18,13 +20,16 @@ mean_incidence_rate(raw_inc, population_size, precision = 2, level = 0.95)
 \value{
 A list with the following values:
 
-\item{absolute}{Overall incidence for the period of interest as a single double}
-\item{per100K}{Incidence for the period of interest per one hundred thousand}
-\item{per100K.lower}{Lower bounds of the specified confidence level on the per one hundred thousand estimate}
-\item{per100K.upper}{Upper bounds of the specified confidence level on the per one hundred thousand estimate}
+  \item{absolute}{Overall incidence for the period of interest as a single
+  double} \item{per100K}{Incidence for the period of interest per one hundred
+  thousand} \item{per100K.lower}{Lower bounds of the specified confidence
+  level on the per one hundred thousand estimate} \item{per100K.upper}{Upper
+  bounds of the specified confidence level on the per one hundred thousand
+  estimate}
 }
 \description{
-Calculate the average incidence rate per one hundred thousand with confidence intervals.
+Calculates the average incidence rate per one hundred thousand with
+confidence intervals for the given registry data.
 }
 \examples{
 data(prevsim)

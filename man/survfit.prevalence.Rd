@@ -2,27 +2,28 @@
 % Please edit documentation in R/survfit.prev.R
 \name{survfit.prevalence}
 \alias{survfit.prevalence}
-\title{Calculates bootstrapped survival probabilities from the Weibull models fitted to the
-\code{prevalence} object.}
+\title{Form bootstrapped survival curves.}
 \usage{
 \method{survfit}{prevalence}(object, newdata = NULL)
 }
 \arguments{
 \item{object}{A \code{prevalence} object.}
 
-\item{newdata}{A list or dataframe with the covariate values to calculate survival probabilities
-for. Defaults to using the mean values from the the original dataset that the model was fit to.}
+\item{newdata}{A list or dataframe with the covariate values to calculate
+survival probabilities for. Defaults to using the mean values from the the
+original dataset that the model was fit to.}
 }
 \value{
-An S3 object of class \code{survfit.prev} with the following attributes:
-\item{time}{A vector of time points at which survival probability has been calculated.}
-\item{surv}{A matrix of survival probabilities, where the rows represent a different bootstrapped
-Weibull model, and the columns are each timepoint.}
-\item{fullsurv}{A vector of survival probabilities for the predictors provided in newdata.}
+An S3 object of class \code{survfit.prev} with the following
+  attributes: \item{time}{A vector of time points at which survival
+  probability has been calculated.} \item{surv}{A matrix of survival
+  probabilities, where the rows represent a different bootstrapped Weibull
+  model, and the columns are each timepoint.} \item{fullsurv}{A vector of
+  survival probabilities for the predictors provided in newdata.}
 }
 \description{
-Calculates bootstrapped survival probabilities from the Weibull models fitted to the
-\code{prevalence} object.
+Calculates bootstrapped survival probabilities from the Weibull models fitted
+to the \code{prevalence} object.
 }
 \examples{
 data(prevsim)

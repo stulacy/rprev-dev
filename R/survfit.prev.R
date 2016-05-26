@@ -1,14 +1,18 @@
-#' Calculates bootstrapped survival probabilities from the Weibull models fitted to the
-#' \code{prevalence} object.
+#' Form bootstrapped survival curves.
+#'
+#' Calculates bootstrapped survival probabilities from the Weibull models fitted
+#' to the \code{prevalence} object.
 #'
 #' @param object A \code{prevalence} object.
-#' @param newdata A list or dataframe with the covariate values to calculate survival probabilities
-#' for. Defaults to using the mean values from the the original dataset that the model was fit to.
-#' @return An S3 object of class \code{survfit.prev} with the following attributes:
-#' \item{time}{A vector of time points at which survival probability has been calculated.}
-#' \item{surv}{A matrix of survival probabilities, where the rows represent a different bootstrapped
-#' Weibull model, and the columns are each timepoint.}
-#' \item{fullsurv}{A vector of survival probabilities for the predictors provided in newdata.}
+#' @param newdata A list or dataframe with the covariate values to calculate
+#'   survival probabilities for. Defaults to using the mean values from the the
+#'   original dataset that the model was fit to.
+#' @return An S3 object of class \code{survfit.prev} with the following
+#'   attributes: \item{time}{A vector of time points at which survival
+#'   probability has been calculated.} \item{surv}{A matrix of survival
+#'   probabilities, where the rows represent a different bootstrapped Weibull
+#'   model, and the columns are each timepoint.} \item{fullsurv}{A vector of
+#'   survival probabilities for the predictors provided in newdata.}
 #' @examples
 #' data(prevsim)
 #'
@@ -51,16 +55,20 @@ print.survfit.prev <- function(object, ...) {
     cat("Survival probability calculated at", length(object$time), "timepoints, across", dim(object$surv)[1], "bootstraps.")
 }
 
-#' Summarises survival information at pre-specified years of interest on a \code{survfit.prev} object.
+#' Obtain N-year survival probability estimates.
 #'
-#' Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
-#' timepoint, with 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
-#' can only be estimated at time points less than the maximum survival time in the original dataset that
-#' the \code{prevalence} object was fitted to.
+#' Summarises survival information at pre-specified years of interest on a
+#' \code{survfit.prev} object.
+#'
+#' Survival probability is estimated as the mean of the bootstrapped survival
+#' curves at a specific timepoint, with 2.5% and 97.5% quantiles providing 95%
+#' confidence intervals. Survival probability can only be estimated at time
+#' points less than the maximum survival time in the original dataset that the
+#' \code{prevalence} object was fitted to.
 #'
 #' @param object A \code{survfit.prev} object.
-#' @param years A vector of years for which to estimate survival probability from the bootstrapped
-#' survival curves.
+#' @param years A vector of years for which to estimate survival probability
+#'   from the bootstrapped survival curves.
 #' @return None, displays the survival probabilities to screen as a side-effect.
 #' @examples
 #' data(prevsim)
@@ -95,16 +103,21 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
                 years, round(probs, 3), round(lower, 3), round(upper, 3))
 }
 
-#' Plots survival curves for a \code{survfit.prev} object.
+#' Plot bootstrapped survival curves.
 #'
-#' The survival curve for a model formed on all the data is displayed in orange, while the 95%
-#' confidence interval for the bootstrapped models are displayed as a grey ribbon. Outlying
-#' survival curves are displayed in full, where the \code{pct_show} argument details the proportion
-#' of points outside of the confidence interval for a survival curve to be deemed as an outlier.
+#' This method plots survival curves for a \code{survfit.prev} object.
+#'
+#' The survival curve for a model formed on all the data is displayed in orange,
+#' while the 95% confidence interval for the bootstrapped models are displayed
+#' as a grey ribbon. Outlying survival curves are displayed in full, where the
+#' \code{pct_show} argument details the proportion of points outside of the
+#' confidence interval for a survival curve to be deemed as an outlier.
 #'
 #' @param object A \code{survfit.prev} object.
-#' @param pct_show A list or dataframe with the covariate values to calculate survival probabilities.
-#' @return An S3 object of class \code{survfit.prev} with the following attributes:
+#' @param pct_show A list or dataframe with the covariate values to calculate
+#'   survival probabilities.
+#' @return An S3 object of class \code{survfit.prev} with the following
+#'   attributes:
 #' @examples
 #' data(prevsim)
 #'

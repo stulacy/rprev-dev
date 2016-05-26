@@ -1,13 +1,17 @@
-#' Calculates the daily mortality probability for a given population stratified by age, based on
-#' their yearly mortality rates.
+#' Transform yearly mortality rates to daily.
 #'
-#' @param form Formula where the LHS indicates the name of the mortality rate column, and
-#' the RHS is the column where age is located. This function assumes that the population data
-#' frame has already been stratified by sex, or any other categorical variable of interest.
-#' @param data Data frame of population mortality stratified by sex and age. The following columns
-#' must be present: \code{sex}, \code{age}, and \code{rate}.
+#' Calculates the daily mortality probability for a given population stratified
+#' by age, based on their yearly mortality rates.
+#'
+#' @param form Formula where the LHS indicates the name of the mortality rate
+#'   column, and the RHS is the column where age is located. This function
+#'   assumes that the population data frame has already been stratified by sex,
+#'   or any other categorical variable of interest.
+#' @param data Data frame of population mortality stratified by sex and age. The
+#'   following columns must be present: \code{sex}, \code{age}, and \code{rate}.
 #' @param max_age Maximum age to calculate mortality for.
-#' @return An estimate of the survival rate by age in days, with \code{max_age} * 365 values.
+#' @return An estimate of the survival rate by age in days, with \code{max_age}
+#'   * 365 values.
 #' @examples
 #' data(UKmortality)
 #'

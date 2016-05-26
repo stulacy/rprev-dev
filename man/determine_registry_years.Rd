@@ -2,24 +2,26 @@
 % Please edit documentation in R/utils.R
 \name{determine_registry_years}
 \alias{determine_registry_years}
-\title{Find dates delineating complete years of registry data.}
+\title{Calculate yearly dates.}
 \usage{
 determine_registry_years(start, num_reg_years)
 }
 \arguments{
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
-Defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
-Defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years.}
 }
 \value{
 A vector of dates delineating complete years of registry data.
 }
 \description{
-Find dates delineating complete years of registry data.
+A helper function to calculate dates a year apart, starting from a given date
+and running for a set number of years.
 }
 \examples{
 determine_registry_years(start='2004-01-30', num_reg_years=8)
+
 }
 

@@ -2,24 +2,29 @@
 % Please edit documentation in R/survfit.prev.R
 \name{summary.survfit.prev}
 \alias{summary.survfit.prev}
-\title{Summarises survival information at pre-specified years of interest on a \code{survfit.prev} object.}
+\title{Obtain N-year survival probability estimates.}
 \usage{
 \method{summary}{survfit.prev}(object, years = c(1, 3, 5), ...)
 }
 \arguments{
 \item{object}{A \code{survfit.prev} object.}
 
-\item{years}{A vector of years for which to estimate survival probability from the bootstrapped
-survival curves.}
+\item{years}{A vector of years for which to estimate survival probability
+from the bootstrapped survival curves.}
 }
 \value{
 None, displays the survival probabilities to screen as a side-effect.
 }
 \description{
-Survival probability is estimated as the mean of the bootstrapped survival curves at a specific
-timepoint, with 2.5% and 97.5% quantiles providing 95% confidence intervals. Survival probability
-can only be estimated at time points less than the maximum survival time in the original dataset that
-the \code{prevalence} object was fitted to.
+Summarises survival information at pre-specified years of interest on a
+\code{survfit.prev} object.
+}
+\details{
+Survival probability is estimated as the mean of the bootstrapped survival
+curves at a specific timepoint, with 2.5% and 97.5% quantiles providing 95%
+confidence intervals. Survival probability can only be estimated at time
+points less than the maximum survival time in the original dataset that the
+\code{prevalence} object was fitted to.
 }
 \examples{
 data(prevsim)

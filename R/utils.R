@@ -1,9 +1,14 @@
-#' Find dates delineating complete years of registry data.
+#' Calculate yearly dates.
+#'
+#' A helper function to calculate dates a year apart, starting from a given date
+#' and running for a set number of years.
 #'
 #' @inheritParams incidence
 #' @return A vector of dates delineating complete years of registry data.
 #' @examples
 #' determine_registry_years(start='2004-01-30', num_reg_years=8)
+#'
+#' @export determine_registry_years
 determine_registry_years <- function(start, num_reg_years) {
     # Calculate registry years from this
     # NB: Ugly hack to not take leap years into account. Done so that tests don't throw an error, but strictly

@@ -2,26 +2,31 @@
 % Please edit documentation in R/diagnostics.R
 \name{functional_form_age}
 \alias{functional_form_age}
-\title{Inspect whether a non-linear transform of age is appropriate.}
+\title{View the suitability of a linear effect of age on hazard.}
 \usage{
 functional_form_age(form, data, df = 4, plot_fit = T)
 }
 \arguments{
-\item{form}{Formula where the LHS is represented by a standard \code{Surv} object, and the RHS
-provides the name of the variable containing age in the supplied dataset.}
+\item{form}{Formula where the LHS is represented by a standard \code{Surv}
+object, and the RHS provides the name of the variable containing age in the
+supplied dataset.}
 
-\item{data}{A data frame with the corresponding column names provided in \code{form}.}
+\item{data}{A data frame with the corresponding column names provided in
+\code{form}.}
 
 \item{df}{The desired degrees of freedom for the cubic spline..}
 
-\item{plot_fit}{Whether to plot the relationship between age and relative hazard.}
+\item{plot_fit}{Whether to plot the relationship between age and relative
+hazard.}
 }
 \value{
-An \code{rms::cph} object containing the Cox model fit between a cubic spline transform
-of age and the survival outcomes.
+An \code{rms::cph} object containing the Cox model fit between a
+  cubic spline transform of age and the survival outcomes.
 }
 \description{
-Inspect whether a non-linear transform of age is appropriate.
+Inspects whether a non-linear transform of age is more appropriate for
+survival modeling than the linear method which is currently used in the
+calculations in \code{\link{prevalence}}.
 }
 \examples{
 data(prevsim)

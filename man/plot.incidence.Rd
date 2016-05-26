@@ -2,7 +2,7 @@
 % Please edit documentation in R/incidence.R
 \name{plot.incidence}
 \alias{plot.incidence}
-\title{Plots a comparison between the smoothed daily incidence function and actual incidence.}
+\title{Visualise disease incidence.}
 \usage{
 \method{plot}{incidence}(object, level = 0.95)
 }
@@ -12,13 +12,19 @@
 \item{level}{The desired confidence interval width.}
 }
 \value{
-None, plots a side effect of incidence rate, confidence interval and smoothed incidence function.
+None, plots a side effect of incidence rate, confidence interval and
+  smoothed incidence function.
 }
 \description{
-This function generates a plot from the cumulative incidence object. The incidence rate per
-year of the registry is shown in red. Mean incidence rate is shown as a solid blue line,
-with the confidence interval shown in dashed blue lines. The smooth fitted to the
-cumulative incidence data is shown in green.
+Plots a comparison between the smoothed daily incidence function and actual
+incidence.
+}
+\details{
+This function generates a plot from the cumulative incidence object. The
+incidence rate per year of the registry is shown in red. Mean incidence rate
+is shown as a solid blue line, with the confidence interval shown in dashed
+blue lines. The smooth fitted to the cumulative incidence data is shown in
+green.
 }
 \examples{
 data(prevsim)

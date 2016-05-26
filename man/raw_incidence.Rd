@@ -2,25 +2,26 @@
 % Please edit documentation in R/incidence.R
 \name{raw_incidence}
 \alias{raw_incidence}
-\title{Calculate absolute incidence from registry data.}
+\title{Disease incidence.}
 \usage{
 raw_incidence(entry, start = NULL, num_reg_years = NULL)
 }
 \arguments{
-\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
+\item{entry}{Vector of diagnosis dates for each patient in the registry in
+the format YYYY-MM-DD.}
 
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
-Defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
-Defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years.}
 }
 \value{
-Vector of length num_reg_years of integers, representing the number of absolute incidence values
-for each included year of the registry.
+Vector of length num_reg_years of integers, representing the number
+  of absolute incidence values for each included year of the registry.
 }
 \description{
-Calculate absolute incidence from registry data.
+Calculates yearly incidence for the available registry data.
 }
 \examples{
 data(prevsim)

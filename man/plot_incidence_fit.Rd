@@ -2,7 +2,7 @@
 % Please edit documentation in R/incidence.R
 \name{plot_incidence_fit}
 \alias{plot_incidence_fit}
-\title{Inspect consistency of incidence rate with an homogeneous Poisson process using simulation.}
+\title{Visualise incidence Poisson assumption.}
 \usage{
 plot_incidence_fit(object, N_sim = 1000, level = 0.95,
   samples_per_bin = 10, max_bins = 200)
@@ -22,12 +22,17 @@ plot_incidence_fit(object, N_sim = 1000, level = 0.95,
 Plot of the smoothed incidence function and corresponding deviations.
 }
 \description{
-This function generates a plot where the red line is the deviation of cumulative diagnoses
-from the fitted smooth taken from the incidence object. In order to ascertain if the deviation
-is within reasonable bounds, simulation is used. The grey lines represent N draws from a
-uniform distribution between 0 and the last day of diagnosis, where N is the number of incident
-cases, plotted as deviations from a smooth fitted to them. The blue lines are 95\% confidence
-intervals drawn from the simulated data.
+Plots a figure detailing the deviation of incidence rate from an homogeneous
+Poisson process using simulation.
+}
+\details{
+This function generates a plot where the red line is the deviation of
+cumulative diagnoses from the fitted smooth taken from the incidence object.
+In order to ascertain if the deviation is within reasonable bounds,
+simulation is used. The grey lines represent N draws from a uniform
+distribution between 0 and the last day of diagnosis, where N is the number
+of incident cases, plotted as deviations from a smooth fitted to them. The
+blue lines are 95\% confidence intervals drawn from the simulated data.
 }
 \examples{
 

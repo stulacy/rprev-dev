@@ -1,27 +1,30 @@
-#' Summary statistics of the disease incidence.
+#' Summarise disease incidence.
 #'
-#' Calculates incidence by year of the registry data, along with mean incidence with confidence intervals.
-#' A smoothed cumulative incidence function is fit to the data for inspecting deviations in the registry data
-#' from a homogeneous Poisson process.
+#' Calculates incidence by year of the registry data, along with mean incidence
+#' with confidence intervals. A smoothed cumulative incidence function is fit to
+#' the data for inspecting deviations in the registry data from a homogeneous
+#' Poisson process.
 #'
 #' @inheritParams prevalence
-#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
+#' @param entry Vector of diagnosis dates for each patient in the registry in
+#'   the format YYYY-MM-DD.
+#' @param start Date from which incident cases are included in the format
+#'   YYYY-MM-DD. Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence
+#'   is to be calculated. Defaults to using all available complete years.
 #' @param df The desired degrees of freedom of the smooth.
 #' @param precision The number of decimal places required.
 #' @param level The desired confidence interval width.
 #' @return An S3 object of class \code{incidence} with the following attributes:
-#' \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
-#' as generated using \code{\link{raw_incidence}}.}
-#' \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
-#' inclusion in the registry, ordered shortest to longest.}
-#' \item{smooth}{Smooth fitted to the cumulative incidence data.}
-#' \item{index_dates}{Dates delimiting the years in which incidence is calculated.}
-#' \item{mean}{List containing mean incidence per 100K with confidence intervals. See \link{mean_incidence_rate}.}
-#' \item{dof}{Degrees of freedom of the smooth.}
+#'   \item{raw_incidence}{Vector of absolute incidence values for each included
+#'   year of the registry, as generated using \code{\link{raw_incidence}}.}
+#'   \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
+#'   the earliest date of inclusion in the registry, ordered shortest to
+#'   longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
+#'   \item{index_dates}{Dates delimiting the years in which incidence is
+#'   calculated.} \item{mean}{List containing mean incidence per 100K with
+#'   confidence intervals. See \link{mean_incidence_rate}.} \item{dof}{Degrees
+#'   of freedom of the smooth.}
 #' @examples
 #' data(prevsim)
 #'
@@ -59,11 +62,13 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
     object
 }
 
-#' Calculate absolute incidence from registry data.
+#' Disease incidence.
+#'
+#' Calculates yearly incidence for the available registry data.
 #'
 #' @inheritParams incidence
-#' @return Vector of length num_reg_years of integers, representing the number of absolute incidence values
-#' for each included year of the registry.
+#' @return Vector of length num_reg_years of integers, representing the number
+#'   of absolute incidence values for each included year of the registry.
 #' @examples
 #' data(prevsim)
 #'
@@ -91,16 +96,22 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
     per_year
 }
 
-#' Calculate the average incidence rate per one hundred thousand with confidence intervals.
+#' Mean disease incidence.
+#'
+#' Calculates the average incidence rate per one hundred thousand with
+#' confidence intervals for the given registry data.
 #'
 #' @inheritParams incidence
-#' @param raw_inc Vector of incidence values by year, as returned by \code{\link{raw_incidence}}.
+#' @param raw_inc Vector of incidence values by year, as returned by
+#'   \code{\link{raw_incidence}}.
 #' @return A list with the following values:
 #'
-#' \item{absolute}{Overall incidence for the period of interest as a single double}
-#' \item{per100K}{Incidence for the period of interest per one hundred thousand}
-#' \item{per100K.lower}{Lower bounds of the specified confidence level on the per one hundred thousand estimate}
-#' \item{per100K.upper}{Upper bounds of the specified confidence level on the per one hundred thousand estimate}
+#'   \item{absolute}{Overall incidence for the period of interest as a single
+#'   double} \item{per100K}{Incidence for the period of interest per one hundred
+#'   thousand} \item{per100K.lower}{Lower bounds of the specified confidence
+#'   level on the per one hundred thousand estimate} \item{per100K.upper}{Upper
+#'   bounds of the specified confidence level on the per one hundred thousand
+#'   estimate}
 #'
 #' @examples
 #' data(prevsim)
@@ -124,15 +135,20 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 }
 
 
-#' Plots a comparison between the smoothed daily incidence function and actual incidence.
+#' Visualise disease incidence.
 #'
-#' This function generates a plot from the cumulative incidence object. The incidence rate per
-#' year of the registry is shown in red. Mean incidence rate is shown as a solid blue line,
-#' with the confidence interval shown in dashed blue lines. The smooth fitted to the
-#' cumulative incidence data is shown in green.
+#' Plots a comparison between the smoothed daily incidence function and actual
+#' incidence.
+#'
+#' This function generates a plot from the cumulative incidence object. The
+#' incidence rate per year of the registry is shown in red. Mean incidence rate
+#' is shown as a solid blue line, with the confidence interval shown in dashed
+#' blue lines. The smooth fitted to the cumulative incidence data is shown in
+#' green.
 #' @param object An \code{incidence} object.
 #' @param level The desired confidence interval width.
-#' @return None, plots a side effect of incidence rate, confidence interval and smoothed incidence function.
+#' @return None, plots a side effect of incidence rate, confidence interval and
+#'   smoothed incidence function.
 #' @examples
 #' data(prevsim)
 #'
@@ -184,14 +200,18 @@ plot.incidence <- function(object, level=0.95){
     print(p)
 }
 
-#' Inspect consistency of incidence rate with an homogeneous Poisson process using simulation.
+#' Visualise incidence Poisson assumption.
 #'
-#' This function generates a plot where the red line is the deviation of cumulative diagnoses
-#' from the fitted smooth taken from the incidence object. In order to ascertain if the deviation
-#' is within reasonable bounds, simulation is used. The grey lines represent N draws from a
-#' uniform distribution between 0 and the last day of diagnosis, where N is the number of incident
-#' cases, plotted as deviations from a smooth fitted to them. The blue lines are 95\% confidence
-#' intervals drawn from the simulated data.
+#' Plots a figure detailing the deviation of incidence rate from an homogeneous
+#' Poisson process using simulation.
+#'
+#' This function generates a plot where the red line is the deviation of
+#' cumulative diagnoses from the fitted smooth taken from the incidence object.
+#' In order to ascertain if the deviation is within reasonable bounds,
+#' simulation is used. The grey lines represent N draws from a uniform
+#' distribution between 0 and the last day of diagnosis, where N is the number
+#' of incident cases, plotted as deviations from a smooth fitted to them. The
+#' blue lines are 95\% confidence intervals drawn from the simulated data.
 #'
 #' @param object An \code{incidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.

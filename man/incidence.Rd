@@ -2,21 +2,23 @@
 % Please edit documentation in R/incidence.R
 \name{incidence}
 \alias{incidence}
-\title{Summary statistics of the disease incidence.}
+\title{Summarise disease incidence.}
 \usage{
 incidence(entry, population_size, start = NULL, num_reg_years = NULL,
   df = 6, precision = 2, level = 0.95)
 }
 \arguments{
-\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
+\item{entry}{Vector of diagnosis dates for each patient in the registry in
+the format YYYY-MM-DD.}
 
-\item{population_size}{Integer corresponding to the size of the population at risk.}
+\item{population_size}{Integer corresponding to the size of the population at
+risk.}
 
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
-Defaults to the earliest entry date.}
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
-Defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years.}
 
 \item{df}{The desired degrees of freedom of the smooth.}
 
@@ -26,19 +28,21 @@ Defaults to using all available complete years.}
 }
 \value{
 An S3 object of class \code{incidence} with the following attributes:
-\item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
-as generated using \code{\link{raw_incidence}}.}
-\item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
-inclusion in the registry, ordered shortest to longest.}
-\item{smooth}{Smooth fitted to the cumulative incidence data.}
-\item{index_dates}{Dates delimiting the years in which incidence is calculated.}
-\item{mean}{List containing mean incidence per 100K with confidence intervals. See \link{mean_incidence_rate}.}
-\item{dof}{Degrees of freedom of the smooth.}
+  \item{raw_incidence}{Vector of absolute incidence values for each included
+  year of the registry, as generated using \code{\link{raw_incidence}}.}
+  \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
+  the earliest date of inclusion in the registry, ordered shortest to
+  longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
+  \item{index_dates}{Dates delimiting the years in which incidence is
+  calculated.} \item{mean}{List containing mean incidence per 100K with
+  confidence intervals. See \link{mean_incidence_rate}.} \item{dof}{Degrees
+  of freedom of the smooth.}
 }
 \description{
-Calculates incidence by year of the registry data, along with mean incidence with confidence intervals.
-A smoothed cumulative incidence function is fit to the data for inspecting deviations in the registry data
-from a homogeneous Poisson process.
+Calculates incidence by year of the registry data, along with mean incidence
+with confidence intervals. A smoothed cumulative incidence function is fit to
+the data for inspecting deviations in the registry data from a homogeneous
+Poisson process.
 }
 \examples{
 data(prevsim)
