@@ -20,5 +20,6 @@ Imports:
     tidyr (>= 0.4.0)
 RoxygenNote: 5.0.1
 Suggests: testthat,
-    doParallel
+    doParallel,
+    knitr
 VignetteBuilder: knitr
