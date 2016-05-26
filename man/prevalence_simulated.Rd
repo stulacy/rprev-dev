@@ -87,4 +87,9 @@ prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$se
                      num_years_to_estimate = 5, n_cores=4)
 
 }
+\seealso{
+Other prevalence functions: \code{\link{prevalence_counted}},
+  \code{\link{prevalence}},
+  \code{\link{test_prevalence_fit}}
+}
 

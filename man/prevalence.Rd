@@ -134,4 +134,9 @@ Crouch, Simon, et al. "Determining disease prevalence from
   incidence and survival using simulation techniques." Cancer epidemiology
   38.2 (2014): 193-199.
 }
+\seealso{
+Other prevalence functions: \code{\link{prevalence_counted}},
+  \code{\link{prevalence_simulated}},
+  \code{\link{test_prevalence_fit}}
+}
 

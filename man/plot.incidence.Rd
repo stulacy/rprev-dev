@@ -34,4 +34,11 @@ inc <- incidence(previm$entrydate, population_size=1e6, start = "2004-01-30", nu
 plot(inc)
 
 }
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{incidence}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
+}
 

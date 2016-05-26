@@ -32,6 +32,7 @@
 #'
 #' incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
 #' @export incidence
+#' @family incidence functions
 incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df=6, precision=2, level=0.95){
 
     if (is.null(start))
@@ -78,6 +79,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
 #' raw_incidence(prevsim$entrydate, start="2005-05-01")
 #'
 #' @export raw_incidence
+#' @family incidence functions
 raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 
     if (is.null(start))
@@ -122,6 +124,7 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 #'
 #' @export mean_incidence_rate
+#' @family incidence functions
 mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0.95){
 
     mean_rate <- mean(raw_inc)
@@ -156,7 +159,6 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #'
 #' plot(inc)
 #'
-#' @export plot.incidence
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_point
 #' @importFrom ggplot2 geom_line
@@ -166,6 +168,8 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @importFrom ggplot2 ylim
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 scale_colour_manual
+#' @export plot.incidence
+#' @family incidence functions
 plot.incidence <- function(object, level=0.95){
     raw_incidence <- object$raw_incidence
     mean_rate <- mean(raw_incidence)

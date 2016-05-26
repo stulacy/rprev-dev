@@ -50,4 +50,9 @@ prevalence_counted(prevsim$entrydate,
                    start="2004-01-30", num_reg_years=8)
 
 }
+\seealso{
+Other prevalence functions: \code{\link{prevalence_simulated}},
+  \code{\link{prevalence}},
+  \code{\link{test_prevalence_fit}}
+}
 

@@ -25,4 +25,11 @@ incidence_age_distribution(prevsim$age)
 incidence_age_distribution(prevsim$age, df=5)
 
 }
+\seealso{
+Other incidence functions: \code{\link{incidence}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
+}
 

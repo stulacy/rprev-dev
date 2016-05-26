@@ -51,4 +51,11 @@ incidence(previm$entrydate, 1e6)
 
 incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
 }
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
+}
 

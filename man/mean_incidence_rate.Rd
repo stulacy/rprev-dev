@@ -40,4 +40,10 @@ mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
 mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 
 }
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{incidence}}, \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
+}
 

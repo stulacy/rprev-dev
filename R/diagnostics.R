@@ -16,6 +16,7 @@
 #'
 #' test_incidence_fit(inc)
 #' @export test_incidence_fit
+#' @family incidence functions
 test_incidence_fit <- function(incidence, N_sim = 1e5) {
     var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(incidence), mean(incidence))), numeric(1))
     c(sum(var_sim > var(incidence))/N_sim, sum(var_sim <= var(incidence))/N_sim)
@@ -40,6 +41,7 @@ test_incidence_fit <- function(incidence, N_sim = 1e5) {
 #'
 #' test_prevalence_fit(obj)
 #' @export test_prevalence_fit
+#' @family prevalence functions
 test_prevalence_fit <- function(object) {
     predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
     chi <- sum(((object$counted - predicted)^2) / predicted)
@@ -62,6 +64,7 @@ test_prevalence_fit <- function(object) {
 #'
 #' @export incidence_age_distribution
 #' @import ggplot2
+#' @family incidence functions
 incidence_age_distribution <- function(agedata, df=10) {
 
     ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))

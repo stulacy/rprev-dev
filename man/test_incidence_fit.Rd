@@ -28,4 +28,10 @@ inc <- raw_incidence(prevsim$entrydate)
 
 test_incidence_fit(inc)
 }
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{incidence}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}}, \code{\link{raw_incidence}}
+}
 

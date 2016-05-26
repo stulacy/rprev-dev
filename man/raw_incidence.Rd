@@ -32,4 +32,11 @@ raw_incidence(prevsim$entrydate, start="2005-05-01", 5)
 raw_incidence(prevsim$entrydate, start="2005-05-01")
 
 }
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{incidence}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}},
+  \code{\link{test_incidence_fit}}
+}
 

@@ -24,4 +24,6 @@ and running for a set number of years.
 determine_registry_years(start='2004-01-30', num_reg_years=8)
 
 }
+\keyword{determine_registry_years}
+\keyword{internal}
 
