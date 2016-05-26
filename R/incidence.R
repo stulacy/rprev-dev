@@ -31,7 +31,7 @@
 #' incidence(previm$entrydate, 1e6)
 #'
 #' incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
-#' @export incidence
+#' @export
 #' @family incidence functions
 incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df=6, precision=2, level=0.95){
 
@@ -78,7 +78,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
 #' raw_incidence(prevsim$entrydate, start="2005-05-01", 5)
 #' raw_incidence(prevsim$entrydate, start="2005-05-01")
 #'
-#' @export raw_incidence
+#' @export
 #' @family incidence functions
 raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 
@@ -123,7 +123,7 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
 #' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
 #'
-#' @export mean_incidence_rate
+#' @export
 #' @family incidence functions
 mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0.95){
 
@@ -168,7 +168,7 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @importFrom ggplot2 ylim
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 scale_colour_manual
-#' @export plot.incidence
+#' @export
 #' @family incidence functions
 plot.incidence <- function(object, level=0.95){
     raw_incidence <- object$raw_incidence
@@ -232,7 +232,7 @@ plot.incidence <- function(object, level=0.95){
 #' @importFrom ggplot2 theme_bw
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 aes
-#' @export plot_incidence_fit
+#' @export
 plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
     diags <- object$ordered_diagnoses
     N <- length(diags)
@@ -270,12 +270,14 @@ plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=1
     print(p)
 }
 
+#' @export
 print.incidence <- function(object, ...) {
     cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
     cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
 
 }
 
+#' @export
 summary.incidence <- function(object, ...) {
     cat("Number of years of registry data:", length(object$raw_incidence), "\n")
 

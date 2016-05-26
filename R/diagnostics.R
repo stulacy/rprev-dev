@@ -15,7 +15,7 @@
 #' inc <- raw_incidence(prevsim$entrydate)
 #'
 #' test_incidence_fit(inc)
-#' @export test_incidence_fit
+#' @export
 #' @family incidence functions
 test_incidence_fit <- function(incidence, N_sim = 1e5) {
     var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(incidence), mean(incidence))), numeric(1))
@@ -40,7 +40,7 @@ test_incidence_fit <- function(incidence, N_sim = 1e5) {
 #'                   num_reg_years = 8, cure = 5)
 #'
 #' test_prevalence_fit(obj)
-#' @export test_prevalence_fit
+#' @export
 #' @family prevalence functions
 test_prevalence_fit <- function(object) {
     predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
@@ -62,7 +62,7 @@ test_prevalence_fit <- function(object) {
 #'
 #' incidence_age_distribution(prevsim$age, df=5)
 #'
-#' @export incidence_age_distribution
+#' @export
 #' @import ggplot2
 #' @family incidence functions
 incidence_age_distribution <- function(agedata, df=10) {
@@ -102,7 +102,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #'
 #' functional_form_age(Surv(time, status) ~ age, prevsim, df=2, plot_fit=F)
 #'
-#' @export functional_form_age
+#' @export
 #' @import rms
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_ribbon

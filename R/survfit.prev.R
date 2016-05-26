@@ -25,7 +25,7 @@
 #'
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 #'
-#' @export survfit.prevalence
+#' @export
 survfit.prevalence <- function(object, newdata=NULL) {
     if (is.null(newdata)) {
         use_df <- object$means
@@ -51,6 +51,7 @@ survfit.prevalence <- function(object, newdata=NULL) {
     result
 }
 
+#' @export
 print.survfit.prev <- function(object, ...) {
     cat("Survival probability calculated at", length(object$time), "timepoints, across", dim(object$surv)[1], "bootstraps.")
 }
@@ -84,7 +85,7 @@ print.survfit.prev <- function(object, ...) {
 #'
 #' summary(survobj, years=c(1, 3, 5, 7))
 #'
-#' @export summary.survfit.prev
+#' @export
 summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 
     # Truncate years to the maximum number allowed
@@ -134,7 +135,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
 #' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
 #'
-#' @export plot.survfit.prev
+#' @export
 #' @import dplyr
 #' @import ggplot2
 #' @importFrom tidyr gather

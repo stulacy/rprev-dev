@@ -104,7 +104,7 @@
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
 #'
-#' @export prevalence
+#' @export
 #' @family prevalence functions
 prevalence <- function(form, data, num_years_to_estimate, population_size,
                        start=NULL, num_reg_years=NULL, cure=10,
@@ -220,7 +220,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #'                    prevsim$status,
 #'                    start="2004-01-30", num_reg_years=8)
 #'
-#' @export prevalence_counted
+#' @export
 #' @family prevalence functions
 prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
 
@@ -293,7 +293,7 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'                      num_years_to_estimate = 5, n_cores=4)
 #'
 #' @importFrom abind abind
-#' @export prevalence_simulated
+#' @export
 #' @family prevalence functions
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
                                  start, num_reg_years, cure=10,
@@ -442,6 +442,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 }
 
 
+#' @export
 print.prevalence <- function(object, ...) {
     cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
     lapply(names(object$estimates), function(x) {
@@ -451,6 +452,7 @@ print.prevalence <- function(object, ...) {
     })
 }
 
+#' @export
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Index date:", object$index_date, "\n")
