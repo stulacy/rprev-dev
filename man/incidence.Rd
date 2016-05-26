@@ -10,7 +10,7 @@ incidence(entry, population_size, start = NULL, num_reg_years = NULL,
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
 
-\item{population_size}{The number of people in the population at risk.}
+\item{population_size}{Integer corresponding to the size of the population at risk.}
 
 \item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
 Defaults to the earliest entry date.}

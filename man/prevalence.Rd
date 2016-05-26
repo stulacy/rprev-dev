@@ -2,8 +2,7 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Estimate point prevalence using a combination of available registry data and Monte Carlo
-simulated incident data.}
+\title{Estimate point prevalence at an index date.}
 \usage{
 prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
   num_reg_years = NULL, cure = 10, N_boot = 1000,
@@ -62,7 +61,7 @@ and \code{sex}, where each row is the mortality rate for a person of that age an
 sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
 for the format required for custom datasets.}
 
-\item{num_cores}{Number of CPU cores to run the fitting of the bootstrapped survival models.
+\item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped survival models.
 Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.}
 }
 \value{

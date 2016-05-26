@@ -1,9 +1,6 @@
 #' Find dates delineating complete years of registry data.
 #'
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
+#' @inheritParams incidence
 #' @return A vector of dates delineating complete years of registry data.
 #' @examples
 #' determine_registry_years(start='2004-01-30', num_reg_years=8)

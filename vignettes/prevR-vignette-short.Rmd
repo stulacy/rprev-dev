@@ -48,10 +48,10 @@ legend(3000, 1, c("Males", "Females"), lty = 1, col=c("blue","red"))
 
 The simulation of incident cases in the years for which registry data is not available relies upon the assumption of a homogeneous Poisson process. The package includes several functions for inspecting the incidence data, as well as diagnosing the validity of the Poisson fit.
 
-The `incidence` function calculates absolute disease incidence for each selected year of the registry; the optional arguments *start* and *num_reg_years* allow for the specification of certain years. These are useful when there are doubts about the accuracy of the incidence data, e.g. during the first year of operation of the registry. The output is a vector of *num_reg_years* length, detailing the number of incident cases in the registry at yearly intervals starting at `start` date. For example, in the following output, the incidence between 2004-01-30 and 2005-01-30 is `r incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=1)`.
+The `raw_incidence` function calculates absolute disease incidence for each selected year of the registry; the optional arguments *start* and *num_reg_years* allow for the specification of certain years. These are useful when there are doubts about the accuracy of the incidence data, e.g. during the first year of operation of the registry. The output is a vector of *num_reg_years* length, detailing the number of incident cases in the registry at yearly intervals starting at `start` date. For example, in the following output, the incidence between 2004-01-30 and 2005-01-30 is `r incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=1)`.
 
 ```{r totalincidence, error = TRUE}
-raw_incidence <- incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=9)
+raw_incidence <- raw_incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=9)
 raw_incidence
 ```
 

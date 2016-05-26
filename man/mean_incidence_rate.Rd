@@ -7,19 +7,13 @@
 mean_incidence_rate(raw_inc, population_size, precision = 2, level = 0.95)
 }
 \arguments{
-\item{population_size}{The number of people in the population at risk.}
+\item{raw_inc}{Vector of incidence values by year, as returned by \code{\link{raw_incidence}}.}
+
+\item{population_size}{Integer corresponding to the size of the population at risk.}
 
 \item{precision}{The number of decimal places required.}
 
 \item{level}{The desired confidence interval width.}
-
-\item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
-
-\item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
-Defaults to the earliest entry date.}
-
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
-Defaults to using all available complete years.}
 }
 \value{
 A list with the following values:

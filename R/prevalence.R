@@ -1,13 +1,10 @@
 #' Counts prevalence at a specific index date from registry data.
 #'
+#' @inheritParams prevalence
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
 #' @param eventdate Vector of dates corresponding to the indicator variable in the format YYYY-MM-DD.
 #' @param status Vector of binary values indicating if an event has occurred for each patient in the registry.
 #' \code{entry}, \code{eventdate}, and \code{status} must all have the same length.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
 #' @return A vector of length \code{num_reg_years}, representing the number of incident cases in the
 #' corresponding year that contribute to the prevalence at the index date.
 #' @examples
@@ -58,33 +55,12 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' Simulated cases are marked with age and sex to enable agreement with population survival
 #' data where a cure model is used, and calculation of the posterior distributions of each.
 #'
+#' @inheritParams prevalence
 #' @param survobj \code{Surv} object from \code{survival} package. Currently only right
 #' censoring is supported.
 #' @param age A vector of ages from the registry.
 #' @param sex A vector of sex, encoded as 0 and 1 for males and females respectively.
 #' @param entry A vector of entry dates into the registry, in the format YYYY-MM-DD.
-#' @param num_years_to_estimate Number of years of data to estimate point prevalence for.
-#' If this value is greater than \code{num_registry_years} then incident cases for the
-#' difference will be simulated.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to
-#' be calculated. Defaults to using all available complete years. Note that if more
-#' registry years are supplied than the number of years to estimate prevalence for, the
-#' survival data from the surplus registry years are still involved in the survival model
-#' fitting.
-#' @param cure Integer defining cure model assumption for the calculation (in years). A
-#' patient who has survived beyond the cure time has a survival probability derived
-#' from the mortality rate of the general population.
-#' @param N_boot Number of bootstrapped calculations to perform.
-#' @param max_yearly_incidence Integer larger than the expected yearly incidence
-#'        to allow for variation in incidence between years.
-#' @param population_data A dataframe which must contain the columns \code{age}, \code{rate},
-#' and \code{sex}, where each row is the mortality rate for a person of that age and
-#' sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
-#' for the format required for custom datasets.
-#' @param num_cores Number of CPU cores to run the fitting of the bootstrapped survival models across.
-#' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
 #' @return A list with the following attributes:
 #' \item{mean_yearly_contributions}{A vector of length \code{num_years_to_estimate},
 #' representing the average number of prevalent cases subdivided by year of diagnosis across
@@ -257,8 +233,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 }
 
 
-#' Estimate point prevalence using a combination of available registry data and Monte Carlo
-#' simulated incident data.
+#' Estimate point prevalence at an index date.
 #'
 #' Point prevalence at a specific index date is estimated using contributions to prevalence
 #' from both available registry data, and from Monte Carlo simulations of the incidence
@@ -316,7 +291,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 #' and \code{sex}, where each row is the mortality rate for a person of that age and
 #' sex. Ideally, age ranges from [0, 100]. Defaults to the supplied data; see \code{\link{UKmortality}}
 #' for the format required for custom datasets.
-#' @param num_cores Number of CPU cores to run the fitting of the bootstrapped survival models.
+#' @param n_cores Number of CPU cores to run the fitting of the bootstrapped survival models.
 #' Defaults to 1; multi-core functionality is provided by the \code{doParallel} package.
 #' @return An S3 object of class \code{prevalence} with the following attributes:
 #' \item{estimates}{Estimated prevalence at the index date for each of the years in \code{num_years_to_estimate}.}

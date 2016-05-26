@@ -4,8 +4,8 @@
 #' A smoothed cumulative incidence function is fit to the data for inspecting deviations in the registry data
 #' from a homogeneous Poisson process.
 #'
+#' @inheritParams prevalence
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param population_size The number of people in the population at risk.
 #' @param start Date from which incident cases are included in the format YYYY-MM-DD.
 #' Defaults to the earliest entry date.
 #' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
@@ -61,11 +61,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
 
 #' Calculate absolute incidence from registry data.
 #'
-#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
+#' @inheritParams incidence
 #' @return Vector of length num_reg_years of integers, representing the number of absolute incidence values
 #' for each included year of the registry.
 #' @examples
@@ -97,14 +93,8 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 
 #' Calculate the average incidence rate per one hundred thousand with confidence intervals.
 #'
-#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param population_size The number of people in the population at risk.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
-#' @param precision The number of decimal places required.
-#' @param level The desired confidence interval width.
+#' @inheritParams incidence
+#' @param raw_inc Vector of incidence values by year, as returned by \code{\link{raw_incidence}}.
 #' @return A list with the following values:
 #'
 #' \item{absolute}{Overall incidence for the period of interest as a single double}
@@ -142,7 +132,7 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' cumulative incidence data is shown in green.
 #' @param object An \code{incidence} object.
 #' @param level The desired confidence interval width.
-#' @return Plot of incidence rate, confidence interval and smoothed incidence function as a side-effect.
+#' @return None, plots a side effect of incidence rate, confidence interval and smoothed incidence function.
 #' @examples
 #' data(prevsim)
 #'

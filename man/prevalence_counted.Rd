@@ -18,8 +18,10 @@ prevalence_counted(entry, eventdate, status, start = NULL,
 \item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
 Defaults to the earliest entry date.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence is to be calculated.
-Defaults to using all available complete years.}
+\item{num_reg_years}{The number of years of the registry for which incidence is to be
+calculated. Defaults to using all available complete years. Note that if more registry
+years are supplied than the number of years to estimate prevalence for, the survival data
+from the surplus registry years are still involved in the survival model fitting.}
 }
 \value{
 A vector of length \code{num_reg_years}, representing the number of incident cases in the

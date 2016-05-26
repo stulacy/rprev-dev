@@ -12,7 +12,7 @@
 \item{level}{The desired confidence interval width.}
 }
 \value{
-Plot of incidence rate, confidence interval and smoothed incidence function as a side-effect.
+None, plots a side effect of incidence rate, confidence interval and smoothed incidence function.
 }
 \description{
 This function generates a plot from the cumulative incidence object. The incidence rate per
