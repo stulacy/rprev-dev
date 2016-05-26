@@ -3,10 +3,11 @@ Type: Package
 Title: Functions for Estimating Prevalence
 Version: 0.1
 Date: 2016-05-16
-Authors: Simon Crouch <simon.crouch@york.ac.uk>,
-         Stephanie Lax <stephanie.lax@york.ac.uk>,
-         Stuart Lacy <stuart.lacy@york.ac.uk>
-Maintainer: Stuart Lacy <stuart.lacy@york.ac.uk>
+Authors@R: c(
+        person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
+        person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
+        person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut'))
+        )
 Description: Estimates point prevalence for a given index date, using existing
     registry data extended with Monte Carlo simulations.
 License: GPL-2
