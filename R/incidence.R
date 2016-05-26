@@ -285,6 +285,7 @@ summary.incidence <- function(object, ...) {
     cat("Known incidence by year:", object$raw_incidence, "\n")
     cat("Diagnoses (time since registry began):\n")
     print(summary(object$ordered_diagnoses))
+    cat("p-values for over/under dispersion:", object$pvals, "\n")
 
     cat("\nFitted smooth:\n~~~~~~~~~~~~~\n")
     print(object$smooth)
