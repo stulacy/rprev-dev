@@ -2,14 +2,15 @@
 % Please edit documentation in R/incidence.R
 \name{incidence}
 \alias{incidence}
-\title{Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
-and comparing with the cumulative incidence for constant diagnosis rate.}
+\title{Summary statistics of the disease incidence.}
 \usage{
 incidence(entry, population_size, start = NULL, num_reg_years = NULL,
   df = 6, precision = 2, level = 0.95)
 }
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.}
+
+\item{population_size}{The number of people in the population at risk.}
 
 \item{start}{Date from which incident cases are included in the format YYYY-MM-DD.
 Defaults to the earliest entry date.}
@@ -18,36 +19,32 @@ Defaults to the earliest entry date.}
 Defaults to using all available complete years.}
 
 \item{df}{The desired degrees of freedom of the smooth.}
+
+\item{precision}{The number of decimal places required.}
+
+\item{level}{The desired confidence interval width.}
 }
 \value{
-An S3 object of class \code{cincidence} with the following attributes:
+An S3 object of class \code{incidence} with the following attributes:
 \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
-as generated using \code{incidence()}.}
+as generated using \code{\link{raw_incidence}}.}
 \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
 inclusion in the registry, ordered shortest to longest.}
 \item{smooth}{Smooth fitted to the cumulative incidence data.}
 \item{index_dates}{Dates delimiting the years in which incidence is calculated.}
+\item{mean}{List containing mean incidence per 100K with confidence intervals. See \link{mean_incidence_rate}.}
 \item{dof}{Degrees of freedom of the smooth.}
 }
 \description{
-Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
-and comparing with the cumulative incidence for constant diagnosis rate.
+Calculates incidence by year of the registry data, along with mean incidence with confidence intervals.
+A smoothed cumulative incidence function is fit to the data for inspecting deviations in the registry data
+from a homogeneous Poisson process.
 }
 \examples{
 data(prevsim)
 
-c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
-ordered_diagnoses <- c_inc$ordered_diagnoses
+incidence(previm$entrydate, 1e6)
 
-# Plot the smooth against the ordered diagnoses to see the model fit
-plot(ordered_diagnoses, c_inc$cumulative_incidence, pch=20,
-cex=0.7, xlab="days", ylab="cumulative diagnoses")
-abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)],
-col="red", lwd=2)
-lines(c_inc$smooth, col="green", lwd=2)
-
-# The following plot shows the deviation of the raw data from the fitted smooth by day:
-plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(c_inc$smooth, ordered_diagnoses)$y,
-type="l", xlab="days", ylab="deviation from smooth")
+incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
 }
 

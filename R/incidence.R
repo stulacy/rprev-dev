@@ -1,3 +1,64 @@
+#' Summary statistics of the disease incidence.
+#'
+#' Calculates incidence by year of the registry data, along with mean incidence with confidence intervals.
+#' A smoothed cumulative incidence function is fit to the data for inspecting deviations in the registry data
+#' from a homogeneous Poisson process.
+#'
+#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
+#' @param population_size The number of people in the population at risk.
+#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
+#' Defaults to the earliest entry date.
+#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
+#' Defaults to using all available complete years.
+#' @param df The desired degrees of freedom of the smooth.
+#' @param precision The number of decimal places required.
+#' @param level The desired confidence interval width.
+#' @return An S3 object of class \code{incidence} with the following attributes:
+#' \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
+#' as generated using \code{\link{raw_incidence}}.}
+#' \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
+#' inclusion in the registry, ordered shortest to longest.}
+#' \item{smooth}{Smooth fitted to the cumulative incidence data.}
+#' \item{index_dates}{Dates delimiting the years in which incidence is calculated.}
+#' \item{mean}{List containing mean incidence per 100K with confidence intervals. See \link{mean_incidence_rate}.}
+#' \item{dof}{Degrees of freedom of the smooth.}
+#' @examples
+#' data(prevsim)
+#'
+#' incidence(previm$entrydate, 1e6)
+#'
+#' incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+#' @export incidence
+incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df=6, precision=2, level=0.95){
+
+    if (is.null(start))
+        start <- min(entry)
+
+    if (is.null(num_reg_years))
+        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+
+    reg_years <- determine_registry_years(start, num_reg_years)
+    index_date <- reg_years[length(reg_years)]
+
+    entry_trunc <- entry[entry >= start & entry < index_date]
+
+    # Slightly confused that the following are not all integers:
+    diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
+    smo <- smooth.spline(diags, seq(length(diags)), df=df)
+    raw_inc <- raw_incidence(entry, start, num_reg_years)
+
+    object <- list(raw_incidence=raw_inc,
+                   ordered_diagnoses=diags,
+                   smooth = smo,
+                   index_dates = reg_years,
+                   mean=mean_incidence_rate(raw_inc, population_size=population_size,
+                                            precision=precision, level=level),
+                   pvals=test_incidence_fit(raw_inc),
+                   dof=df)
+    attr(object, 'class') <- 'incidence'
+    object
+}
+
 #' Calculate absolute incidence from registry data.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
@@ -10,10 +71,10 @@
 #' @examples
 #' data(prevsim)
 #'
-#' incidence(prevsim$entrydate, start="2004-01-01", 8)
-#' incidence(prevsim$entrydate)
-#' incidence(prevsim$entrydate, start="2005-05-01", 5)
-#' incidence(prevsim$entrydate, start="2005-05-01")
+#' raw_incidence(prevsim$entrydate, start="2004-01-01", 8)
+#' raw_incidence(prevsim$entrydate)
+#' raw_incidence(prevsim$entrydate, start="2005-05-01", 5)
+#' raw_incidence(prevsim$entrydate, start="2005-05-01")
 #'
 #' @export raw_incidence
 raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
@@ -72,86 +133,24 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
     lapply(object, round, precision)
 }
 
-#' Generates a smoothed cumulative incidence function for inspecting deviations in the registry data
-#' and comparing with the cumulative incidence for constant diagnosis rate.
-#'
-#' @param entry Vector of diagnosis dates for each patient in the registry in the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format YYYY-MM-DD.
-#' Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence is to be calculated.
-#' Defaults to using all available complete years.
-#' @param df The desired degrees of freedom of the smooth.
-#' @return An S3 object of class \code{cincidence} with the following attributes:
-#' \item{raw_incidence}{Vector of absolute incidence values for each included year of the registry,
-#' as generated using \code{incidence()}.}
-#' \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and the earliest date of
-#' inclusion in the registry, ordered shortest to longest.}
-#' \item{smooth}{Smooth fitted to the cumulative incidence data.}
-#' \item{index_dates}{Dates delimiting the years in which incidence is calculated.}
-#' \item{dof}{Degrees of freedom of the smooth.}
-#' @examples
-#' data(prevsim)
-#'
-#' c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
-#' ordered_diagnoses <- c_inc$ordered_diagnoses
-#'
-#' # Plot the smooth against the ordered diagnoses to see the model fit
-#' plot(ordered_diagnoses, c_inc$cumulative_incidence, pch=20,
-#' cex=0.7, xlab="days", ylab="cumulative diagnoses")
-#' abline(a=0, b=length(ordered_diagnoses)/ordered_diagnoses[length(ordered_diagnoses)],
-#' col="red", lwd=2)
-#' lines(c_inc$smooth, col="green", lwd=2)
-#'
-#' # The following plot shows the deviation of the raw data from the fitted smooth by day:
-#' plot(ordered_diagnoses, seq(length(ordered_diagnoses)) - predict(c_inc$smooth, ordered_diagnoses)$y,
-#' type="l", xlab="days", ylab="deviation from smooth")
-#' @export incidence
-incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df=6, precision=2, level=0.95){
-
-    if (is.null(start))
-        start <- min(entry)
-
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
-
-    reg_years <- determine_registry_years(start, num_reg_years)
-    index_date <- reg_years[length(reg_years)]
-
-    entry_trunc <- entry[entry >= start & entry < index_date]
-
-    # Slightly confused that the following are not all integers:
-    diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
-    smo <- smooth.spline(diags, seq(length(diags)), df=df)
-    raw_inc <- raw_incidence(entry, start, num_reg_years)
-
-    object <- list(raw_incidence=raw_inc,
-                   ordered_diagnoses=diags,
-                   smooth = smo,
-                   index_dates = reg_years,
-                   mean=mean_incidence_rate(raw_inc, population_size=population_size,
-                                            precision=precision, level=level),
-                   pvals=test_poisson_fit(raw_inc),
-                   dof=df)
-    attr(object, 'class') <- 'incidence'
-    object
-}
 
 #' Plots a comparison between the smoothed daily incidence function and actual incidence.
 #'
 #' This function generates a plot from the cumulative incidence object. The incidence rate per
 #' year of the registry is shown in red. Mean incidence rate is shown as a solid blue line,
-#' with the 95\% confidence interval shown with dashed blue lines. The smooth fitted to the
+#' with the confidence interval shown in dashed blue lines. The smooth fitted to the
 #' cumulative incidence data is shown in green.
-#' @param object A \code{cincidence} object.
+#' @param object An \code{incidence} object.
 #' @param level The desired confidence interval width.
 #' @return Plot of incidence rate, confidence interval and smoothed incidence function as a side-effect.
 #' @examples
 #' data(prevsim)
 #'
-#' c_inc <- cumulative_incidence(previm$entrydate, start = "2004-01-30", num_reg_years = 9)
+#' inc <- incidence(previm$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
 #'
-#' inspect_incidence(c_inc)
-#' @export inspect_incidence
+#' plot(inc)
+#'
+#' @export plot.incidence
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_point
 #' @importFrom ggplot2 geom_line
@@ -161,7 +160,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
 #' @importFrom ggplot2 ylim
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 scale_colour_manual
-inspect_incidence <- function(object, level=0.95){
+plot.incidence <- function(object, level=0.95){
     raw_incidence <- object$raw_incidence
     mean_rate <- mean(raw_incidence)
     day_mean_rate <- mean_rate / 365
@@ -177,20 +176,22 @@ inspect_incidence <- function(object, level=0.95){
                             lower=day_mean_rate-CI_lim)
     ci_diff <- 0.5 * (mean_rate$upper - mean_rate$lower)
 
-    ggplot2::ggplot() +
-        ggplot2::geom_point(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r')) +
-        ggplot2::geom_line(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r'), size=1) +
-        ggplot2::geom_line(data=smooth_rate, ggplot2::aes(x=day, y=rate, colour='g'),  size=1) +
-        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=mean, colour='b')) +
-        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=upper, colour='b'), linetype='dashed') +
-        ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=lower, colour='b'), linetype='dashed') +
-        ggplot2::labs(x='Year', y='Daily incidence rate') +
-        ggplot2::theme_bw() +
-        ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
-        ggplot2::scale_colour_manual(name='Data',
-                                     values=c('r'='red', 'g'='green', 'b'='#0080ff'),
-                                     breaks=c('r', 'g', 'b'),
-                                     labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
+    p <- ggplot2::ggplot() +
+            ggplot2::geom_point(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r')) +
+            ggplot2::geom_line(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r'), size=1) +
+            ggplot2::geom_line(data=smooth_rate, ggplot2::aes(x=day, y=rate, colour='g'),  size=1) +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=mean, colour='b')) +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=upper, colour='b'), linetype='dashed') +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=lower, colour='b'), linetype='dashed') +
+            ggplot2::labs(x='Year', y='Daily incidence rate') +
+            ggplot2::theme_bw() +
+            ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
+            ggplot2::theme(legend.position='bottom') +
+            ggplot2::scale_colour_manual(name='Data',
+                                         values=c('r'='red', 'g'='green', 'b'='#0080ff'),
+                                         breaks=c('r', 'g', 'b'),
+                                         labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
+    print(p)
 }
 
 #' Inspect consistency of incidence rate with an homogeneous Poisson process using simulation.
@@ -202,44 +203,23 @@ inspect_incidence <- function(object, level=0.95){
 #' cases, plotted as deviations from a smooth fitted to them. The blue lines are 95\% confidence
 #' intervals drawn from the simulated data.
 #'
-#' @param object A \code{cincidence} object.
+#' @param object An \code{incidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.
 #' @param level The desired confidence interval width.
 #' @return Plot of the smoothed incidence function and corresponding deviations.
-#' @examples
-#' poisson_incidence_sim(c_inc)
-poisson_incidence_sim <- function(object, N_sim=1000, level=0.95){
-
-    diags <- object$ordered_diagnoses
-    N <- length(diags)
-    boot_out <- matrix(NA, nrow = N_sim, ncol = N)
-
-    for (i in 1:N_sim){
-        x <- sort(runif(N, 0, max(diags)))
-        the_smo <- smooth.spline(x, 1:N, df=object$dof)
-        boot_out[i, ] <- (1:N) - predict(the_smo, x)$y
-    }
-
-    plot(NA, xlim=c(0, max(diags)), ylim=c(-0.8*max(boot_out),0.8*max(boot_out)), xlab="days", ylab="deviation from smooth")
-    sapply(seq(N_sim),
-           function(i) lines(x, boot_out[i,], col="grey"))
-
-    lines(diags, seq(length(diags)) - predict(object$smooth, diags)$y, col="red")
-    lines(x, apply(boot_out, 2, quantile, probs=(1+level)/2), col="blue")
-    lines(x, apply(boot_out, 2, quantile, probs=1-((1+level)/2)), col="blue")
-
-}
-
-#' \code{poisson_incidence_sim} adapted for ggplot2.
-#'
-#' See \code{\link{poisson_incidence_sim}}.
-#'
-#' @param object A \code{cincidence} object.
-#' @param N_sim Number of draws from a homogeneous Poisson process.
-#' @param level The desired confidence interval width.
 #' @param samples_per_bin Number of samples per bin.
 #' @param max_bins Maximum number of bins.
-poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
+#' @examples
+#'
+#' @importFrom ggplot2 ggplot
+#' @importFrom ggplot2 geom_vline
+#' @importFrom ggplot2 geom_ribbon
+#' @importFrom ggplot2 geom_line
+#' @importFrom ggplot2 theme_bw
+#' @importFrom ggplot2 labs
+#' @importFrom ggplot2 aes
+#' @export plot_incidence_fit
+plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
     diags <- object$ordered_diagnoses
     N <- length(diags)
 
@@ -272,7 +252,7 @@ poisson_incidence_sim_gg <- function(object, N_sim=1000, level=0.95, samples_per
         ggplot2::theme_bw() +
         ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
                            colour='orange', size=1) +
-        labs(x="Days", y="Deviation from smooth")
+        ggplot2::labs(x="Days", y="Deviation from smooth")
     print(p)
 }
 
@@ -351,3 +331,4 @@ summary.incidence <- function(object, ...) {
         ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
                            colour='orange', size=1)
 }
+

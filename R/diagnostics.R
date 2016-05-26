@@ -13,9 +13,9 @@
 #'
 #' inc <- incidence(prevsim$entrydate)
 #'
-#' test_poisson_fit(inc)
-#' @export test_poisson_fit
-test_poisson_fit <- function(incidence, N_sim = 1e5) {
+#' test_incidence_fit(inc)
+#' @export test_incidence_fit
+test_incidence_fit <- function(incidence, N_sim = 1e5) {
     var_sim <- vapply(seq(N_sim), function(i) var(rpois(length(incidence), mean(incidence))), numeric(1))
     c(sum(var_sim > var(incidence))/N_sim, sum(var_sim <= var(incidence))/N_sim)
 }

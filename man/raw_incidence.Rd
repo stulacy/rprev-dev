@@ -25,10 +25,10 @@ Calculate absolute incidence from registry data.
 \examples{
 data(prevsim)
 
-incidence(prevsim$entrydate, start="2004-01-01", 8)
-incidence(prevsim$entrydate)
-incidence(prevsim$entrydate, start="2005-05-01", 5)
-incidence(prevsim$entrydate, start="2005-05-01")
+raw_incidence(prevsim$entrydate, start="2004-01-01", 8)
+raw_incidence(prevsim$entrydate)
+raw_incidence(prevsim$entrydate, start="2005-05-01", 5)
+raw_incidence(prevsim$entrydate, start="2005-05-01")
 
 }
 

@@ -55,12 +55,12 @@ raw_incidence <- incidence(prevsim$entrydate, start="2004-01-30", num_reg_years=
 raw_incidence
 ```
 
-It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with an homogeneous Poisson process, the `test_poisson_fit`, `inspect_incidence`, and `poisson_incidence_sim` functions can be used.
+It can be concluded that the disease has around 100 new cases each year. To assess consistency of the incidence data with an homogeneous Poisson process, the `test_incidence_fit`, `inspect_incidence`, and `poisson_incidence_sim` functions can be used.
 
-`test_poisson_fit` outputs the p-values for testing whether the process is over or underdispersed:
+`test_incidence_fit` outputs the p-values for testing whether the process is over or underdispersed:
 
 ```{r}
-test_poisson_fit(raw_incidence)
+test_incidence_fit(raw_incidence)
 ```
 
 `inspect_incidence` and `poisson_incidence_sim` are both graphical means of validating the Poisson fit, and are methods of a `cincidence` object, for which the constructor is `cumulative_incidence`. This latter function calculates cumulative incidence for the registry data and fits a spline to it.
