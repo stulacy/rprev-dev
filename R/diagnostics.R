@@ -63,12 +63,12 @@ test_prevalence_fit <- function(object) {
 #' incidence_age_distribution(prevsim$age, df=5)
 #'
 #' @export
-#' @import ggplot2
 #' @family incidence functions
 incidence_age_distribution <- function(agedata, df=10) {
 
     ages <- vapply(seq(100), function(i) sum(floor(agedata) + 1 == i), numeric(1))
-    p <- ggplot2::ggplot(data.frame(count=ages, age=seq(100)), ggplot2::aes(x=age, y=count)) +
+    p <- ggplot2::ggplot(data.frame(count=ages, age=seq(100)),
+                         ggplot2::aes_string(x='age', y='count')) +
             ggplot2::geom_point() +
             ggplot2::geom_smooth(method='lm', formula=y ~ poly(x, df, raw=TRUE)) +
             ggplot2::xlim(0, 100) +
@@ -107,7 +107,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_ribbon
 #' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 aes
+#' @importFrom ggplot2 aes_string
 functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
     trms <- attr(terms(form), 'variables')
     if (length(trms) != 3)
@@ -126,129 +126,13 @@ functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
 
     if (plot_fit) {
         preds <- rms::Predict(mod_rms, age)
-        p <- ggplot2::ggplot(preds, ggplot2::aes(x=age, y=yhat)) +
-            ggplot2::geom_ribbon(ggplot2::aes(ymin=lower, ymax=upper), colour='#d2d2d2', alpha=0.05) +
+        p <- ggplot2::ggplot(preds, ggplot2::aes_string(x='age', y='yhat')) +
+            ggplot2::geom_ribbon(ggplot2::aes_string(ymin='lower', ymax='upper'),
+                                 colour='#d2d2d2', alpha=0.05) +
             ggplot2::geom_line(colour='#0080ff', size=1.2) +
             ggplot2::theme_bw()
         print(p)
     }
 
     mod_rms
-}
-
-#' ...
-#'
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param wb Weibull model fitted to the data.
-#' @return ...
-.dfr_sc <- function(age, sex, wb) {
-    if (sex == "Male") {
-        sexn <- 0
-    } else {
-        sexn <- 1
-    }
-    return(exp(wb$coef[1] + age*wb$coef[2] + sexn*wb$coef[3]))
-}
-
-#' ...
-#'
-#' @param t ...
-#' @param shape ...
-#' @param scale ...
-#' @return ...
-.wb_Su <- function(t, shape, scale) {
-    return(exp(-(t/scale)^shape))
-}
-
-#' ...
-#'
-#' @param t ...
-#' @param shape ...
-#' @param scale ...
-#' @return ...
-.wb_haz <- function(t, shape, scale) {
-    return((shape/scale)*(t/scale)^(shape-1))
-}
-
-#' ...
-#'
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param the_length Number of days to predict.
-#' @param wb Weibull model fitted to the data.
-#' @return ...
-.plot_haz <- function(age, sex, the_length=3000, wb) {
-    s_time <- seq(0, the_length, by=1)
-    haz <- wb_haz(s_time, dfr_sh, dfr_sc(age, sex, wb))
-    plot(s_time, haz, type="l", lwd=2, col="red", ylim=c(0,0.002),
-         main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
-}
-
-#' ...
-#'
-#' @param data Population survival dataset.
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param the_length Number of days to predict.
-#' @return ...
-.plot_population_hazard <- function(data, age, sex, the_length=3000) {
-    if(sex == "Male") sex = "Males"
-    if(sex == "Female") sex = "Females"
-    daily_survival_rate <- function(data, sex)
-        lines(0:(the_length-1), daily_survival_rate[(365*age):(365*age + the_length - 1)],
-              col="blue", lwd=2)
-}
-
-#' ...
-#'
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param the_length Number of days to predict.
-#' @param wb Weibull model fitted to the data.
-#' @return ...
-.plot_Su <- function(age, sex, the_length=3000, wb) {
-    s_time <- seq(0, the_length, by=1)
-    Su <- wb_Su(s_time, dfr_sh, dfr_sc(age, sex, wb))
-    plot(s_time, Su, type="l", lwd=2, col="red", ylim=c(0,1),
-         main=paste("age = ", age, ", sex =", sex), xlab="survival (days)", ylab="probability")
-}
-
-#' ...
-#'
-#' @param data Population survival dataset.
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param the_length Number of days to predict.
-#' @return ...
-.plot_pop_Su <- function(data, age, sex, the_length=3000) {
-    if(sex == "Male") sex = "Males"
-    if(sex == "Female") sex = "Females"
-    daily_survival_rate <- function(data, sex)
-        lines(1:the_length, cumprod(1 - daily_survival_rate[(age*365):(age*365 + the_length - 1)]),
-              col="cyan", lwd=2)
-}
-
-#' ...
-#'
-#' @param data A registry dataset of patient cases generated using load_data().
-#' @param registry_years A vector of dates delineating years of the registry.
-#' @param registry_start_year Ordinal defining the first year of the registry data to be used.
-#' @param age Age of example patient.
-#' @param sex Sex of example patient ("Male" or "Female").
-#' @param limits ...
-#' @param colour ...
-#' @return ...
-.plot_km <- function(data, registry_years, registry_start_year, age,
-                    sex, limits, colour="green") {
-    if (sex == "Male") {
-        sexn <- 0
-    } else {
-        sexn <- 1
-    }
-    dfr_r <- data[data$date_initial >= registry_years[registry_start_year],]
-    kma <- survival::survfit(Surv(survival_time, indicator) ~ 1,
-                             data=dfr_r[dfr_r$sex == sexn & dfr_r$age_initial > age-limits &
-                             dfr_r$age_initial < age + limits, ])
-    lines(kma, lwd=1, col=colour, conf.int=T)
 }
