@@ -35,6 +35,11 @@ of incident cases, plotted as deviations from a smooth fitted to them. The
 blue lines are 95\% confidence intervals drawn from the simulated data.
 }
 \examples{
+data(prevsim)
 
+inc <- incidence(prevsim$entrydate, 1e6, start = "2004-01-30",
+                 num_reg_years = 9)
+
+plot_incidence_fit(inc)
 }
 

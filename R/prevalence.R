@@ -285,19 +285,28 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #' @examples
 #' data(prevsim)
 #'
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 10, start = "2005-09-01", num_reg_years = 8, cure = 5)
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#'                      prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 10, start = "2005-09-01",
+#'                      num_reg_years = 8, cure = 5)
 #'
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 5, start="2004-01-01", num_reg_years=5)
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#'                      prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 5, start="2004-01-01",
+#'                      num_reg_years=5)
 #'
 #' \dontrun{
 #' # The program can be run using parallel processing.
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 10, start="2005-01-01", num_reg_years=8, n_cores=4)
+#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#'                      prevsim$sex, prevsim$entrydate,
+#'                      num_years_to_estimate = 10, start="2005-01-01",
+#'                      num_reg_years=8, n_cores=4)
 #'                      }
 #'
 #' @importFrom abind abind
+#' @importFrom doParallel registerDoParallel
+#' @importFrom foreach foreach
+#' @importFrom foreach %dopar%
 #' @export
 #' @family prevalence functions
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
@@ -305,12 +314,12 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
                                  N_boot=1000, max_yearly_incidence=500,
                                  population_data=NULL, n_cores=1) {
 
-    if (n_cores > 1) {
-        if (!require(doParallel)) {
-            warning("doParallel not installed. Running program serially instead.")
-            n_cores <- 1
-        }
-    }
+    #if (n_cores > 1) {
+    #    if (!require(doParallel)) {
+    #        warning("doParallel not installed. Running program serially instead.")
+    #        n_cores <- 1
+    #    }
+    #}
 
     cure_days <- cure * 365
 
@@ -448,11 +457,11 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 
 #' @export
-print.prevalence <- function(object, ...) {
+print.prevalence <- function(x, ...) {
     cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
-    lapply(names(object$estimates), function(x) {
-        year <- strsplit(x, 'y')[[1]][2]
-        prev_est <- object$estimates[[x]][2]
+    lapply(names(object$estimates), function(item) {
+        year <- strsplit(itemx, 'y')[[1]][2]
+        prev_est <- object$estimates[[itemx]][2]
         cat(paste(year, "years:", prev_est, "\n"))
     })
 }

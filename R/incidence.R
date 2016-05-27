@@ -226,7 +226,12 @@ plot.incidence <- function(object, level=0.95){
 #' @param samples_per_bin Number of samples per bin.
 #' @param max_bins Maximum number of bins.
 #' @examples
+#' data(prevsim)
 #'
+#' inc <- incidence(prevsim$entrydate, 1e6, start = "2004-01-30",
+#'                  num_reg_years = 9)
+#'
+#' plot_incidence_fit(inc)
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_vline
 #' @importFrom ggplot2 geom_ribbon
@@ -273,7 +278,7 @@ plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=1
 }
 
 #' @export
-print.incidence <- function(object, ...) {
+print.incidence <- function(x, ...) {
     cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
     cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
 
@@ -292,59 +297,3 @@ summary.incidence <- function(object, ...) {
     cat("\nFitted smooth:\n~~~~~~~~~~~~~\n")
     print(object$smooth)
 }
-
-# UNUSED FUNCTION, but want to keep the code for it still
-.poisson_incidence_sim_quantilereg <- function(object, N_sim=1000, level=0.95){
-    # Quantile regression taken from user eipi10 at stack overflow in response to a question I asked
-    # http://stackoverflow.com/questions/37326686/ggplot2-geom-ribbon-with-alpha-dependent-on-data-density-along-y-axis-for-each
-
-    diags <- object$ordered_diagnoses
-    N <- length(diags)
-
-    boot_out <- lapply(seq(N_sim), function(i) {
-        x <- sort(runif(N, 0, max(diags)))
-        smo <- smooth.spline(x, 1:N, df=object$dof)
-        data.frame(y=seq(N) - predict(smo, x)$y, x=x)
-    })
-
-    bootstraps = do.call(rbind, boot_out)
-
-    # Quantiles for density ribbons, here used 50 quantiles
-    qq = seq(0, 1, 0.02)
-
-    # Quantile regression for each quantile, used flexible spline function
-    # TODO Is a spline needed?
-    # TODO Can just use rms package and interface directly to quantreg?
-    m1 <- quantreg::rq(y ~ splines::ns(x, 4), data=bootstraps, tau=qq)
-
-    # Create dataframe of regression quantile predictions using predict
-    xvals = seq(min(bootstraps$x), max(bootstraps$x), length.out=N)
-    rqs = data.frame(x=xvals, predict(m1, newdata=data.frame(x=xvals)))
-    names(rqs) = c('x', paste0('p', N*qq))
-
-    # Reshape data so predictions for each quantile serve as ymin for one quantile and ymax for the next quantile in succession
-    # Missing last quantile
-    dat1 = rqs[, -length(rqs)]
-    names(dat1)[-1] = paste0(names(dat1)[-1])
-    # Missing first quantile
-    dat2 = rqs[, -2]
-    names(dat2)[-1] = paste0(names(dat1)[-1])
-
-    dat1 = tidyr::gather(dat1, group, min, -x)
-    dat2 = tidyr::gather(dat2, group, max, -x)
-
-    dat = dplyr::inner_join(dat1, dat2)
-
-    # Create the plot
-    ggplot() +
-        geom_ribbon(data=dat, aes(x=x, ymin=min,ymax=max, group=group, alpha=sort(group)),
-                    fill='blue', lwd=0, show.legend=TRUE) +
-        theme_bw() +
-        scale_alpha_manual(values=c(seq(0.05, 0.9, length.out=floor(0.5*length(qq))),
-                                    seq(0.9, 0.05, length.out=floor(0.5*length(qq))))) +
-        geom_point(data=bootstraps, aes(x,y), alpha=0.1, size=0.7, colour='red') +
-        geom_line(data=bootstraps, aes(x,y), alpha=0.1, size=0.7, colour='red') +
-        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
-                           colour='orange', size=1)
-}
-

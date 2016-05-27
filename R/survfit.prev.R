@@ -16,9 +16,10 @@
 #' @examples
 #' data(prevsim)
 #'
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'                        start = "2005-09-01",
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+#'                        entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10),
+#'                        population_size=1e6, start = "2005-09-01",
 #'                        num_reg_years = 8, cure = 5)
 #'
 #' survobj <- survfit(prev_obj)
@@ -70,13 +71,15 @@ print.survfit.prev <- function(object, ...) {
 #' @param object A \code{survfit.prev} object.
 #' @param years A vector of years for which to estimate survival probability
 #'   from the bootstrapped survival curves.
+#' @param ... Arguments passed to main \code{summary} function.
 #' @return None, displays the survival probabilities to screen as a side-effect.
 #' @examples
 #' data(prevsim)
 #'
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'                        start = "2005-09-01",
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+#'                        entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10),
+#'                        population_size=1e6, start = "2005-09-01",
 #'                        num_reg_years = 8, cure = 5)
 #'
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
@@ -91,7 +94,8 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
     # Truncate years to the maximum number allowed
     max_years <- floor(dim(object$surv)[2] / 365.25)
     if (sum(years > max_years) > 0)
-        message("Cannot estimate survival probabilities beyond the ", max_years, " years provided in the dataset.")
+        message("Cannot estimate survival probabilities beyond the ",
+                max_years, " years provided in the dataset.")
     years <- years[years <= max_years]
     days <- sapply(years, function(x) floor(x * 365.25))
 
@@ -99,8 +103,11 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
     lower <- apply(object$surv[, days], 2, function(x) quantile(x, 0.025))
     upper <- apply(object$surv[, days], 2, function(x) quantile(x, 0.975))
 
-    cat("Survival probability estimated using", dim(object$surv)[1], "bootstrap survival curves:\n")
-    f <- mapply(function(x, y, l, u) cat(x, " year survival: ", y, " (", l, " - ", u, ") \n", sep=''),
+    cat("Survival probability estimated using", dim(object$surv)[1],
+        "bootstrap survival curves:\n")
+    f <- mapply(function(x, y, l, u)
+                cat(x, " year survival: ", y, " (", l, " - ", u, ") \n",
+                    sep=''),
                 years, round(probs, 3), round(lower, 3), round(upper, 3))
 }
 

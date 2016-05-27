@@ -76,16 +76,22 @@ the posterior distributions of each.
 \examples{
 data(prevsim)
 
-prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-                     num_years_to_estimate = 10, start = "2005-09-01", num_reg_years = 8, cure = 5)
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+                     prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 10, start = "2005-09-01",
+                     num_reg_years = 8, cure = 5)
 
-prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-                     num_years_to_estimate = 5, start="2004-01-01", num_reg_years=5)
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+                     prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 5, start="2004-01-01",
+                     num_reg_years=5)
 
 \dontrun{
 # The program can be run using parallel processing.
-prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age, prevsim$sex, prevsim$entrydate,
-                     num_years_to_estimate = 10, start="2005-01-01", num_reg_years=8, n_cores=4)
+prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+                     prevsim$sex, prevsim$entrydate,
+                     num_years_to_estimate = 10, start="2005-01-01",
+                     num_reg_years=8, n_cores=4)
                      }
 
 }

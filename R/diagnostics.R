@@ -247,8 +247,8 @@ functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
         sexn <- 1
     }
     dfr_r <- data[data$date_initial >= registry_years[registry_start_year],]
-    kma <- survfit(Surv(survival_time, indicator) ~ 1,
-                   data=dfr_r[dfr_r$sex == sexn & dfr_r$age_initial > age-limits &
-                                  dfr_r$age_initial < age + limits, ])
+    kma <- survival::survfit(Surv(survival_time, indicator) ~ 1,
+                             data=dfr_r[dfr_r$sex == sexn & dfr_r$age_initial > age-limits &
+                             dfr_r$age_initial < age + limits, ])
     lines(kma, lwd=1, col=colour, conf.int=T)
 }

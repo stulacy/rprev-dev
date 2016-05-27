@@ -59,12 +59,10 @@ population_survival_rate <- function(form, data, max_age=100){
     n_coef <- ncol(data) - 1  # minus 2 for time + status, + 1 for shape
 
     if (n_cores > 1) {
-        cl <- makeCluster(n_cores)
-        registerDoParallel(cl)
-        foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind',
-                .inorder=F, .export='.calculate_coefficients') %dopar% {
-            .calculate_coefficients(data, n_obs, n_coef)
-        }
+        doParallel::registerDoParallel(n_cores)
+        parobj <- foreach::foreach(i=1:N, .options.snow=list(preschedule=T), .packages=c('survival'), .combine='rbind',
+                .inorder=F, .export='.calculate_coefficients')
+        foreach::"%dopar%"(parobj, .calculate_coefficients(data, n_obs, n_coef))
     } else {
         t(replicate(N, .calculate_coefficients(data, n_obs, n_coef)))
     }

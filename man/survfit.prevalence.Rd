@@ -28,9 +28,10 @@ to the \code{prevalence} object.
 \examples{
 data(prevsim)
 
-prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-                       data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-                       start = "2005-09-01",
+prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+                       entry(entrydate) + event(eventdate),
+                       data=prevsim, num_years_to_estimate = c(5, 10),
+                       population_size=1e6, start = "2005-09-01",
                        num_reg_years = 8, cure = 5)
 
 survobj <- survfit(prev_obj)

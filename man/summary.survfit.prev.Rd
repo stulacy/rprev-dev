@@ -11,6 +11,8 @@
 
 \item{years}{A vector of years for which to estimate survival probability
 from the bootstrapped survival curves.}
+
+\item{...}{Arguments passed to main \code{summary} function.}
 }
 \value{
 None, displays the survival probabilities to screen as a side-effect.
@@ -29,9 +31,10 @@ points less than the maximum survival time in the original dataset that the
 \examples{
 data(prevsim)
 
-prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-                       data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-                       start = "2005-09-01",
+prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+                       entry(entrydate) + event(eventdate),
+                       data=prevsim, num_years_to_estimate = c(5, 10),
+                       population_size=1e6, start = "2005-09-01",
                        num_reg_years = 8, cure = 5)
 
 survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
