@@ -28,12 +28,13 @@
 #' @examples
 #' data(prevsim)
 #'
-#' incidence(previm$entrydate, 1e6)
+#' incidence(prevsim$entrydate, 1e6)
 #'
-#' incidence(previm$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+#' incidence(prevsim$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
 #' @export
 #' @family incidence functions
-incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df=6, precision=2, level=0.95){
+incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
+                      df=6, precision=2, level=0.95){
 
     if (is.null(start))
         start <- min(entry)
@@ -73,9 +74,9 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL, df
 #' @examples
 #' data(prevsim)
 #'
-#' raw_incidence(prevsim$entrydate, start="2004-01-01", 8)
+#' raw_incidence(prevsim$entrydate, start="2004-01-01", num_reg_years=8)
 #' raw_incidence(prevsim$entrydate)
-#' raw_incidence(prevsim$entrydate, start="2005-05-01", 5)
+#' raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
 #' raw_incidence(prevsim$entrydate, start="2005-05-01")
 #'
 #' @export
@@ -118,10 +119,11 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' @examples
 #' data(prevsim)
 #'
-#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
-#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6)
-#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
-#' mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+#' rawinc <- raw_incidence(prevsim$entrydate)
+#' mean_incidence_rate(rawinc, population_size=3.5e6)
+#'
+#' rawinc2 <- raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
+#' mean_incidence_rate(rawinc2, population_size=3.5e6)
 #'
 #' @export
 #' @family incidence functions
@@ -155,7 +157,7 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @examples
 #' data(prevsim)
 #'
-#' inc <- incidence(previm$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
+#' inc <- incidence(prevsim$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
 #'
 #' plot(inc)
 #'
@@ -296,9 +298,6 @@ summary.incidence <- function(object, ...) {
     # Quantile regression taken from user eipi10 at stack overflow in response to a question I asked
     # http://stackoverflow.com/questions/37326686/ggplot2-geom-ribbon-with-alpha-dependent-on-data-density-along-y-axis-for-each
 
-    library(quantreg)
-    library(splines)
-
     diags <- object$ordered_diagnoses
     N <- length(diags)
 
@@ -316,7 +315,7 @@ summary.incidence <- function(object, ...) {
     # Quantile regression for each quantile, used flexible spline function
     # TODO Is a spline needed?
     # TODO Can just use rms package and interface directly to quantreg?
-    m1 <- rq(y ~ ns(x, 4), data=bootstraps, tau=qq)
+    m1 <- quantreg::rq(y ~ splines::ns(x, 4), data=bootstraps, tau=qq)
 
     # Create dataframe of regression quantile predictions using predict
     xvals = seq(min(bootstraps$x), max(bootstraps$x), length.out=N)

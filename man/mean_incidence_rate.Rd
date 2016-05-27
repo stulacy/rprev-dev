@@ -34,10 +34,11 @@ confidence intervals for the given registry data.
 \examples{
 data(prevsim)
 
-mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8)
-mean_incidence_rate(prevsim$entrydate, population_size=3.5e6)
-mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, precision=3)
-mean_incidence_rate(prevsim$entrydate, population_size=3.5e6, start='2004-01-01', num_reg_years=8, level=0.99)
+rawinc <- raw_incidence(prevsim$entrydate)
+mean_incidence_rate(rawinc, population_size=3.5e6)
+
+rawinc2 <- raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
+mean_incidence_rate(rawinc2, population_size=3.5e6)
 
 }
 \seealso{
