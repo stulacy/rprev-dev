@@ -5,9 +5,6 @@
 #'
 #' @inheritParams incidence
 #' @return A vector of dates delineating complete years of registry data.
-#' @examples
-#' determine_registry_years(start='2004-01-30', num_reg_years=8)
-#'
 #' @keywords internal determine_registry_years
 determine_registry_years <- function(start, num_reg_years) {
     # Calculate registry years from this

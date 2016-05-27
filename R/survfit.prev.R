@@ -163,8 +163,11 @@ plot.survfit.prev <- function(object, pct_show=0.9) {
                     tidyr::gather(time, survprob, -bootstrap)
 
     ggplot2::ggplot() +
-        ggplot2::geom_line(data=outliers, ggplot2::aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap)), colour='grey', linetype="dotted") +
-        ggplot2::geom_ribbon(data=smooth, ggplot2::aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
+        ggplot2::geom_line(data=outliers,
+                           ggplot2::aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap)),
+                           colour='grey', linetype="dotted") +
+        ggplot2::geom_ribbon(data=smooth,
+                             ggplot2::aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
         ggplot2::geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
                            ggplot2::aes(x=as.numeric(time), y=survprob), colour='orange', size=1) +
         ggplot2::theme_bw() +

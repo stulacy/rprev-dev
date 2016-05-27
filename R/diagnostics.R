@@ -88,7 +88,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #'   supplied dataset.
 #' @param data A data frame with the corresponding column names provided in
 #'   \code{form}.
-#' @param df The desired degrees of freedom for the cubic spline..
+#' @param df The desired degrees of freedom for the cubic spline, must be >= 3.
 #' @param plot_fit Whether to plot the relationship between age and relative
 #'   hazard.
 #' @return An \code{rms::cph} object containing the Cox model fit between a
@@ -98,9 +98,9 @@ incidence_age_distribution <- function(agedata, df=10) {
 #'
 #' functional_form_age(Surv(time, status) ~ age, prevsim)
 #'
-#' functional_form_age(Surv(time, status) ~ age, prevsim, df=2)
+#' functional_form_age(Surv(time, status) ~ age, prevsim, df=3)
 #'
-#' functional_form_age(Surv(time, status) ~ age, prevsim, df=2, plot_fit=F)
+#' functional_form_age(Surv(time, status) ~ age, prevsim, df=3, plot_fit=FALSE)
 #'
 #' @export
 #' @import rms
@@ -108,7 +108,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @importFrom ggplot2 geom_ribbon
 #' @importFrom ggplot2 geom_line
 #' @importFrom ggplot2 aes
-functional_form_age <- function(form, data, df=4, plot_fit=T) {
+functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
     trms <- attr(terms(form), 'variables')
     if (length(trms) != 3)
         stop("Error: Please provide just Surv and age terms in the formula.")
@@ -122,7 +122,7 @@ functional_form_age <- function(form, data, df=4, plot_fit=T) {
     options(datadist="f")
 
     myform <- survival::Surv(time, status) ~ rms::rcs(age, df)
-    mod_rms <- rms::cph(myform, mydf, x=TRUE, y=TRUE, surv=T, time.inc=1)
+    mod_rms <- rms::cph(myform, mydf, x=TRUE, y=TRUE, surv=TRUE, time.inc=1)
 
     if (plot_fit) {
         preds <- rms::Predict(mod_rms, age)

@@ -74,7 +74,7 @@ population_survival_rate <- function(form, data, max_age=100){
     # Helper function to bootstrap the data and fit a weibull
     # Split into a separate function to reduce repetition when called in parallel or serial
     # TODO Rename this function something more meaningful and less easily confused with calculate_bootstrapped_coefficients
-    bstrap <- data[sample(1:nobs, nobs, replace=T), ]
+    bstrap <- data[sample(1:nobs, nobs, replace=TRUE), ]
     tryCatch(.fit_weibull(bstrap),
              error=function(cond) rep(NA, ncoef)
     )

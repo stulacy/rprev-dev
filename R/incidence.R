@@ -339,7 +339,7 @@ summary.incidence <- function(object, ...) {
     # Create the plot
     ggplot() +
         geom_ribbon(data=dat, aes(x=x, ymin=min,ymax=max, group=group, alpha=sort(group)),
-                    fill='blue', lwd=0, show.legend=T) +
+                    fill='blue', lwd=0, show.legend=TRUE) +
         theme_bw() +
         scale_alpha_manual(values=c(seq(0.05, 0.9, length.out=floor(0.5*length(qq))),
                                     seq(0.9, 0.05, length.out=floor(0.5*length(qq))))) +

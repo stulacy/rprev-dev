@@ -4,7 +4,7 @@
 \alias{functional_form_age}
 \title{View the suitability of a linear effect of age on hazard.}
 \usage{
-functional_form_age(form, data, df = 4, plot_fit = T)
+functional_form_age(form, data, df = 4, plot_fit = TRUE)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv}
@@ -14,7 +14,7 @@ supplied dataset.}
 \item{data}{A data frame with the corresponding column names provided in
 \code{form}.}
 
-\item{df}{The desired degrees of freedom for the cubic spline..}
+\item{df}{The desired degrees of freedom for the cubic spline, must be >= 3.}
 
 \item{plot_fit}{Whether to plot the relationship between age and relative
 hazard.}
@@ -33,9 +33,9 @@ data(prevsim)
 
 functional_form_age(Surv(time, status) ~ age, prevsim)
 
-functional_form_age(Surv(time, status) ~ age, prevsim, df=2)
+functional_form_age(Surv(time, status) ~ age, prevsim, df=3)
 
-functional_form_age(Surv(time, status) ~ age, prevsim, df=2, plot_fit=F)
+functional_form_age(Surv(time, status) ~ age, prevsim, df=3, plot_fit=FALSE)
 
 }
 

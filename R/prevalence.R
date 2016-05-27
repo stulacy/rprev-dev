@@ -417,7 +417,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     num_diag <- rpois(1, rate)
 
     if (num_diag > 0) {
-        boot_age_dist <- sample(prior, num_diag, replace=T)
+        boot_age_dist <- sample(prior, num_diag, replace=TRUE)
         time_since_diag <- year * 365 + runif(num_diag, 0, 365)
 
         # Combine data into a matrix
@@ -473,7 +473,8 @@ summary.prevalence <- function(object, ...) {
 }
 
 
-.point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3, level=0.95, precision=2) {
+.point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3,
+                            level=0.95, precision=2) {
 
     # Replace simulated values for observed for the years we have simulated data
     sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
@@ -486,7 +487,7 @@ summary.prevalence <- function(object, ...) {
     if (years <= num_reg_years) {
         se <- (raw_proportion * (1 - raw_proportion)) / population_size
     } else {
-        the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=F]
+        the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=FALSE]
         by_sample_estimate <- colSums(the_samples)
         the_estimate_n <- sum(sim$mean_yearly_contributions[1:num_reg_years])
         raw_proportion_n <- the_estimate_n / population_size
