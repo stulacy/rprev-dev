@@ -4,12 +4,14 @@
 \alias{plot.incidence}
 \title{Visualise disease incidence.}
 \usage{
-\method{plot}{incidence}(object, level = 0.95)
+\method{plot}{incidence}(x, level = 0.95, ...)
 }
 \arguments{
-\item{object}{An \code{incidence} object.}
+\item{x}{An \code{incidence} object.}
 
 \item{level}{The desired confidence interval width.}
+
+\item{...}{Arguments passed to \code{plot}.}
 }
 \value{
 None, plots a side effect of incidence rate, confidence interval and

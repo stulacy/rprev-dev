@@ -97,7 +97,7 @@ population_survival_rate <- function(form, data, max_age=100){
                          0, # strata
                          NULL # parms
     )
-    coef(model)
+    stats::coef(model)
 }
 
 .row_any_error <- function(matrix) {

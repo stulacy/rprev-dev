@@ -5,7 +5,7 @@
 #'
 #' @inheritParams incidence
 #' @return A vector of dates delineating complete years of registry data.
-#' @keywords internal determine_registry_years
+#' @export
 determine_registry_years <- function(start, num_reg_years) {
     # Calculate registry years from this
     # NB: Ugly hack to not take leap years into account. Done so that tests don't throw an error, but strictly

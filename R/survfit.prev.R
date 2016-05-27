@@ -3,10 +3,11 @@
 #' Calculates bootstrapped survival probabilities from the Weibull models fitted
 #' to the \code{prevalence} object.
 #'
-#' @param object A \code{prevalence} object.
+#' @param formula A \code{prevalence} object.
 #' @param newdata A list or dataframe with the covariate values to calculate
 #'   survival probabilities for. Defaults to using the mean values from the the
 #'   original dataset that the model was fit to.
+#' @param ... Other arguments to \code{survfit}.
 #' @return An S3 object of class \code{survfit.prev} with the following
 #'   attributes: \item{time}{A vector of time points at which survival
 #'   probability has been calculated.} \item{surv}{A matrix of survival
@@ -26,26 +27,27 @@
 #'
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 #'
+#' @importFrom survival survfit
 #' @export
-survfit.prevalence <- function(object, newdata=NULL) {
+survfit.prevalence <- function(formula, newdata=NULL, ...) {
     if (is.null(newdata)) {
-        use_df <- object$means
+        use_df <- formula$means
     } else {
         # Check names have same names as those in original data
-        if (!all(sort(names(newdata)) == sort(names(object$means))))
+        if (!all(sort(names(newdata)) == sort(names(formula$means))))
             stop("Error: Please provide a list with the same column names as in the original dataset.")
 
         # Reorder new data to be in same order as original data
-        use_df <- unlist(newdata)[names(object$means)]
+        use_df <- unlist(newdata)[names(formula$means)]
     }
 
     # Add intercept
     use_df <- c(1, use_df)
 
-    times <- seq(max(object$y[, 1]))
-    survprobs <- apply(object$simulated$coefs, 1, .calculate_survival_probability, use_df, times)
+    times <- seq(max(formula$y[, 1]))
+    survprobs <- apply(formula$simulated$coefs, 1, .calculate_survival_probability, use_df, times)
 
-    full_survprobs <- .calculate_survival_probability(object$simulated$full_coefs, use_df, times)
+    full_survprobs <- .calculate_survival_probability(formula$simulated$full_coefs, use_df, times)
 
     result <- list(time=times, surv=t(survprobs), fullsurv=full_survprobs)
     attr(result, 'class') <- 'survfit.prev'
@@ -53,8 +55,9 @@ survfit.prevalence <- function(object, newdata=NULL) {
 }
 
 #' @export
-print.survfit.prev <- function(object, ...) {
-    cat("Survival probability calculated at", length(object$time), "timepoints, across", dim(object$surv)[1], "bootstraps.")
+print.survfit.prev <- function(x, ...) {
+    cat("Survival probability calculated at", length(x$time),
+        "timepoints, across", dim(x$surv)[1], "bootstraps.")
 }
 
 #' Obtain N-year survival probability estimates.
@@ -121,17 +124,19 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' \code{pct_show} argument details the proportion of points outside of the
 #' confidence interval for a survival curve to be deemed as an outlier.
 #'
-#' @param object A \code{survfit.prev} object.
+#' @param x A \code{survfit.prev} object.
 #' @param pct_show A list or dataframe with the covariate values to calculate
 #'   survival probabilities.
+#' @param ... Arguments passed to \code{plot}.
 #' @return An S3 object of class \code{survfit.prev} with the following
 #'   attributes:
 #' @examples
 #' data(prevsim)
 #'
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'                        start = "2005-09-01",
+#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+#'                        entry(entrydate) + event(eventdate),
+#'                        data=prevsim, num_years_to_estimate = c(5, 10),
+#'                        population_size=1e6, start = "2005-09-01",
 #'                        num_reg_years = 8, cure = 5)
 #'
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
@@ -143,40 +148,55 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
 #'
 #' @export
-#' @import dplyr
-#' @import ggplot2
-#' @importFrom tidyr gather
-plot.survfit.prev <- function(object, pct_show=0.9) {
-    num_boot <- dim(object$surv)[1]
-    num_days <- dim(object$surv)[2]
-    if (num_days != length(object$time))
+#' @importFrom magrittr "%>%"
+#' @importFrom dplyr select_vars
+#' @importFrom dplyr group_by
+#' @importFrom dplyr summarise
+#' @importFrom dplyr mutate
+#' @importFrom dplyr arrange
+#' @importFrom ggplot2 geom_line
+#' @importFrom ggplot2 geom_ribbon
+#' @importFrom ggplot2 theme_bw
+#' @importFrom ggplot2 labs
+#' @importFrom ggplot2 aes_string
+#' @importFrom tidyr gather_
+plot.survfit.prev <- function(x, pct_show=0.9, ...) {
+    num_boot <- dim(x$surv)[1]
+    num_days <- dim(x$surv)[2]
+    if (num_days != length(x$time))
         stop("Error: Number of survival probabilities not consistent with time variable.")
 
-    df <- data.frame(object$surv)
+    df <- data.frame(x$surv)
     colnames(df) <- seq(num_days)
-    df$bootstrap <- seq(num_boot)
+    df[, 'bootstrap'] <- seq(num_boot)
 
-    gathered <- tidyr::gather(df, time, survprob, -bootstrap)
+    gathered <- df %>% tidyr::gather_('time', 'survprob',
+                                      dplyr::select_vars_(names(df), '-bootstrap'))
 
     smooth <- gathered %>%
-        dplyr::group_by(time) %>%
-        dplyr::summarise(mx=quantile(survprob, 0.975),
-                         mn=quantile(survprob, 0.025)) %>%
-        dplyr::arrange(as.numeric(time))
+        dplyr::group_by_('time') %>%
+        dplyr::summarise_(mx=lazyeval::interp(~quantile(v, 0.975), v=as.name('survprob')),
+                          mn=lazyeval::interp(~quantile(v, 0.025), v=as.name('survprob'))) %>%
+        dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time'))) %>%
+        dplyr::arrange_('time')
 
-    row_inds <- apply(df[, -ncol(df)], 1, function(x) mean(x > smooth$mx | x < smooth$mn) > pct_show)
+    row_inds <- apply(df[, -ncol(df)], 1,
+                      function(row) mean(row > smooth$mx | row < smooth$mn) > pct_show)
 
     outliers <- df[row_inds, ] %>%
-                    tidyr::gather(time, survprob, -bootstrap)
+                    tidyr::gather_('time', 'survprob',
+                                   dplyr::select_vars_(names(df), '-bootstrap')) %>%
+                    dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
+                                   bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
 
     ggplot2::ggplot() +
         ggplot2::geom_line(data=outliers,
-                           ggplot2::aes(x=as.numeric(time), y=survprob, group=as.factor(bootstrap)),
+                           ggplot2::aes_string(x='time', y='survprob', group='bootstrap'),
                            colour='grey', linetype="dotted") +
         ggplot2::geom_ribbon(data=smooth,
-                             ggplot2::aes(x=as.numeric(time), ymin=mn, ymax=mx), alpha=0.3) +
-        ggplot2::geom_line(data=data.frame(time=seq(num_days), survprob=object$fullsurv),
-                           ggplot2::aes(x=as.numeric(time), y=survprob), colour='orange', size=1) +
+                             ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.3) +
+        ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
+                           ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
         ggplot2::theme_bw() +
         ggplot2::labs(x="Days", y="Survival probability")
 }

@@ -19,10 +19,6 @@ As prevalence is estimated for the simulated years using probability of survival
 
 In the following sections we aim to take the user through the successive stages of the modelling process, outlining the correct use of the basic functions, illustrating how the diagnostics provided are used to check the validity of the assumptions required for simulating years of interest before the registry, and checking the agreement between observed and simulated prevalence estimates. First, we will inspect the consistency of incidence data between years of the registry and determine if it can be appropriate modelled as an homogeneous Poisson process. Second, we will look at the consistency of the survival data between years of the registry and check the adequacy of a parametric model of survival. We would emphasise that the user should check that their registry data does meet the required assumptions and if not, should understand that estimates of prevalence made using simulation based on that data may not be correct. Then, we will also introduce the population survival data and explain how it integrates with patient survival to produce a *cure* model, where it is desired. Lastly, we will introduce our functions for estimating prevalence, demonstrate how to check the resulting estimates are reasonable, and extract the posterior distribution of a modelled covariate.
 
-```{r, echo = FALSE, message = FALSE}
-devtools::load_all()
-```
-
 # Basic setup and summary of data
 
 ```{r setup, message = FALSE, warning = FALSE}

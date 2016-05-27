@@ -2,3 +2,4 @@
   - Improve poisson_sim_fit plot with Simon's updated formulated of deviation from smooth
   - Centre image in user guide
   - Run through check
+  - Add cran-comments.md explaining first submission and any other notes

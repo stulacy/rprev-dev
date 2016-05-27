@@ -4,14 +4,16 @@
 \alias{survfit.prevalence}
 \title{Form bootstrapped survival curves.}
 \usage{
-\method{survfit}{prevalence}(object, newdata = NULL)
+\method{survfit}{prevalence}(formula, newdata = NULL, ...)
 }
 \arguments{
-\item{object}{A \code{prevalence} object.}
+\item{formula}{A \code{prevalence} object.}
 
 \item{newdata}{A list or dataframe with the covariate values to calculate
 survival probabilities for. Defaults to using the mean values from the the
 original dataset that the model was fit to.}
+
+\item{...}{Other arguments to \code{survfit}.}
 }
 \value{
 An S3 object of class \code{survfit.prev} with the following

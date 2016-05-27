@@ -4,13 +4,15 @@
 \alias{plot.survfit.prev}
 \title{Plot bootstrapped survival curves.}
 \usage{
-\method{plot}{survfit.prev}(object, pct_show = 0.9)
+\method{plot}{survfit.prev}(x, pct_show = 0.9, ...)
 }
 \arguments{
-\item{object}{A \code{survfit.prev} object.}
+\item{x}{A \code{survfit.prev} object.}
 
 \item{pct_show}{A list or dataframe with the covariate values to calculate
 survival probabilities.}
+
+\item{...}{Arguments passed to \code{plot}.}
 }
 \value{
 An S3 object of class \code{survfit.prev} with the following
@@ -29,9 +31,10 @@ confidence interval for a survival curve to be deemed as an outlier.
 \examples{
 data(prevsim)
 
-prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-                       data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-                       start = "2005-09-01",
+prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
+                       entry(entrydate) + event(eventdate),
+                       data=prevsim, num_years_to_estimate = c(5, 10),
+                       population_size=1e6, start = "2005-09-01",
                        num_reg_years = 8, cure = 5)
 
 survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))

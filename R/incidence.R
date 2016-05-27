@@ -150,8 +150,9 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' is shown as a solid blue line, with the confidence interval shown in dashed
 #' blue lines. The smooth fitted to the cumulative incidence data is shown in
 #' green.
-#' @param object An \code{incidence} object.
+#' @param x An \code{incidence} object.
 #' @param level The desired confidence interval width.
+#' @param ... Arguments passed to \code{plot}.
 #' @return None, plots a side effect of incidence rate, confidence interval and
 #'   smoothed incidence function.
 #' @examples
@@ -168,12 +169,12 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 theme_bw
 #' @importFrom ggplot2 ylim
-#' @importFrom ggplot2 aes
+#' @importFrom ggplot2 aes_string
 #' @importFrom ggplot2 scale_colour_manual
 #' @export
 #' @family incidence functions
-plot.incidence <- function(object, level=0.95){
-    raw_incidence <- object$raw_incidence
+plot.incidence <- function(x, level=0.95, ...){
+    raw_incidence <- x$raw_incidence
     mean_rate <- mean(raw_incidence)
     day_mean_rate <- mean_rate / 365
 
@@ -181,20 +182,22 @@ plot.incidence <- function(object, level=0.95){
     CI_lim <- z_conf * sqrt(mean_rate)/365
     num_reg_years <- length(raw_incidence)
 
-    inc_rate <- data.frame(inc=raw_incidence/365, day=as.Date(object$index_dates[-length(object$index_dates)]) + 182)
-    pred_rate <- predict(object$smooth, seq(num_reg_years*365), deriv=1)
-    smooth_rate <- data.frame(rate=pred_rate$y, day=as.Date(object$index_dates[1]) + pred_rate$x)
+    inc_rate <- data.frame(inc=raw_incidence/365, day=as.Date(x$index_dates[-length(x$index_dates)]) + 182, col='r')
+    pred_rate <- predict(x$smooth, seq(num_reg_years*365), deriv=1)
+    smooth_rate <- data.frame(rate=pred_rate$y, day=as.Date(x$index_dates[1]) + pred_rate$x, col='g')
     mean_rate <- data.frame(mean=day_mean_rate, upper=day_mean_rate+CI_lim,
-                            lower=day_mean_rate-CI_lim)
+                            lower=day_mean_rate-CI_lim, col='b')
     ci_diff <- 0.5 * (mean_rate$upper - mean_rate$lower)
 
     p <- ggplot2::ggplot() +
-            ggplot2::geom_point(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r')) +
-            ggplot2::geom_line(data=inc_rate, ggplot2::aes(x=day, y=inc, colour='r'), size=1) +
-            ggplot2::geom_line(data=smooth_rate, ggplot2::aes(x=day, y=rate, colour='g'),  size=1) +
-            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=mean, colour='b')) +
-            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=upper, colour='b'), linetype='dashed') +
-            ggplot2::geom_hline(data=mean_rate, ggplot2::aes(yintercept=lower, colour='b'), linetype='dashed') +
+            ggplot2::geom_point(data=inc_rate, ggplot2::aes_string(x='day', y='inc', colour='col')) +
+            ggplot2::geom_line(data=inc_rate, ggplot2::aes_string(x='day', y='inc', colour='col'), size=1) +
+            ggplot2::geom_line(data=smooth_rate, ggplot2::aes_string(x='day', y='rate', colour='col'),  size=1) +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes_string(yintercept='mean', colour='col')) +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes_string(yintercept='upper', colour='col'),
+                                linetype='dashed') +
+            ggplot2::geom_hline(data=mean_rate, ggplot2::aes_string(yintercept='lower', colour='col'),
+                                linetype='dashed') +
             ggplot2::labs(x='Year', y='Daily incidence rate') +
             ggplot2::theme_bw() +
             ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
@@ -238,7 +241,7 @@ plot.incidence <- function(object, level=0.95){
 #' @importFrom ggplot2 geom_line
 #' @importFrom ggplot2 theme_bw
 #' @importFrom ggplot2 labs
-#' @importFrom ggplot2 aes
+#' @importFrom ggplot2 aes_string
 #' @export
 plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
     diags <- object$ordered_diagnoses
@@ -268,10 +271,11 @@ plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=1
     bin_cis_df <- do.call(rbind, bin_cis)
 
     p <- ggplot2::ggplot() +
-        ggplot2::geom_vline(data=bin_cis_df, ggplot2::aes(xintercept=x), alpha=0.2, linetype='dotted') +
-        ggplot2::geom_ribbon(data=bin_cis_df, ggplot2::aes(x=x, ymin=lower, ymax=upper), alpha=0.1) +
+        ggplot2::geom_vline(data=bin_cis_df, ggplot2::aes_string(xintercept='x'), alpha=0.2, linetype='dotted') +
+        ggplot2::geom_ribbon(data=bin_cis_df, ggplot2::aes_string(x='x', ymin='lower', ymax='upper'), alpha=0.1) +
         ggplot2::theme_bw() +
-        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y), ggplot2::aes(x=x, y=y),
+        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y),
+                           ggplot2::aes_string(x='x', y='y'),
                            colour='orange', size=1) +
         ggplot2::labs(x="Days", y="Deviation from smooth")
     print(p)
@@ -279,8 +283,8 @@ plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=1
 
 #' @export
 print.incidence <- function(x, ...) {
-    cat("Cumulative incidence object with", length(object$raw_incidence), "years of data.\n")
-    cat("Smooth fitted using", object$dof, "degrees of freedom.\n")
+    cat("Cumulative incidence object with", length(x$raw_incidence), "years of data.\n")
+    cat("Smooth fitted using", x$dof, "degrees of freedom.\n")
 
 }
 

@@ -118,7 +118,7 @@ functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
     survobj <- eval(resp, data)
     mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, data))
 
-    f <<- rms::datadist(mydf)
+    f <- rms::datadist(mydf)
     options(datadist="f")
 
     myform <- survival::Surv(time, status) ~ rms::rcs(age, df)

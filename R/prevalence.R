@@ -303,6 +303,8 @@ prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_yea
 #'                      num_reg_years=8, n_cores=4)
 #'                      }
 #'
+#' @importFrom utils data
+#' @import stats
 #' @importFrom abind abind
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach
@@ -329,7 +331,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
-        data(UKmortality)
+        utils::data('UKmortality', envir=environment())
         population_data <- UKmortality
     } else {
         # Obtain population data, and ensure it has the correct columns
@@ -458,10 +460,10 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 #' @export
 print.prevalence <- function(x, ...) {
-    cat("Estimated prevalence per", object$proportion, "at", object$index_date, "\n")
-    lapply(names(object$estimates), function(item) {
-        year <- strsplit(itemx, 'y')[[1]][2]
-        prev_est <- object$estimates[[itemx]][2]
+    cat("Estimated prevalence per", x$proportion, "at", x$index_date, "\n")
+    lapply(names(x$estimates), function(item) {
+        year <- strsplit(item, 'y')[[1]][2]
+        prev_est <- x$estimates[[item]][2]
         cat(paste(year, "years:", prev_est, "\n"))
     })
 }
