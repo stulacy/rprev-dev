@@ -103,13 +103,13 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' functional_form_age(Surv(time, status) ~ age, prevsim, df=3, plot_fit=FALSE)
 #'
 #' @export
-#' @import rms
+#' @importFrom rms cph
+#' @importFrom rms rcs
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_ribbon
 #' @importFrom ggplot2 geom_line
 #' @importFrom ggplot2 aes_string
-functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
-
+functional_form_age <- function(form, data, df=4, plot_fit=TRUE, num_points=200) {
 
     trms <- attr(terms(form), 'variables')
     if (length(trms) != 3)
@@ -120,25 +120,36 @@ functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
     survobj <- eval(resp, data)
     mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, data))
 
-    # so that rms::Predict works
-    on.exit(detach('design.options'))
-    attach(list(), name='design.options')
-    assign('f', rms::datadist(mydf), pos='design.options')
-    #f <- rms::datadist(mydf)
-    options(datadist="f")
-
     myform <- survival::Surv(time, status) ~ rms::rcs(age, df)
     mod_rms <- rms::cph(myform, mydf, x=TRUE, y=TRUE, surv=TRUE, time.inc=1)
 
     if (plot_fit) {
-        preds <- rms::Predict(mod_rms, age)
+        min_age <- quantile(mydf[, 'age'], 0.01)
+        max_age <- quantile(mydf[, 'age'], 0.99)
+        preds <- .hazard_varying_age(mod_rms, min_age, max_age, num_points)
+
         p <- ggplot2::ggplot(preds, ggplot2::aes_string(x='age', y='yhat')) +
-            ggplot2::geom_ribbon(ggplot2::aes_string(ymin='lower', ymax='upper'),
-                                 colour='#d2d2d2', alpha=0.05) +
-            ggplot2::geom_line(colour='#0080ff', size=1.2) +
-            ggplot2::theme_bw()
+                ggplot2::geom_ribbon(ggplot2::aes_string(ymin='lower', ymax='upper'),
+                                 colour='#d2d2d2', alpha=0.30) +
+                ggplot2::geom_line(colour='#0080ff', size=1.2) +
+                ggplot2::theme_bw() +
+                ggplot2::labs(x='Age', y='Log relative hazard')
         print(p)
     }
 
     mod_rms
+}
+
+.hazard_varying_age <- function(model, min_age, max_age, num_points) {
+    # Calculates log hazard linear predictor at multiple values of age
+    preds <- lapply(seq(min_age, max_age, length.out=num_points),
+                    function(a) {
+                         p <- predict(model, newdata=a, se.fit=T)
+                         lp <- p$linear.predictors
+                         c(a, lp, lp - 2*p$se.fit, lp + 2*p$se.fit)
+                         }
+                     )
+    preds_df <- as.data.frame(do.call('rbind', preds))
+    colnames(preds_df) <- c('age', 'yhat', 'lower', 'upper')
+    preds_df
 }
