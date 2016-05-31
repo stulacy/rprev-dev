@@ -2,19 +2,12 @@
 % Please edit documentation in R/diagnostics.R
 \name{incidence_age_distribution}
 \alias{incidence_age_distribution}
-\title{Plot the age distribution of incident cases in the registry data.}
+\title{Plot the age distribution of incident cases.}
 \usage{
-incidence_age_distribution(data, registry_years, registry_start_year,
-  registry_end_year, df = 10)
+incidence_age_distribution(agedata, df = 10)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
-
-\item{registry_years}{A vector of dates delineating years of the registry.}
-
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
-
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{agedata}{Vector of ages at diagnosis for each patient in the registry.}
 
 \item{df}{Degrees of freedom for the smooth.}
 }
@@ -22,10 +15,21 @@ incidence_age_distribution(data, registry_years, registry_start_year,
 Plot of the raw data and smoothed age distribution function.
 }
 \description{
-Plot the age distribution of incident cases in the registry data.
+This function plots the age distribution of incident cases from the registry.
 }
 \examples{
-incidence_age_distribution(load_data(registry_data), registry_years, registry_start_year = registry_start_year,
-registry_end_year = registry_end_year)
+data(prevsim)
+
+incidence_age_distribution(prevsim$age)
+
+incidence_age_distribution(prevsim$age, df=5)
+
+}
+\seealso{
+Other incidence functions: \code{\link{incidence}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
 }
 

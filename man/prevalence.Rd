@@ -2,53 +2,144 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence}
 \alias{prevalence}
-\title{Predict prevalence for a given number of years.}
+\title{Estimate point prevalence at an index date.}
 \usage{
-prevalence(data, registry_years, registry_start_year, registry_end_year,
-  N_years, daily_survival_males, daily_survival_females, cure_time,
-  N_boot = 1000, Max_Yearly_Incidence = 500)
+prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
+  num_reg_years = NULL, cure = 10, N_boot = 1000,
+  max_yearly_incidence = 500, level = 0.95, precision = 2,
+  proportion = 1e+05, population_data = NULL, n_cores = 1)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{form}{Formula where the LHS is represented by a standard \code{Surv}
+  object, and the RHS has three special function arguments: \code{age}, the
+  column where age is located; \code{sex}, the column where sex is located;
+  \code{entry}, the column where dates of entry to the registry are located;
+  and \code{event}, the column where event dates are located.
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+  This formula is used in the following way:
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+  \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) +
+  entry(entry_column_name) + event(event_column_name)}
 
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+  Using the supplied \code{prevsim} dataset, it is therefore called with:
 
-\item{N_years}{Number of years to model.}
+  \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) +
+  event(eventdate)}}
 
-\item{daily_survival_males}{Population survival function (Males).}
+\item{data}{A data frame with the corresponding column names provided in
+\code{form}.}
 
-\item{daily_survival_females}{Population survival function (Females).}
+\item{num_years_to_estimate}{Number of years of data to consider when
+estimating point prevalence; multiple values can be specified in a vector.
+If any values are greater than \code{num_registry_years}, incident cases
+for the difference will be simulated.}
 
-\item{cure_time}{Cure model assumption for the calculation.}
+\item{population_size}{Integer corresponding to the size of the population at
+risk.}
+
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
+
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years. Note
+that if more registry years are supplied than the number of years to
+estimate prevalence for, the survival data from the surplus registry years
+are still involved in the survival model fitting.}
+
+\item{cure}{Integer defining cure model assumption for the calculation (in
+years). A patient who has survived beyond the cure time has a probability
+of surviving derived from the mortality rate of the general population.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 
-\item{Max_Yearly_Incidence}{A number larger than the expected yearly incidence
+\item{max_yearly_incidence}{Integer larger than the expected yearly incidence
 to allow for variation in incidence between years.}
 
-\item{age_division}{Can be "None", "Adult" or "Paediatric".}
+\item{level}{Double representing the desired confidence interval width.}
 
-\item{age_cut}{A number, in years, to specify the cut-off between adult and
-paediatric cases.}
+\item{precision}{Integer representing the number of decimal places required.}
 
-\item{sex}{Can be "Both", "Males" or "Females".}
+\item{proportion}{The population ratio to estimate prevalence for.}
+
+\item{population_data}{A dataframe that must contain the columns \code{age},
+\code{rate}, and \code{sex}, where each row is the mortality rate for a
+person of that age and sex. Ideally, age ranges from [0, 100]. Defaults to
+the supplied data; see \code{\link{UKmortality}} for the format required
+for custom datasets.}
+
+\item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
+survival models. Defaults to 1; multi-core functionality is provided by the
+\code{doParallel} package.}
 }
 \value{
-Predicted number of prevalent cases for each year, the age distribution of the
-       prevalent cases, an indication of sampling variation and raw incidence data to
-       allow for crosschecking with previous calculations.
+An S3 object of class \code{prevalence} with the following
+  attributes: \item{estimates}{Estimated prevalence at the index date for
+  each of the years in \code{num_years_to_estimate}.} \item{simulated}{A list
+  containing items related to the simulation of prevalence contributions, see
+  \code{\link{prevalence_simulated}}}. \item{counted}{Contributions to
+  prevalence from each of the supplied registry years, see
+  \code{\link{prevalence_counted}}.} \item{start_date}{The starting date of
+  the registry data included in the estimation.} \item{index_date}{The index
+  date at which the point prevalence was calculated for.}
+  \item{known_inc_rate}{The known incidence rate for years included in the
+  registry.} \item{nregyears}{Number of years of registry data that were
+  used.} \item{nbootstraps}{The number of bootstrapped survival models fitted
+  during the calculation.} \item{pval}{The p-value resulting from the
+  chi-square test between the simulated and counted prevalent cases for the
+  years of registry data available.} \item{y}{The Surv object used as the
+  response in the survival modeling.} \item{means}{The covariate means from
+  the data.}
 }
 \description{
-Predict prevalence for a given number of years.
+Point prevalence at a specific index date is estimated using contributions to
+prevalence from both available registry data, and from Monte Carlo
+simulations of the incidence and survival process, as outlined by Crouch et
+al (2004) (see References).
+}
+\details{
+The most important parameter is \code{num_years_to_estimate}, which governs
+the number of previous years of data to use when estimating the prevalence at
+the index date. If this parameter is greater than the number of years of
+known incident cases available in the supplied registry data (specified with
+argument \code{num_registry_years}), then the remaining
+\code{num_years_to_estimate - num_registry_years} years of incident data will
+be simulated using Monte Carlo simulation.
+
+The larger \code{num_years_to_estimate}, the more accurate the prevalence
+estimate will be, provided an adequate survival model can be fitted to the
+registry data. It is therefore important to provide as much clean registry
+data as possible.
+
+Simulated cases are marked with age and sex to enable agreement with
+population survival data where a cure model is used, and calculation of the
+posterior distributions of each.
 }
 \examples{
-by_year_total <- prevalence(load_data(registry_data), registry_years, registry_start_year,
-                           registry_end_year, daily_survival_males = daily_survival_males,
-                           daily_survival_females = daily_survival_females, cure_time = cure*365,
-                           N_years = 10)
+data(prevsim)
+
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+           data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+           start = "2005-09-01",
+           num_reg_years = 8, cure = 5)
+
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+           data=prevsim, num_years_to_estimate = 5, population_size=1e6)
+
+\dontrun{
+# Run on multiple cores
+prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+           data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
+           }
+
+}
+\references{
+Crouch, Simon, et al. "Determining disease prevalence from
+  incidence and survival using simulation techniques." Cancer epidemiology
+  38.2 (2014): 193-199.
+}
+\seealso{
+Other prevalence functions: \code{\link{prevalence_counted}},
+  \code{\link{prevalence_simulated}},
+  \code{\link{test_prevalence_fit}}
 }
 

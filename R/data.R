@@ -1,0 +1,39 @@
+#' General population survival data.
+#'
+#' A dataset containing basic mortality rates stratified by sex and age (0 to 100 year) from
+#' the UK population, yearly, obtained from:
+#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
+#' Adapted from public sector information licensed under the Open Government Licence v3.0.
+#' Data were relabelled according to the mean year of the three-year birth window.
+#'
+#' @format A data frame with 6666 rows and 4 columns:
+#' \describe{
+#'  \item{calendar_year}{year}
+#'  \item{sex}{boolean variable; 0 for males and 1 for females}
+#'  \item{age}{age in years}
+#'  \item{rate}{death rate}
+#' }
+"UKmortality"
+
+#' Simulated patient dataset.
+#'
+#' A dataset in the format of a disease registry, where the outcome being modelled is death
+#' due to the simulated disease. The registry began in January 2003, with 1000 incident cases being
+#' recorded over a period of nearly exactly ten years. The patients are followed up for a further
+#' two years until 17.03.2015, at which point any subjects alive are marked as right censored.
+#'
+#' Demographic and disease-specific data required for prevalence estimations are included,
+#' such as sex, age, and dates of entry and event. \code{eventdate} marks the date of the
+#' last known follow-up with the patient, corresponding to death (\code{status = 1}) or
+#' censorship (\code{status = 0}).
+#'
+#' @format A data frame with 1000 rows and 6 columns:
+#' \describe{
+#'  \item{time}{time between date of diagnosis and death or censorship in days}
+#'  \item{status}{event marker; 1 if patient is deceased and 0 if alive or censored}
+#'  \item{age}{age in years at point of entry into the registry}
+#'  \item{sex}{boolean variable; 0 for males and 1 for females}
+#'  \item{entrydate}{date of entry into the registry in YYYY-MM-DD format}
+#'  \item{eventdate}{date of death or censorship in YYYY-MM-DD format}
+#' }
+"prevsim"

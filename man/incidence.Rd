@@ -2,27 +2,60 @@
 % Please edit documentation in R/incidence.R
 \name{incidence}
 \alias{incidence}
-\title{Calculate absolute incidence from registry data.}
+\title{Summarise disease incidence.}
 \usage{
-incidence(data, registry_years, registry_start_year, registry_end_year)
+incidence(entry, population_size, start = NULL, num_reg_years = NULL,
+  df = 6, precision = 2, level = 0.95)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{entry}{Vector of diagnosis dates for each patient in the registry in
+the format YYYY-MM-DD.}
 
-\item{registry_years}{A vector of dates delineating years of registry.}
+\item{population_size}{Integer corresponding to the size of the population at
+risk.}
 
-\item{registry_start_year}{Ordinal defining the first year of registry data to be used.}
+\item{start}{Date from which incident cases are included in the format
+YYYY-MM-DD. Defaults to the earliest entry date.}
 
-\item{registry_end_year}{Ordinal defining the last year of registry data to be used.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years.}
+
+\item{df}{The desired degrees of freedom of the smooth.}
+
+\item{precision}{The number of decimal places required.}
+
+\item{level}{The desired confidence interval width.}
 }
 \value{
-Vector of absolute incidence values for each of the specified years of a registry.
+An S3 object of class \code{incidence} with the following attributes:
+  \item{raw_incidence}{Vector of absolute incidence values for each included
+  year of the registry, as generated using \code{\link{raw_incidence}}.}
+  \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
+  the earliest date of inclusion in the registry, ordered shortest to
+  longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
+  \item{index_dates}{Dates delimiting the years in which incidence is
+  calculated.} \item{mean}{List containing mean incidence per 100K with
+  confidence intervals. See \link{mean_incidence_rate}.} \item{dof}{Degrees
+  of freedom of the smooth.}
 }
 \description{
-Calculate absolute incidence from registry data.
+Calculates incidence by year of the registry data, along with mean incidence
+with confidence intervals. A smoothed cumulative incidence function is fit to
+the data for inspecting deviations in the registry data from a homogeneous
+Poisson process.
 }
 \examples{
-registry_years <- c("2004-09-01", "2005-09-01", "2006-09-01", "2007-09-01", "2008-09-01")
-incidence(load_data(registry_data), registry_years, registry_start_year = 1, registry_end_year = 4)
+data(prevsim)
+
+incidence(prevsim$entrydate, 1e6)
+
+incidence(prevsim$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+}
+\seealso{
+Other incidence functions: \code{\link{incidence_age_distribution}},
+  \code{\link{mean_incidence_rate}},
+  \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{test_incidence_fit}}
 }
 

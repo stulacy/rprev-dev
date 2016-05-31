@@ -2,29 +2,42 @@
 % Please edit documentation in R/diagnostics.R
 \name{functional_form_age}
 \alias{functional_form_age}
-\title{Inspect functional form of age.}
+\title{View the suitability of a linear effect of age on hazard.}
 \usage{
-functional_form_age(data, registry_years, registry_start_year,
-  registry_end_year, df = 4)
+functional_form_age(form, data, df = 4, plot_fit = TRUE, num_points = 200)
 }
 \arguments{
-\item{data}{A registry dataset of patient cases generated using load_data().}
+\item{form}{Formula where the LHS is represented by a standard \code{Surv}
+object, and the RHS provides the name of the variable containing age in the
+supplied dataset.}
 
-\item{registry_years}{A vector of dates delineating years of the registry.}
+\item{data}{A data frame with the corresponding column names provided in
+\code{form}.}
 
-\item{registry_start_year}{Ordinal defining the first year of the registry data to be used.}
+\item{df}{The desired degrees of freedom for the cubic spline, must be >= 3.}
 
-\item{registry_end_year}{Ordinal defining the last year of the registry data to be used.}
+\item{plot_fit}{Whether to plot the relationship between age and relative
+hazard.}
 
-\item{df}{Degrees of freedom for the smooth.}
+\item{num_points}{The number of values of age to calculate the hazard ratio at.}
 }
 \value{
-Plots of the functional form of age.
+An \code{rms::cph} object containing the Cox model fit between a
+  cubic spline transform of age and the survival outcomes.
 }
 \description{
-Inspect functional form of age.
+Inspects whether a non-linear transform of age is more appropriate for
+survival modeling than the linear method which is currently used in the
+calculations in \code{\link{prevalence}}.
 }
 \examples{
-functional_form_age(load_data(registry_data), registry_years, registry_start_year = registry_start_year, registry_end_year = registry_end_year)
+data(prevsim)
+
+functional_form_age(Surv(time, status) ~ age, prevsim)
+
+functional_form_age(Surv(time, status) ~ age, prevsim, df=3)
+
+functional_form_age(Surv(time, status) ~ age, prevsim, df=3, plot_fit=FALSE)
+
 }
 
