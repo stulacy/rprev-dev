@@ -91,6 +91,7 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @param df The desired degrees of freedom for the cubic spline, must be >= 3.
 #' @param plot_fit Whether to plot the relationship between age and relative
 #'   hazard.
+#' @param num_points The number of values of age to calculate the hazard ratio at.
 #' @return An \code{rms::cph} object containing the Cox model fit between a
 #'   cubic spline transform of age and the survival outcomes.
 #' @examples

@@ -4,7 +4,7 @@
 \alias{functional_form_age}
 \title{View the suitability of a linear effect of age on hazard.}
 \usage{
-functional_form_age(form, data, df = 4, plot_fit = TRUE)
+functional_form_age(form, data, df = 4, plot_fit = TRUE, num_points = 200)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv}
@@ -18,6 +18,8 @@ supplied dataset.}
 
 \item{plot_fit}{Whether to plot the relationship between age and relative
 hazard.}
+
+\item{num_points}{The number of values of age to calculate the hazard ratio at.}
 }
 \value{
 An \code{rms::cph} object containing the Cox model fit between a
