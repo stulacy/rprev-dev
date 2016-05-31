@@ -109,6 +109,8 @@ incidence_age_distribution <- function(agedata, df=10) {
 #' @importFrom ggplot2 geom_line
 #' @importFrom ggplot2 aes_string
 functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
+
+
     trms <- attr(terms(form), 'variables')
     if (length(trms) != 3)
         stop("Error: Please provide just Surv and age terms in the formula.")
@@ -118,7 +120,11 @@ functional_form_age <- function(form, data, df=4, plot_fit=TRUE) {
     survobj <- eval(resp, data)
     mydf <- data.frame(time=survobj[, 1], status=survobj[, 2], age=eval(age_var, data))
 
-    f <- rms::datadist(mydf)
+    # so that rms::Predict works
+    on.exit(detach('design.options'))
+    attach(list(), name='design.options')
+    assign('f', rms::datadist(mydf), pos='design.options')
+    #f <- rms::datadist(mydf)
     options(datadist="f")
 
     myform <- survival::Surv(time, status) ~ rms::rcs(age, df)

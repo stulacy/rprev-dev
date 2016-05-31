@@ -2,55 +2,55 @@ library(prevR)
 context('Diagnostics')
 data(prevsim)
 
-test_that("test_poisson_fit returns same values as before", {
+test_that("test_incidence_fit returns same values as before", {
     expect_ref <- function(data, N_sim) {
         fn <- 'cache/diagnostics/sim_check.rds'
         set.seed(17)
-        expect_equal_to_reference(test_poisson_fit(incidence(prevsim$entrydate), N_sim = 10), file=fn)
+        expect_equal_to_reference(test_incidence_fit(raw_incidence(prevsim$entrydate), N_sim = 10), file=fn)
     }
     set.seed(17)
     expect_ref(incidence(prevsim$entrydate), N_sim = 10)
 })
 
-test_that("test_poisson_fit with 100000 simulations returns same values as before", {
+test_that("test_incidence_fit with 100000 simulations returns same values as before", {
     skip_on_cran()
     skip("too slow")
     expect_ref <- function(data) {
         fn <- 'cache/diagnostics/sim_check_100000.rds'
         set.seed(18)
-        expect_equal_to_reference(test_poisson_fit(incidence(prevsim$entrydate)), file=fn)
+        expect_equal_to_reference(test_incidence_fit(raw_incidence(prevsim$entrydate)), file=fn)
     }
     set.seed(18)
     expect_ref(incidence(prevsim$entrydate))
 })
 
-test_that("test_poisson_fit returns doubles", {
+test_that("test_incidence_fit returns doubles", {
     expect_double <- function(data, N_sim) {
-        expect_match(typeof(test_poisson_fit(incidence(prevsim$entrydate), N_sim = 10)), 'double')
+        expect_match(typeof(test_incidence_fit(raw_incidence(prevsim$entrydate), N_sim = 10)), 'double')
     }
 
     expect_double(incidence(prevsim$entrydate), N_sim = 10)
 })
 
-test_that("test_poisson_fit returns no NAs", {
+test_that("test_incidence_fit returns no NAs", {
     expect_NA <- function(data, N_sim) {
-        expect_equal(any(is.na(test_poisson_fit(incidence(prevsim$entrydate), N_sim = 10))), FALSE)
+        expect_equal(any(is.na(test_incidence_fit(raw_incidence(prevsim$entrydate), N_sim = 10))), FALSE)
     }
 
     expect_NA(incidence(prevsim$entrydate), N_sim = 10)
 })
 
-test_that("test_poisson_fit returns the correct number of values", {
+test_that("test_incidence_fit returns the correct number of values", {
     expect_length <- function(data, N_sim) {
-        expect_equal(length(test_poisson_fit(incidence(prevsim$entrydate), N_sim = 10)),2)
+        expect_equal(length(test_incidence_fit(raw_incidence(prevsim$entrydate), N_sim = 10)),2)
     }
 
-    expect_length(test_poisson_fit(incidence(prevsim$entrydate), N_sim = 10))
+    expect_length(test_incidence_fit(incidence(prevsim$entrydate), N_sim = 10))
 })
 
 test_that("functional_form_age returns a list", {
     expect_list <- function(data) {
-        expect_match(typeof(functional_form_age(Surv(time, status) ~ age, data)), 'list')
+        expect_match(typeof(functional_form_age(Surv(time, status) ~ age, data, plot_fit=F)), 'list')
     }
 
     expect_list(prevsim)
@@ -91,53 +91,4 @@ test_that("test_prevalence_fit returns no NAs", {
     }
 
     expect_NA(prevsim)
-})
-
-test_that("cumulative_incidence returns same values as before", {
-    set.seed(3)
-    expect_ref <- function(data) {
-        fn <- 'cache/diagnostics/cumulative_incidence.rds'
-        expect_equal_to_reference(cumulative_incidence(prevsim$entrydate), file=fn)
-    }
-    expect_ref(prevsim$entrydate)
-})
-
-
-test_that("inspect_incidence returns same as before", {
-    expect_ref <- function(data) {
-        fn <- 'cache/diagnostics/inspect_incidence.rds'
-        c_inc <- cumulative_incidence(data)
-        expect_equal_to_reference(inspect_incidence(c_inc), file=fn)
-    }
-    expect_ref(prevsim$entrydate)
-})
-
-test_that("poisson_incidence_sim returns same as before", {
-    skip_on_cran()
-    skip("too slow")
-    set.seed(3)
-    expect_ref <- function(data) {
-        fn <- 'cache/diagnostics/poisson_incidence_sim.rds'
-        c_inc <- cumulative_incidence(data)
-        expect_equal_to_reference(poisson_incidence_sim(c_inc), file=fn)
-    }
-    expect_ref(prevsim$entrydate)
-})
-
-test_that("boot_eg returns same as before", {
-    skip_on_cran()
-    skip("too slow")
-    i <- 1
-    set.seed(3)
-    expect_ref <- function(data, sex) {
-        fn <- paste('cache/diagnostics/boot_eg', i, '.rds', sep='')
-        expect_equal_to_reference(boot_eg(form = Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate),
-                                                       data = data,
-                                                       start = "2004-01-30",
-                                                       age = 65,
-                                                       sex = sex), file=fn)
-        i <<- i + 1
-    }
-    expect_ref(prevsim, "Male")
-    expect_ref(prevsim, "Female")
 })
