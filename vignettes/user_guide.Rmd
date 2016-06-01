@@ -85,12 +85,6 @@ Alongside the p-values from the over/under dispersion test (**reword correctly**
 plot(inc)
 ```
 
-`plot_incidence_fit` simulates a large number of incident case datasets, where the incident cases are randomly uniformly distributed between the start and end date of the original registry. Smooths are then fitted to these datasets. For both the smooth from the `incidence` object and the simulated smooths, the deviations from the actual data are calculated. The deviation of the actual incidence from it's corresponding smooth is displayed in orange, with the confidence intervals derived for each bin from the simulations in grey. If the incidence process is consistent with an homogeneous Poisson process, the deviation from the smooth will be normally distributed and the actual data should fall within the 95% confidence interval. This plot assists the user to decide if the assumption is met:
-
-```{r, fig.width = 7, fig.height = 4}
-plot_incidence_fit(inc)
-```
-
 Currently, the incidence process can only be modelled as a Poisson homogeneous process; if the diagnostics indicate this is not a suitable fit then the prevalence estimates will be inaccurate. Future releases of `prevR` will allow for custom incidence distributions.
 
 Another function used to describe the incident cases is `incidence_age_distribution`, which simply plots the distribution of incident cases by age.

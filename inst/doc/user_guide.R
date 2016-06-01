@@ -28,9 +28,6 @@ inc$mean
 ## ---- fig.width = 7, fig.height = 4--------------------------------------
 plot(inc)
 
-## ---- fig.width = 7, fig.height = 4--------------------------------------
-plot_incidence_fit(inc)
-
 ## ----incidenceage, fig.width = 7, fig.height = 4, error = TRUE-----------
 prevsim_r <- prevsim[prevsim$entrydate >= "2004-01-30", ]
 
