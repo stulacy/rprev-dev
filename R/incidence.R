@@ -242,8 +242,7 @@ plot.incidence <- function(x, level=0.95, ...){
 #' @importFrom ggplot2 theme_bw
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 aes_string
-#' @export
-plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
+.plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
     diags <- object$ordered_diagnoses
     N <- length(diags)
 
