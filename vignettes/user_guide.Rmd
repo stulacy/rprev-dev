@@ -14,7 +14,7 @@ vignette: >
 
 TEST [@crouch2014determining]
 
-In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient dataset using `prevR`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estiamte is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient data set using `prevR`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
 
 ![Estimating prevalence from registry data using prevR.](diagram.png)
 
@@ -32,15 +32,15 @@ library(survival)
 data(prevsim)
 ```
 
-*prevsim* is a dataset that has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry datasets. Patient data includes the date of both entry into the registry and last known event (be it death or a censored event time), survival time and an event indicator (*status*) along with both age and sex. The latter two are incorporated into the prevalence model at several levels, from being used as covariates in the survival modelling, and marking the incidence Poisson process [see @crouch2014determining]. Currently `prevR` does not support the inclusion of additional variables in either the survival or incidence models, although this feature will be introduced in a later release.
+*prevsim* is a data set that has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry data sets. Patient data includes the date of both entry into the registry and last known event (be it death or a censored event time), survival time and an event indicator (*status*) along with both age and sex. The latter two are incorporated into the prevalence model at several levels, from being used as covariates in the survival modelling, and marking the incidence Poisson process [see @crouch2014determining]. Currently `prevR` does not support the inclusion of additional variables in either the survival or incidence models, although this feature will be introduced in a later release.
 
 ```{r}
 summary(prevsim)
 ```
 
-The following Kaplan-Meier plot shows the survival probabilities associated with the included dataset, *prevsim*, where, typical of many diseases, males have poorer survival outcomes than females. It also highlights that survival starts to level off after 2000 days. As our registry is short relative to the duration of survival from this disease, we do not have much information about long-term survival after this point in our patient population in order to base a model. In this scenario, instead of extrapolating survival (and thus risking the problem of "immortal" subjects), we recommend using general population survival data to model long-term survivors, and we refer to this as a *cure model* [@crouch2014determining]. In this model, after a specified "cure time", surviving subjects are considered to revert to the survival characteristics for someone of their age and sex in the general population. In our example, a patient is considered *cured* after five years survival with the disease.
+The following Kaplan-Meier plot shows the survival probabilities associated with the included data set, *prevsim*, where, typical of many diseases, males have poorer survival outcomes than females. It also highlights that survival starts to level off after 2000 days. As our registry is short relative to the duration of survival from this disease, we do not have much information about long-term survival after this point in our patient population in order to base a model. In this scenario, instead of extrapolating survival (and thus risking the problem of "immortal" subjects), we recommend using general population survival data to model long-term survivors, and we refer to this as a *cure model* [@crouch2014determining]. In this model, after a specified "cure time", surviving subjects are considered to revert to the survival characteristics for someone of their age and sex in the general population. In our example, a patient is considered *cured* after five years survival with the disease.
 
-Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `prevR` includes data from the Office of National Statistics (ONS) to describe UK mortality rates (in dataset `UKmortality`), however, the user may supply their own population mortality data. 
+Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `prevR` includes data from the Office of National Statistics (ONS) [see @ons, data licenced under the Open Government Licence v3.0] to describe UK mortality rates (in data set `UKmortality`), however, the user may supply their own population mortality data. 
 
 ```{r basicsurvival, fig.height=4, fig.width=7}
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
@@ -72,9 +72,9 @@ The `summary.incidence` method displays the most useful information about the in
 summary(inc)
 ```
 
-The known yearly incidence rates are displayed starting at `start` date for `num_reg_years`, starting with the first year. For the simulated dataset `prevsim`, there were 96 incident cases between 2005-09-01 and 2006-09-01. It can be concluded that the disease has around 100 new cases each year.
+The known yearly incidence rates are displayed starting at `start` date for `num_reg_years`, starting with the first year. For the simulated data set `prevsim`, there were 96 incident cases between 2005-09-01 and 2006-09-01. It can be concluded that the disease has around 100 new cases each year.
 
-Below that is a summary of the cumulative diagnosis times (in days), useful as a quick check of the distribution of incident cases. The p-values of a simulation test indicating whether the yearly incidence estimates are under or over dispersed relative to a homogeneous Poisson process are also displayed. Inspection of the smoothed incidence function should reveeal whether the problem is one of non-homogeneity (which may lead to inaccurate prevalence estimates) or of failure of the Poisson assumption (which may lead to inaccurate estimates of confidence intervals). 
+Below that is a summary of the cumulative diagnosis times (in days), useful as a quick check of the distribution of incident cases. The p-values of a simulation test indicating whether the yearly incidence estimates are under or over dispersed relative to a homogeneous Poisson process are also displayed. Inspection of the smoothed incidence function should reveal whether the problem is one of non-homogeneity (which may lead to inaccurate prevalence estimates) or of failure of the Poisson assumption (which may lead to inaccurate estimates of confidence intervals). 
 
 Another useful incidence statistic is the mean incidence rate per 100,000 within the study population, which is obtained from the `mean` attribute. Confidence intervals are provided at the specified level (default is 95%):
   
@@ -103,7 +103,7 @@ incidence_age_distribution(prevsim_r$age)
 
 # Survival modelling
 
-The second component to the prevalence estimation is the survival modelling process. Survival is currently modelled using a parametric Weibull model with age and sex as covarates. It is recommended that the user inspects the survival data for consistency with the assumptions of this model and for homogeneity:
+The second component to the prevalence estimation is the survival modelling process. Survival is currently modelled using a parametric Weibull model with age and sex as covariates. It is recommended that the user inspects the survival data for consistency with the assumptions of this model and for homogeneity:
 
 First, it is always useful to plot the Kaplan-Meier estimator of the data, both as a whole and stratified by age to visually inspect for any inconsistencies:
 
@@ -178,7 +178,7 @@ summary(wb)
 
 For modelling long-term survivors in registry data, we have implemented a *cure* model option. For example, the default `cure = 10` in the following functions for estimating prevalence, means a patient can be considered "cured" if they have survived until 10 years after diagnosis, and therefore from this point onwards their survival is modelled using population survival rather than cohort survival. 
 
-General population period survival data for the UK is loaded from the supplied `UKmortality` dataset, and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`. 
+General population period survival data for the UK is loaded from the supplied `UKmortality` data set, and yearly rates are translated into daily rates by linear interpolation using `population_survival_rate()`. 
 
 ```{r popsurv, fig.width = 7, fig.height = 4, error = TRUE}
 data(UKmortality)
@@ -200,7 +200,7 @@ As a reminder, prevalence is estimated using incidence and survival data from *n
 
 ## Counts
 
-In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* dataset the last recorded incident case date and the last date of follow-up are different, as is typically the case in registry datasets where incidence and follow-up data are provided by different sources.
+In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* data set the last recorded incident case date and the last date of follow-up are different, as is typically the case in registry data sets where incidence and follow-up data are provided by different sources.
 
 `prevalence_counted` calculates prevalence contributions for each year of the provided registry data, specified using the `start` and `num_reg_years` arguments. The index date, automatically calculated to be the last date of the last year of registry data included by the user, is `r tail(determine_registry_years(start='2004-01-30', num_reg_years=9), n=1)` in our example. In `prevalence_counted()`, all cases alive after the index date are censored. 
 
@@ -248,7 +248,7 @@ prevalence_total$estimates
 
 ## Inspecting bootstrapped survival modelling
 
-To inspect the distribution of the bootstrapped survival models [see @crouch2014determining for details], a `survfit.prev` object can be constructed using the usual `survfit` call, accepting a data frame of new data (with identical column names to those found in the original dataset). In the example below, survival probability is estimated for a 60 year old male:
+To inspect the distribution of the bootstrapped survival models [see @crouch2014determining for details], a `survfit.prev` object can be constructed using the usual `survfit` call, accepting a data frame of new data (with identical column names to those found in the original data set). In the example below, survival probability is estimated for a 60 year old male:
 
 ```{r}
 prevsurv <- survfit(prevalence_total, newdata=list(age=60, sex=0))
@@ -261,7 +261,7 @@ The `summary.survfit.prev` method provides *N*-year survival probabilities, with
 summary(prevsurv, years=c(1, 3, 5, 10))
 ```
 
-Plotting the `survfit.prev` object displays the survival curve of a Weibull model using the original dataset (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval.
+Plotting the `survfit.prev` object displays the survival curve of a Weibull model using the original data set (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval.
 
 ```{r, fig.width=7, fig.height=4}
 plot(prevsurv, pct_show=0.90)
