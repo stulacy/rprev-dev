@@ -5,4 +5,4 @@
 ^NEWS\.md$
 ^TODO$
 vignettes/diagram.pdf
-R/old_diagnostics.R$
+R/old_diagnostics.R
