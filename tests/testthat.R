@@ -1,4 +1,4 @@
 library(testthat)
-library(prevR)
+library(rprev)
 
-test_check("prevR")
+test_check("rprev")

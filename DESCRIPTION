@@ -1,6 +1,6 @@
-Package: prevR
+Package: rprev
 Type: Package
-Title: Functions for Estimating Prevalence
+Title: Estimating Disease Prevalence from Registry Data
 Version: 0.1.0
 Date: 2016-05-16
 Authors@R: c(
@@ -8,7 +8,7 @@ Authors@R: c(
         person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
         person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut'))
         )
-Description: Estimates point prevalence for a given index date, using existing
+Description: Estimates disease prevalence for a given index date, using existing
     registry data extended with Monte Carlo simulations.
 License: GPL-2
 Depends:

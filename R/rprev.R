@@ -1,7 +1,7 @@
-#' prevR: Estimate point prevalence using a combination of registry data and
+#' rprev: Estimate disease point prevalence using a combination of registry data and
 #' Monte Carlo simulations.
 #'
-#' The prevR package uses available registry data to estimate point prevalence
+#' The rprev package uses available registry data to estimate point prevalence
 #' at a specified index date. This is done by calculating yearly incident cases
 #' and estimating survival probabilities of these cases at the index date, to
 #' establish yearly contributions of incidence to the point prevalence estimate.
@@ -27,5 +27,5 @@
 #' process assumption holds for the disease in question.
 #'
 #' @docType package
-#' @name prevR
+#' @name rprev
 NULL
