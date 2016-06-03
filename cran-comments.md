@@ -1,3 +1,7 @@
+## Resubmission
+
+This is a resubmission, as the first release was named prevR which clashed with an existing package.
+
 ## Release summary
 
 First release of the package, with full functionality.
