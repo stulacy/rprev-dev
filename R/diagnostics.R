@@ -34,12 +34,16 @@ test_incidence_fit <- function(inc, N_sim = 1e5) {
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
+#'
 #' obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'                   data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
 #'                   start = "2005-09-01",
 #'                   num_reg_years = 8, cure = 5)
 #'
 #' test_prevalence_fit(obj)
+#' }
+#'
 #' @export
 #' @family prevalence functions
 test_prevalence_fit <- function(object) {

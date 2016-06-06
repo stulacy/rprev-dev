@@ -31,9 +31,11 @@ green.
 \examples{
 data(prevsim)
 
+\dontrun{
 inc <- incidence(prevsim$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
 
 plot(inc)
+}
 
 }
 \seealso{

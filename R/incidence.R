@@ -28,9 +28,12 @@
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' incidence(prevsim$entrydate, 1e6)
 #'
 #' incidence(prevsim$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+#' }
+#'
 #' @export
 #' @family incidence functions
 incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
@@ -158,9 +161,11 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' inc <- incidence(prevsim$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
 #'
 #' plot(inc)
+#' }
 #'
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_point
@@ -231,10 +236,13 @@ plot.incidence <- function(x, level=0.95, ...){
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' inc <- incidence(prevsim$entrydate, 1e6, start = "2004-01-30",
 #'                  num_reg_years = 9)
 #'
 #' plot_incidence_fit(inc)
+#' }
+#'
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 geom_vline
 #' @importFrom ggplot2 geom_ribbon

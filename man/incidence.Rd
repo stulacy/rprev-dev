@@ -47,9 +47,12 @@ Poisson process.
 \examples{
 data(prevsim)
 
+\dontrun{
 incidence(prevsim$entrydate, 1e6)
 
 incidence(prevsim$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+}
+
 }
 \seealso{
 Other incidence functions: \code{\link{incidence_age_distribution}},

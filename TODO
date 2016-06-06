@@ -1,2 +1,8 @@
   - More rigorous stress testing
   - Centre image in user guide
+  - Add URL to DESCRIPTION
+  - Remove version numbers from DESCRIPTION
+  - Extend authorship of user guide?
+  - Correct: "Alongside the p-values from the over/under dispersion test (reword correctly)"
+  - List papers published where we've used this code to estimate prevalence (lymphomas and myelomas) in user guide
+  - Correct ONS reference in user guide

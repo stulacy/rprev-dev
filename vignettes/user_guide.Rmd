@@ -1,20 +1,20 @@
 ---
-title: "prevR User Guide"
+title: "rprev User Guide"
 author: "S J Lax"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 bibliography: bibliography.bib
 vignette: >
-  %\VignetteIndexEntry{prevR User Guide}
+  %\VignetteIndexEntry{rprev User Guide}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
 
 # Introduction
 
-In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient data set using `prevR`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient data set using `rprev`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
 
-![Estimating prevalence from registry data using prevR.](diagram.png)
+![Estimating prevalence from registry data using rprev.](diagram.png)
 
 Throughout we assume that a patient diagnosed with a particular disease remains prevalent while they are still alive. If time to death is replaced with "time to removal from prevalent pool" in the survival modelling, then estimates corresponding to this notion of prevalence can be made.
 
@@ -25,12 +25,12 @@ In the following sections we aim to take the user through the successive stages 
 # Basic setup and summary of data
 
 ```{r setup, message = FALSE, warning = FALSE}
-library(prevR)
+library(rprev)
 library(survival)
 data(prevsim)
 ```
 
-*prevsim* is a data set that has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry data sets. Patient data includes the date of both entry into the registry and last known event (be it death or a censored event time), survival time and an event indicator (*status*) along with both age and sex. The latter two are incorporated into the prevalence model at several levels, from being used as covariates in the survival modelling, and marking the incidence Poisson process [see @crouch2014determining]. Currently `prevR` does not support the inclusion of additional variables in either the survival or incidence models, although this feature will be introduced in a later release.
+*prevsim* is a data set that has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry data sets. Patient data includes the date of both entry into the registry and last known event (be it death or a censored event time), survival time and an event indicator (*status*) along with both age and sex. The latter two are incorporated into the prevalence model at several levels, from being used as covariates in the survival modelling, and marking the incidence Poisson process [see @crouch2014determining]. Currently `rprev` does not support the inclusion of additional variables in either the survival or incidence models, although this feature will be introduced in a later release.
 
 ```{r}
 summary(prevsim)
@@ -38,7 +38,7 @@ summary(prevsim)
 
 The following Kaplan-Meier plot shows the survival probabilities associated with the included data set, *prevsim*, where, typical of many diseases, males have poorer survival outcomes than females. It also highlights that survival starts to level off after 2000 days. As our registry is short relative to the duration of survival from this disease, we do not have much information about long-term survival after this point in our patient population in order to base a model. In this scenario, instead of extrapolating survival (and thus risking the problem of "immortal" subjects), we recommend using general population survival data to model long-term survivors, and we refer to this as a *cure model* [@crouch2014determining]. In this model, after a specified "cure time", surviving subjects are considered to revert to the survival characteristics for someone of their age and sex in the general population. In our example, a patient is considered *cured* after five years survival with the disease.
 
-Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `prevR` includes data from the Office of National Statistics (ONS) [see @ons, data licenced under the Open Government Licence v3.0] to describe UK mortality rates (in data set `UKmortality`), however, the user may supply their own population mortality data. 
+Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `rprev` includes data from the Office of National Statistics (ONS) [see @ons, data licenced under the Open Government Licence v3.0] to describe UK mortality rates (in data set `UKmortality`), however, the user may supply their own population mortality data. 
 
 ```{r basicsurvival, fig.height=4, fig.width=7}
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
@@ -80,7 +80,7 @@ Another useful incidence statistic is the mean incidence rate per 100,000 within
 inc$mean
 ```
 
-Alongside the p-values from the over/under dispersion test (**reword correctly**), `prevR` provides visual tools to assess the consistency of the incidence data with an homogeneous Poisson process.
+Alongside the p-values from the over/under dispersion test (**reword correctly**), `rprev` provides visual tools to assess the consistency of the incidence data with an homogeneous Poisson process.
 
 `plot.incidence` displays a plot of the actual incidence rate as recorded in the registry, with the smooth overlaid. If incidence is an homogeneous Poisson process, both the smooth (green) and incidence process (red) should remain within the 95% confidence interval (dashed blue) and be evenly distributed about the mean (blue line). 
 
@@ -88,7 +88,7 @@ Alongside the p-values from the over/under dispersion test (**reword correctly**
 plot(inc)
 ```
 
-Currently, the incidence process can only be modelled as a Poisson homogeneous process; if the diagnostics indicate this is not a suitable fit then the prevalence estimates (or their confidence intervals) will be unreliable. Future releases of `prevR` will allow for custom incidence processes.
+Currently, the incidence process can only be modelled as a Poisson homogeneous process; if the diagnostics indicate this is not a suitable fit then the prevalence estimates (or their confidence intervals) will be unreliable. Future releases of `rprev` will allow for custom incidence processes.
 
 Another function used to describe the incident cases is `incidence_age_distribution`, which simply plots the distribution of incident cases by age.
 

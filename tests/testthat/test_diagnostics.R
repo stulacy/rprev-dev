@@ -1,4 +1,4 @@
-library(prevR)
+library(rprev)
 context('Diagnostics')
 data(prevsim)
 

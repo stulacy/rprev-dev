@@ -1,4 +1,4 @@
-# prevR 0.1.0
+# rprev 0.1.0
 
 First release of the package, working with all features necessary to provide estimates of point prevalence. Issues which we'd like to address in future releases are:
 

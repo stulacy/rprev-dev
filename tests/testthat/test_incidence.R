@@ -1,4 +1,4 @@
-library(prevR)
+library(rprev)
 context('Incidence')
 data(prevsim)
 

@@ -117,6 +117,7 @@ posterior distributions of each.
 \examples{
 data(prevsim)
 
+\dontrun{
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
            start = "2005-09-01",
@@ -125,11 +126,10 @@ prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(e
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = 5, population_size=1e6)
 
-\dontrun{
 # Run on multiple cores
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
-           }
+}
 
 }
 \references{

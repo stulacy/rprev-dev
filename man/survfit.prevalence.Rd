@@ -30,6 +30,7 @@ to the \code{prevalence} object.
 \examples{
 data(prevsim)
 
+\dontrun{
 prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
                        entry(entrydate) + event(eventdate),
                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -39,6 +40,7 @@ prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
 survobj <- survfit(prev_obj)
 
 survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+}
 
 }
 

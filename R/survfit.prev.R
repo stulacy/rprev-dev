@@ -17,6 +17,7 @@
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
 #'                        entry(entrydate) + event(eventdate),
 #'                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -26,6 +27,7 @@
 #' survobj <- survfit(prev_obj)
 #'
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
+#' }
 #'
 #' @importFrom survival survfit
 #' @export
@@ -79,6 +81,7 @@ print.survfit.prev <- function(x, ...) {
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
 #'                        entry(entrydate) + event(eventdate),
 #'                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -90,6 +93,7 @@ print.survfit.prev <- function(x, ...) {
 #' summary(survobj)
 #'
 #' summary(survobj, years=c(1, 3, 5, 7))
+#' }
 #'
 #' @export
 summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
@@ -133,6 +137,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' @examples
 #' data(prevsim)
 #'
+#' \dontrun{
 #' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
 #'                        entry(entrydate) + event(eventdate),
 #'                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -146,6 +151,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' plot(survobj, pct_show=0)  # Display curves with any outlying points
 #' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
 #' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
+#' }
 #'
 #' @export
 #' @importFrom magrittr "%>%"

@@ -31,6 +31,7 @@ confidence interval for a survival curve to be deemed as an outlier.
 \examples{
 data(prevsim)
 
+\dontrun{
 prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
                        entry(entrydate) + event(eventdate),
                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -44,6 +45,7 @@ plot(survobj)
 plot(survobj, pct_show=0)  # Display curves with any outlying points
 plot(survobj, pct_show=0.5)  # Display curves with half outlying points
 plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
+}
 
 }
 
