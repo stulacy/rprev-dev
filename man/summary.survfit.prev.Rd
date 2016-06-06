@@ -31,6 +31,7 @@ points less than the maximum survival time in the original dataset that the
 \examples{
 data(prevsim)
 
+\dontrun{
 prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
                        entry(entrydate) + event(eventdate),
                        data=prevsim, num_years_to_estimate = c(5, 10),
@@ -42,6 +43,7 @@ survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 summary(survobj)
 
 summary(survobj, years=c(1, 3, 5, 7))
+}
 
 }
 
