@@ -1,2 +1,4 @@
   - More rigorous stress testing
   - Centre image in user guide
+  - Rename num_cens -> num_dead in prevalence_counted, and reformat as boolean
+  - Specify in counted_prevalence docs that people who are censored before index are included in prevalence estimation
