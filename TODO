@@ -1,2 +1,4 @@
   - More rigorous stress testing
   - Centre image in user guide
+  - prev_counted include index date
+  - Suppress warnings failing to converge
