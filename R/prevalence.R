@@ -225,31 +225,50 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #'
 #' @export
 #' @family prevalence functions
-prevalence_counted <- function(entry, eventdate, status, start=NULL, num_reg_years=NULL) {
+prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earliest_date=NULL, start=NULL, num_reg_years=NULL) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
         stop("Error: entry, eventdate, and status must all have the same length.")
 
-    if (is.null(start))
-        start <- min(entry)
+    # Remove when deprecate
+    if ((!is.null(start) | !is.null(num_reg_years)) & is.null(index_date) & is.null(earliest_date)) {
+        if (!is.null(start))
+            warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and earliest_date instead.")
+        if (!is.null(num_reg_years))
+            warning("'num_reg_years' parameter is deprecated and will be removed in future releases, this value can be inferred from the index_date and earliest_date parameters instead.")
 
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+        start_date <- ifelse(is.null(start), min(entry), start)
+        num_reg_years_new <- ifelse(is.null(num_reg_years),
+                                    floor(as.numeric(difftime(max(entry), start_date) / 365)),
+                                    num_reg_years)
+        foo <- determine_registry_years(start_date, num_reg_years_new)
+        index_date = foo[length(foo)]
+    } else {
 
-    registry_years <- determine_registry_years(start, num_reg_years)
+        if (is.null(index_date)) {
+            index_date <- max(entry)
+            message("Index date not provided, using last entry date instead: ", index_date)
+        }
 
-    indexdate <- registry_years[length(registry_years)]
+        if (is.null(earliest_date))
+            earliest_date <- min(entry)
 
+        num_reg_years_new <- floor(as.numeric(difftime(index_date, earliest_date) / 365))
+        start_date <- as.Date(index_date) - num_reg_years_new * 365.25
+    }
+
+
+    registry_years <- determine_registry_years(start_date, num_reg_years_new)
     # Need no NAs for this!
     clean <- complete.cases(entry) & complete.cases(eventdate) & complete.cases(status)
     entry <- entry[clean]
     eventdate <- eventdate[clean]
     status <- status[clean]
 
-    status_at_index <- ifelse(eventdate > indexdate, 0, status)
+    status_at_index <- ifelse(eventdate > index_date, 0, status)
 
-    per_year <- raw_incidence(entry, start, num_reg_years=num_reg_years)
-    num_cens <- vapply(seq(num_reg_years), function(i)
+    per_year <- raw_incidence(entry, start_date, num_reg_years=num_reg_years_new)
+    num_cens <- vapply(seq(num_reg_years_new), function(i)
                             sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
                        numeric(1))
     per_year - num_cens

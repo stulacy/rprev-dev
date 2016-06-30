@@ -1,4 +1,5 @@
   - More rigorous stress testing
   - Centre image in user guide
-  - prev_counted include index date
+  - prev_counted include index date and prevalence
   - Suppress warnings failing to converge
+  - TODO Error in max_yearly_incidence, OR have it automatically determined?
