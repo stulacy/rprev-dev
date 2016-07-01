@@ -110,7 +110,7 @@
 #' @export
 #' @family prevalence functions
 prevalence <- function(form, data, num_years_to_estimate, population_size,
-                       start=NULL, num_reg_years=NULL, cure=10,
+                       start=NULL, num_reg_years=NULL, cure=10, index_date=NULL, earliest_date=NULL,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
                        proportion=100e3, population_data=NULL, n_cores=1) {
 
@@ -142,22 +142,49 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
         stop("Error: functionality isn't currently provided for additional covariates.")
 
     # Calculate start and num_registry_years
-    if (is.null(start))
-        start <- min(data[, entry_var])
+   # if (is.null(start))
+   #     start <- min(data[, entry_var])
+#
+   # if (is.null(num_reg_years))
+   #     num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
+    # Remove when deprecate
+    if ((!is.null(start) | !is.null(num_reg_years)) & is.null(index_date) & is.null(earliest_date)) {
+        if (!is.null(start))
+            warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and earliest_date instead.")
+        if (!is.null(num_reg_years))
+            warning("'num_reg_years' parameter is deprecated and will be removed in future releases, this value can be inferred from the index_date and earliest_date parameters instead.")
 
-    if (num_reg_years > max(num_years_to_estimate)) {
+        start_date <- ifelse(is.null(start), min(data[, entry_var]), start)
+        num_reg_years_new <- ifelse(is.null(num_reg_years),
+                                    floor(as.numeric(difftime(max(data[, entry_var]), start_date) / 365)),
+                                    num_reg_years)
+        foo <- determine_registry_years(start_date, num_reg_years_new)
+        index_date = foo[length(foo)]
+    } else {
+
+        if (is.null(index_date)) {
+            index_date <- max(data[, entry_var])
+            message("Index date not provided, using last entry date instead: ", index_date)
+        }
+
+        if (is.null(earliest_date))
+            earliest_date <- min(data[, entry_var])
+
+        num_reg_years_new <- floor(as.numeric(difftime(index_date, earliest_date) / 365))
+        start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
+    }
+
+    if (num_reg_years_new > max(num_years_to_estimate)) {
         msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
-                     num_years_to_estimate, "years using survival models built on", num_reg_years, "years of data.")
+                     num_years_to_estimate, "years using survival models built on", num_reg_years_new, "years of data.")
         message(msg)
     }
 
     # Calculate simulated prevalence for 1:max(num_years_to_estimate)
     prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
-                                     max(num_years_to_estimate), start,
-                                     num_reg_years, cure=cure, N_boot=N_boot,
+                                     max(num_years_to_estimate), index_date,
+                                     num_reg_years_new, cure=cure, N_boot=N_boot,
                                      max_yearly_incidence=max_yearly_incidence,
                                      population_data=population_data, n_cores=n_cores)
     inc_rate <- prev_sim$known_inc_rate
@@ -165,25 +192,23 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 
 
     # Calculate observed prevalence for 1:num_registry_years
+    # Remove calls to num_registry_years and start when update
     prev_count <- prevalence_counted(data[, entry_var],
                                      data[, event_var],
                                      survobj[, 2],
-                                     start=start,
-                                     num_reg_years=num_reg_years)
+                                     index_date=index_date,
+                                     earliest_date=start_date)
 
     # Calculate CIs and iterate for every year of interest
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
     estimates <- lapply(setNames(num_years_to_estimate, names), .point_estimate,
-                        prev_sim, prev_count, num_reg_years, population_size, level=level, precision=precision,
+                        prev_sim, prev_count, num_reg_years_new, population_size, level=level, precision=precision,
                         proportion=proportion)
 
-    reg_years <- determine_registry_years(start, num_reg_years)
-    index_date <- reg_years[length(reg_years)]
-
     object <- list(estimates=estimates, simulated=prev_sim,
-                   counted=prev_count, start_date=start,
+                   counted=prev_count, start_date=start_date,
                    index_date=index_date, known_inc_rate=inc_rate,
-                   nregyears=num_reg_years, proportion=proportion)
+                   nregyears=num_reg_years_new, proportion=proportion)
 
     # Calculate covariate means and save
     mean_df <- data[, c(age_var, sex_var)]
@@ -254,7 +279,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earlie
             earliest_date <- min(entry)
 
         num_reg_years_new <- floor(as.numeric(difftime(index_date, earliest_date) / 365))
-        start_date <- as.Date(index_date) - num_reg_years_new * 365.25
+        start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 
 
@@ -331,7 +356,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earlie
 #' @export
 #' @family prevalence functions
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
-                                 start, num_reg_years, cure=10,
+                                 index_date, num_reg_years, cure=10, start=NULL,
                                  N_boot=1000, max_yearly_incidence=500,
                                  population_data=NULL, n_cores=1) {
 
@@ -355,6 +380,12 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
            stop("Error: the supplied population data frame must contain columns 'rate', 'age', 'sex'.")
         }
     }
+
+    if (!is.null(start)) {
+        warning("'start' parameter is deprecated and will be removed in future versions. Please use specify an index date using 'index_date' instead.")
+    }
+
+    start <- as.character(as.Date(index_date) - num_reg_years * 365.25)
 
     population_data$sex <- as.factor(population_data$sex)
     if (!all(levels(sex) %in% levels(population_data$sex)))
@@ -487,7 +518,7 @@ print.prevalence <- function(x, ...) {
 summary.prevalence <- function(object, ...) {
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Index date:", object$index_date, "\n")
-    cat("Start year:", object$start_date, "\n")
+    cat("Start date:", object$start_date, "\n")
     cat("Number of years:", length(object$known_inc_rate), "\n")
     cat("Known incidence rate:\n")
     cat(object$known_inc_rate, "\n")
