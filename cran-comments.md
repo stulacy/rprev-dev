@@ -1,6 +1,6 @@
 ## Resubmission
 
-This is a resubmission. There are no longer any function examples which run longer than 5 seconds.
+This is a resubmission. Added 'dontrun' to incidence function examples as they ran in > 10 seconds.
 
 ## Release summary
 
