@@ -41,17 +41,16 @@
 #'   \code{form}.
 #' @param num_years_to_estimate Number of years of data to consider when
 #'   estimating point prevalence; multiple values can be specified in a vector.
-#'   If any values are greater than \code{num_registry_years}, incident cases
+#'   If any values are greater than the number of years of registry data
+#'   available between \code{index_date} and \code{earliest_date}, incident cases
 #'   for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population at
 #'   risk.
-#' @param start Date from which incident cases are included in the format
-#'   YYYY-MM-DD. Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence
-#'   is to be calculated. Defaults to using all available complete years. Note
-#'   that if more registry years are supplied than the number of years to
-#'   estimate prevalence for, the survival data from the surplus registry years
-#'   are still involved in the survival model fitting.
+#' @param index_date The date at which to estimate point prevalence. Defaults to the
+#' latest registry entry date.
+#' @param earliest_date Date from which incident cases are included, in the
+#' format YYYY-MM-DD. Defaults to the earliest registry entry date. This parameter
+#' allows for the specification of
 #' @param cure Integer defining cure model assumption for the calculation (in
 #'   years). A patient who has survived beyond the cure time has a probability
 #'   of surviving derived from the mortality rate of the general population.
@@ -69,6 +68,18 @@
 #' @param n_cores Number of CPU cores to run the fitting of the bootstrapped
 #'   survival models. Defaults to 1; multi-core functionality is provided by the
 #'   \code{doParallel} package.
+#' @param start \strong{Deprecated: Use \code{earliest_date} instead.}
+#' Date from which incident cases are included in the format YYYY-MM-DD. Defaults
+#' to the earliest entry date. This value is now inferred by calculating the number
+#' of complete years of registry data between the \code{index_date} and
+#' \code{earliest_date}, and subtracting this from the \code{index_date}.
+#' @param num_reg_years \strong{Deprecated: Value is automatically inferred from
+#' the number of complete years between \code{index_date} and \code{earliest_date}.}
+#' The number of years of the registry for which incidence
+#'   is to be calculated. Defaults to using all available complete years. Note
+#'   that if more registry years are supplied than the number of years to
+#'   estimate prevalence for, the survival data from the surplus registry years
+#'   are still involved in the survival model fitting.
 #' @return An S3 object of class \code{prevalence} with the following
 #'   attributes: \item{estimates}{Estimated prevalence at the index date for
 #'   each of the years in \code{num_years_to_estimate}.} \item{simulated}{A list
@@ -96,8 +107,8 @@
 #' \dontrun{
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'            start = "2005-09-01",
-#'            num_reg_years = 8, cure = 5)
+#'            index_date = '20013-09-01', earliest_date = '2005-08-31',
+#'            cure = 5)
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = 5, population_size=1e6)
@@ -110,9 +121,10 @@
 #' @export
 #' @family prevalence functions
 prevalence <- function(form, data, num_years_to_estimate, population_size,
-                       start=NULL, num_reg_years=NULL, cure=10, index_date=NULL, earliest_date=NULL,
+                       index_date=NULL, earliest_date=NULL, cure=10,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
-                       proportion=100e3, population_data=NULL, n_cores=1) {
+                       proportion=100e3, population_data=NULL, n_cores=1,
+                       start=NULL, num_reg_years=NULL) {
 
     # Extract required column names from formula
     spec <- c('age', 'sex', 'entry', 'event')
@@ -140,13 +152,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     covar_names <- as.list(attr(terms, 'variables'))[-1][-non_covariate_inds]  # First -1 to remove 'list' entry
     if (length(covar_names) > 0)
         stop("Error: functionality isn't currently provided for additional covariates.")
-
-    # Calculate start and num_registry_years
-   # if (is.null(start))
-   #     start <- min(data[, entry_var])
-#
-   # if (is.null(num_reg_years))
-   #     num_reg_years <- floor(as.numeric(difftime(max(data[, entry_var]), start) / 365.25))
 
     # Remove when deprecate
     if ((!is.null(start) | !is.null(num_reg_years)) & is.null(index_date) & is.null(earliest_date)) {
@@ -233,7 +238,8 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #' @param status Vector of binary values indicating if an event has occurred for
 #'   each patient in the registry. \code{entry}, \code{eventdate}, and
 #'   \code{status} must all have the same length.
-#' @return A vector of length \code{num_reg_years}, representing the number of
+#' @return A vector of length equal to the number of complete years of registry data
+#' between \code{earliest_date} and \code{index_date}, representing the number of
 #'   incident cases in the corresponding year that contribute to the prevalence
 #'   at the index date.
 #' @examples
@@ -246,7 +252,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #' prevalence_counted(prevsim$entrydate,
 #'                    prevsim$eventdate,
 #'                    prevsim$status,
-#'                    start="2004-01-30", num_reg_years=8)
+#'                    index_date="2012-01-30")
 #'
 #' @export
 #' @family prevalence functions
@@ -332,18 +338,21 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earlie
 #' \dontrun{
 #' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 10, start = "2005-09-01",
+#'                      num_years_to_estimate = 10,
+#'                      index_date = "2013-09-01",
 #'                      num_reg_years = 8, cure = 5)
 #'
 #' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 5, start="2004-01-01",
+#'                      num_years_to_estimate = 5,
+#'                      index_date="2009-01-01",
 #'                      num_reg_years=5)
 #'
 #' # The program can be run using parallel processing.
 #' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
-#'                      num_years_to_estimate = 10, start="2005-01-01",
+#'                      num_years_to_estimate = 10,
+#'                      index_date="2013-01-01",
 #'                      num_reg_years=8, n_cores=4)
 #' }
 #'
