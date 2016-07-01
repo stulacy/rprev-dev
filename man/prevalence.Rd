@@ -6,8 +6,8 @@
 \usage{
 prevalence(form, data, num_years_to_estimate, population_size,
   index_date = NULL, num_reg_years = NULL, cure = 10, N_boot = 1000,
-  max_yearly_incidence = 500, level = 0.95, precision = 2,
-  proportion = 1e+05, population_data = NULL, n_cores = 1, start = NULL)
+  level = 0.95, precision = 2, proportion = 1e+05,
+  population_data = NULL, n_cores = 1, start = NULL)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv}
@@ -52,9 +52,6 @@ years). A patient who has survived beyond the cure time has a probability
 of surviving derived from the mortality rate of the general population.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
-
-\item{max_yearly_incidence}{Integer larger than the expected yearly incidence
-to allow for variation in incidence between years.}
 
 \item{level}{Double representing the desired confidence interval width.}
 

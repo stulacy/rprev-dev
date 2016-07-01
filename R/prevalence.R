@@ -57,8 +57,6 @@
 #'   years). A patient who has survived beyond the cure time has a probability
 #'   of surviving derived from the mortality rate of the general population.
 #' @param N_boot Number of bootstrapped calculations to perform.
-#' @param max_yearly_incidence Integer larger than the expected yearly incidence
-#'   to allow for variation in incidence between years.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
 #' @param proportion The population ratio to estimate prevalence for.
@@ -117,7 +115,7 @@
 #' @family prevalence functions
 prevalence <- function(form, data, num_years_to_estimate, population_size,
                        index_date=NULL, num_reg_years=NULL, cure=10,
-                       N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
+                       N_boot=1000, level=0.95, precision=2,
                        proportion=100e3, population_data=NULL, n_cores=1,
                        start=NULL) {
 
@@ -179,7 +177,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
                                      max(num_years_to_estimate), index_date,
                                      num_reg_years_new, cure=cure, N_boot=N_boot,
-                                     max_yearly_incidence=max_yearly_incidence,
                                      population_data=population_data, n_cores=n_cores)
     inc_rate <- prev_sim$known_inc_rate
     prev_sim$known_inc_rate <- NULL
@@ -356,7 +353,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #' @family prevalence functions
 prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
                                  index_date, num_reg_years, cure=10, start=NULL,
-                                 N_boot=1000, max_yearly_incidence=500,
+                                 N_boot=1000,
                                  population_data=NULL, n_cores=1) {
 
     cure_days <- cure * 365
@@ -403,6 +400,14 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
                                   req_covariate))
     wb_boot <- .registry_survival_bootstrapped(surv_form, df, N_boot, n_cores=n_cores)
     wb_boot <- wb_boot[sample(nrow(wb_boot)), ]
+
+    # Calculate maximum yearly incidence here as the max of the maximum for each subgroup with an additional bit of leeway
+    subgroup_max_incidence <- sapply(levels(df$sex), function(x) {
+        sub_data <- df[df$sex==x, ]
+        max(raw_incidence(as.character(sub_data$entry), start, num_reg_years))
+    })
+
+    max_yearly_incidence <- round(1.5 * max(subgroup_max_incidence))
 
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(df$sex), function(x) {

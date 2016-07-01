@@ -6,7 +6,7 @@
 \usage{
 prevalence_simulated(survobj, age, sex, entry, num_years_to_estimate,
   index_date, num_reg_years, cure = 10, start = NULL, N_boot = 1000,
-  max_yearly_incidence = 500, population_data = NULL, n_cores = 1)
+  population_data = NULL, n_cores = 1)
 }
 \arguments{
 \item{survobj}{\code{Surv} object from \code{survival} package. Currently
@@ -46,9 +46,6 @@ to the earliest entry date. This value is now inferred by counting back
 \code{num_reg_years} years of registry data from the \code{index_date}. and}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
-
-\item{max_yearly_incidence}{Integer larger than the expected yearly incidence
-to allow for variation in incidence between years.}
 
 \item{population_data}{A dataframe that must contain the columns \code{age},
 \code{rate}, and \code{sex}, where each row is the mortality rate for a

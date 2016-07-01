@@ -1,4 +1,3 @@
   - More rigorous stress testing
   - Centre image in user guide
   - How to handle when survival model building doesn't converge? Ignore and resample, raise warning? Or just throw error?
-  - Error in max_yearly_incidence, OR have it automatically determined?
