@@ -21,6 +21,25 @@ test_that("prevalence returns same values as before", {
     expect_ref(prevsim, 4, '2004-01-01', 3, cure=1, boot=10)
 })
 
+test_that("prevalence returns same values as before - NEW PARAMETERISATION", {
+    set.seed(3)
+    i <- 1
+    expect_ref <- function(data, num_years_to_estimate, index, early, cure, boot) {
+        fn <- paste('cache/prevalence/prevalencenewparam_', i, '.rds', sep='')
+        expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                                             data, num_years_to_estimate, population_size=1e6,
+                                             index_date=index, earliest_date=early,
+                                             cure=cure, N_boot=boot), file=fn)
+        i <<- i + 1
+    }
+    expect_ref(prevsim, 10, '2013-01-01', '2004-01-01', cure=5, boot=10)
+    expect_ref(prevsim, 10, '2013-01-01', '2004-01-01', cure=5, boot=20)
+    expect_ref(prevsim, 10, '2009-05-23', '2005-05-20', cure=5, boot=10)
+    expect_ref(prevsim, 10, '2013-01-01', '2004-01-01', cure=3, boot=10)
+    expect_ref(prevsim, 4, '2007-01-01', '2004-01-01', cure=5, boot=10)
+    expect_ref(prevsim, 4, '2007-01-01', '2004-01-01', cure=1, boot=10)
+})
+
 test_that("prevalence with a thousand bootstraps returns same values as before", {
     skip_on_cran()
     skip("too slow")
@@ -36,6 +55,23 @@ test_that("prevalence with a thousand bootstraps returns same values as before",
     }
     expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=1000)
     expect_ref(prevsim, 10, '2006-09-03', 5, cure=5, boot=1000)
+})
+
+test_that("prevalence with a thousand bootstraps returns same values as before - NEW PARAMETERISATION", {
+    skip_on_cran()
+    skip("too slow")
+    set.seed(3)
+    i <- 1
+    expect_ref <- function(data, num_years_to_estimate, index, early, cure, boot) {
+        fn <- paste('cache/prevalence/prevalence_thousand_newparam_', i, '.rds', sep='')
+        expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+                                             data, num_years_to_estimate, population_size=1e6,
+                                             index_date=index, earliest_date=early,
+                                             cure=cure, N_boot=boot), file=fn)
+        i <<- i + 1
+    }
+    expect_ref(prevsim, 10, '2013-01-01', '2004-01-01', cure=5, boot=1000)
+    expect_ref(prevsim, 10, '2011-09-01', '2006-08-31', cure=5, boot=1000)
 })
 
 test_that("Error is raised when passing a population data frame not set up correctly", {
@@ -126,7 +162,7 @@ test_that("Prevalence messages the user when the number of registry years are gr
 test_that("prevalence_counted results in the same values as before", {
     set.seed(3)
     i <- 1
-    expect_ref <- function(entry, event, status, start, years=NULL, index=NULL) {
+    expect_ref <- function(entry, event, status, start, years=NULL) {
         fn <- paste('cache/prevalence/countedprevalence_', i, '.rds', sep='')
         expect_equal_to_reference(prevalence_counted(entry, event, status, start=start,
                                                      num_reg_years=years), file=fn)
@@ -134,4 +170,19 @@ test_that("prevalence_counted results in the same values as before", {
     }
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05', 5)
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05')
+})
+
+test_that("prevalence_counted results in the same values as before - NEW PARAMETERISATION", {
+    set.seed(3)
+    i <- 1
+    expect_ref <- function(entry, event, status, index, early=NULL) {
+        fn <- paste('cache/prevalence/countedprevalence_newparam_', i, '.rds', sep='')
+        expect_equal_to_reference(prevalence_counted(entry, event, status, index_date=index,
+                                                     earliest_date=early), file=fn)
+        i <<- i + 1
+    }
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2009-03-05', '2004-01-01')
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2011-09-01', '2004-01-01')
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2009-09-01')
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2011-09-01')
 })
