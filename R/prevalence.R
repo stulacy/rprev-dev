@@ -162,7 +162,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
         }
 
         num_reg_years_new <- ifelse(is.null(num_reg_years),
-                                    floor(as.numeric(difftime(index_date, min(entry)) / 365)),
+                                    floor(as.numeric(difftime(index_date, min(data[, entry_var])) / 365)),
                                     num_reg_years)
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }

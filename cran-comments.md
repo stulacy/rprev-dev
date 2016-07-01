@@ -1,10 +1,6 @@
-## Resubmission
-
-This is a resubmission. Added 'dontrun' to incidence function examples as they ran in > 10 seconds.
-
 ## Release summary
 
-First release of the package, with full functionality.
+Second release of the package (0.2.0), addressing minor bug fixes and slightly modified arguments to the prevalence functions.
 
 ## Test environments
 
