@@ -1,12 +1,4 @@
   - More rigorous stress testing
   - Centre image in user guide
-  - Rename num_cens -> num_dead in prevalence_counted, and reformat as boolean
-  - Specify in counted_prevalence docs that people who are censored before index are included in prevalence estimation
   - How to handle when survival model building doesn't converge? Ignore and resample, raise warning? Or just throw error?
-  - TODO Error in max_yearly_incidence, OR have it automatically determined?
-  - Add URL to DESCRIPTION
-  - Remove version numbers from DESCRIPTION
-  - Extend authorship of user guide?
-  - Correct: "Alongside the p-values from the over/under dispersion test (reword correctly)"
-  - List papers published where we've used this code to estimate prevalence (lymphomas and myelomas) in user guide
-  - Correct ONS reference in user guide
+  - Error in max_yearly_incidence, OR have it automatically determined?

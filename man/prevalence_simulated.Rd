@@ -23,29 +23,27 @@ YYYY-MM-DD.}
 \item{num_years_to_estimate}{Number of years of data to consider when
 estimating point prevalence; multiple values can be specified in a vector.
 If any values are greater than the number of years of registry data
-available between \code{index_date} and \code{earliest_date}, incident cases
+available before \code{index_date}, incident cases
 for the difference will be simulated.}
 
 \item{index_date}{The date at which to estimate point prevalence. Defaults to the
 latest registry entry date.}
 
-\item{num_reg_years}{\strong{Deprecated: Value is automatically inferred from
-the number of complete years between \code{index_date} and \code{earliest_date}.}
-The number of years of the registry for which incidence
-  is to be calculated. Defaults to using all available complete years. Note
-  that if more registry years are supplied than the number of years to
-  estimate prevalence for, the survival data from the surplus registry years
-  are still involved in the survival model fitting.}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years. Note
+that if more registry years are supplied than the number of years to
+estimate prevalence for, the survival data from the surplus registry years
+are still involved in the survival model fitting.}
 
 \item{cure}{Integer defining cure model assumption for the calculation (in
 years). A patient who has survived beyond the cure time has a probability
 of surviving derived from the mortality rate of the general population.}
 
-\item{start}{\strong{Deprecated: Use \code{earliest_date} instead.}
+\item{start}{\strong{Deprecated: Use \code{index_date} instead and specify the
+number of years of registry data to use with \code{num_reg_years}.}
 Date from which incident cases are included in the format YYYY-MM-DD. Defaults
-to the earliest entry date. This value is now inferred by calculating the number
-of complete years of registry data between the \code{index_date} and
-\code{earliest_date}, and subtracting this from the \code{index_date}.}
+to the earliest entry date. This value is now inferred by counting back
+\code{num_reg_years} years of registry data from the \code{index_date}. and}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 

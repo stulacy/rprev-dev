@@ -42,15 +42,17 @@
 #' @param num_years_to_estimate Number of years of data to consider when
 #'   estimating point prevalence; multiple values can be specified in a vector.
 #'   If any values are greater than the number of years of registry data
-#'   available between \code{index_date} and \code{earliest_date}, incident cases
+#'   available before \code{index_date}, incident cases
 #'   for the difference will be simulated.
 #' @param population_size Integer corresponding to the size of the population at
 #'   risk.
 #' @param index_date The date at which to estimate point prevalence. Defaults to the
 #' latest registry entry date.
-#' @param earliest_date Date from which incident cases are included, in the
-#' format YYYY-MM-DD. Defaults to the earliest registry entry date. This parameter
-#' allows for the specification of
+#' @param num_reg_years The number of years of the registry for which incidence
+#'   is to be calculated. Defaults to using all available complete years. Note
+#'   that if more registry years are supplied than the number of years to
+#'   estimate prevalence for, the survival data from the surplus registry years
+#'   are still involved in the survival model fitting.
 #' @param cure Integer defining cure model assumption for the calculation (in
 #'   years). A patient who has survived beyond the cure time has a probability
 #'   of surviving derived from the mortality rate of the general population.
@@ -68,18 +70,11 @@
 #' @param n_cores Number of CPU cores to run the fitting of the bootstrapped
 #'   survival models. Defaults to 1; multi-core functionality is provided by the
 #'   \code{doParallel} package.
-#' @param start \strong{Deprecated: Use \code{earliest_date} instead.}
+#' @param start \strong{Deprecated: Use \code{index_date} instead and specify the
+#' number of years of registry data to use with \code{num_reg_years}.}
 #' Date from which incident cases are included in the format YYYY-MM-DD. Defaults
-#' to the earliest entry date. This value is now inferred by calculating the number
-#' of complete years of registry data between the \code{index_date} and
-#' \code{earliest_date}, and subtracting this from the \code{index_date}.
-#' @param num_reg_years \strong{Deprecated: Value is automatically inferred from
-#' the number of complete years between \code{index_date} and \code{earliest_date}.}
-#' The number of years of the registry for which incidence
-#'   is to be calculated. Defaults to using all available complete years. Note
-#'   that if more registry years are supplied than the number of years to
-#'   estimate prevalence for, the survival data from the surplus registry years
-#'   are still involved in the survival model fitting.
+#' to the earliest entry date. This value is now inferred by counting back
+#' \code{num_reg_years} years of registry data from the \code{index_date}. and
 #' @return An S3 object of class \code{prevalence} with the following
 #'   attributes: \item{estimates}{Estimated prevalence at the index date for
 #'   each of the years in \code{num_years_to_estimate}.} \item{simulated}{A list
@@ -107,7 +102,7 @@
 #' \dontrun{
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'            index_date = '20013-09-01', earliest_date = '2005-08-31',
+#'            index_date = '2013-09-01', num_reg_years = 8,
 #'            cure = 5)
 #'
 #' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
@@ -121,10 +116,10 @@
 #' @export
 #' @family prevalence functions
 prevalence <- function(form, data, num_years_to_estimate, population_size,
-                       index_date=NULL, earliest_date=NULL, cure=10,
+                       index_date=NULL, num_reg_years=NULL, cure=10,
                        N_boot=1000, max_yearly_incidence=500, level=0.95, precision=2,
                        proportion=100e3, population_data=NULL, n_cores=1,
-                       start=NULL, num_reg_years=NULL) {
+                       start=NULL) {
 
     # Extract required column names from formula
     spec <- c('age', 'sex', 'entry', 'event')
@@ -154,29 +149,23 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
         stop("Error: functionality isn't currently provided for additional covariates.")
 
     # Remove when deprecate
-    if ((!is.null(start) | !is.null(num_reg_years)) & is.null(index_date) & is.null(earliest_date)) {
-        if (!is.null(start))
-            warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and earliest_date instead.")
-        if (!is.null(num_reg_years))
-            warning("'num_reg_years' parameter is deprecated and will be removed in future releases, this value can be inferred from the index_date and earliest_date parameters instead.")
-
-        start_date <- ifelse(is.null(start), min(data[, entry_var]), start)
+    if ((!is.null(start) & is.null(index_date))) {
+        warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
+        start_date <- start
         num_reg_years_new <- ifelse(is.null(num_reg_years),
                                     floor(as.numeric(difftime(max(data[, entry_var]), start_date) / 365)),
                                     num_reg_years)
         foo <- determine_registry_years(start_date, num_reg_years_new)
         index_date = foo[length(foo)]
     } else {
-
         if (is.null(index_date)) {
             index_date <- max(data[, entry_var])
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        if (is.null(earliest_date))
-            earliest_date <- min(data[, entry_var])
-
-        num_reg_years_new <- floor(as.numeric(difftime(index_date, earliest_date) / 365))
+        num_reg_years_new <- ifelse(is.null(num_reg_years),
+                                    floor(as.numeric(difftime(index_date, min(entry)) / 365)),
+                                    num_reg_years)
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 
@@ -202,7 +191,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                                      data[, event_var],
                                      survobj[, 2],
                                      index_date=index_date,
-                                     earliest_date=start_date)
+                                     num_reg_years=num_reg_years_new)
 
     # Calculate CIs and iterate for every year of interest
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
@@ -227,8 +216,14 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     object
 }
 
-#' Count prevalence from registry data. Counts prevalence at a specific index
-#' date using registry data.
+#' Count prevalence from registry data.
+#'
+#' Counts contribution to prevalence at a specific index from each year of a
+#' registry. A person is included as contributing to disease prevalence if they
+#' are incident within the specified time-span, and are either alive or censored
+#' at the index date. The rationale for including censored cases in prevalence
+#' estimation is that such cases have typically been lost to follow-up, and are
+#' often more likely to have been alive at the index date than not.
 #'
 #' @inheritParams prevalence
 #' @param entry Vector of diagnosis dates for each patient in the registry in
@@ -239,7 +234,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #'   each patient in the registry. \code{entry}, \code{eventdate}, and
 #'   \code{status} must all have the same length.
 #' @return A vector of length equal to the number of complete years of registry data
-#' between \code{earliest_date} and \code{index_date}, representing the number of
+#'   before \code{index_date} (given by \code{num_reg_years}), representing the number of
 #'   incident cases in the corresponding year that contribute to the prevalence
 #'   at the index date.
 #' @examples
@@ -256,18 +251,14 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #'
 #' @export
 #' @family prevalence functions
-prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earliest_date=NULL, start=NULL, num_reg_years=NULL) {
+prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_reg_years=NULL, start=NULL ) {
 
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
         stop("Error: entry, eventdate, and status must all have the same length.")
 
     # Remove when deprecate
-    if ((!is.null(start) | !is.null(num_reg_years)) & is.null(index_date) & is.null(earliest_date)) {
-        if (!is.null(start))
-            warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and earliest_date instead.")
-        if (!is.null(num_reg_years))
-            warning("'num_reg_years' parameter is deprecated and will be removed in future releases, this value can be inferred from the index_date and earliest_date parameters instead.")
-
+    if (!is.null(start) & is.null(index_date)) {
+        warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
         start_date <- ifelse(is.null(start), min(entry), start)
         num_reg_years_new <- ifelse(is.null(num_reg_years),
                                     floor(as.numeric(difftime(max(entry), start_date) / 365)),
@@ -281,10 +272,9 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, earlie
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        if (is.null(earliest_date))
-            earliest_date <- min(entry)
-
-        num_reg_years_new <- floor(as.numeric(difftime(index_date, earliest_date) / 365))
+        num_reg_years_new <- ifelse(is.null(num_reg_years),
+                                    floor(as.numeric(difftime(index_date, min(entry)) / 365)),
+                                    num_reg_years)
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 

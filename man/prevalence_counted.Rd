@@ -2,11 +2,10 @@
 % Please edit documentation in R/prevalence.R
 \name{prevalence_counted}
 \alias{prevalence_counted}
-\title{Count prevalence from registry data. Counts prevalence at a specific index
-date using registry data.}
+\title{Count prevalence from registry data.}
 \usage{
 prevalence_counted(entry, eventdate, status, index_date = NULL,
-  earliest_date = NULL, start = NULL, num_reg_years = NULL)
+  num_reg_years = NULL, start = NULL)
 }
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in
@@ -22,33 +21,31 @@ each patient in the registry. \code{entry}, \code{eventdate}, and
 \item{index_date}{The date at which to estimate point prevalence. Defaults to the
 latest registry entry date.}
 
-\item{earliest_date}{Date from which incident cases are included, in the
-format YYYY-MM-DD. Defaults to the earliest registry entry date. This parameter
-allows for the specification of}
+\item{num_reg_years}{The number of years of the registry for which incidence
+is to be calculated. Defaults to using all available complete years. Note
+that if more registry years are supplied than the number of years to
+estimate prevalence for, the survival data from the surplus registry years
+are still involved in the survival model fitting.}
 
-\item{start}{\strong{Deprecated: Use \code{earliest_date} instead.}
+\item{start}{\strong{Deprecated: Use \code{index_date} instead and specify the
+number of years of registry data to use with \code{num_reg_years}.}
 Date from which incident cases are included in the format YYYY-MM-DD. Defaults
-to the earliest entry date. This value is now inferred by calculating the number
-of complete years of registry data between the \code{index_date} and
-\code{earliest_date}, and subtracting this from the \code{index_date}.}
-
-\item{num_reg_years}{\strong{Deprecated: Value is automatically inferred from
-the number of complete years between \code{index_date} and \code{earliest_date}.}
-The number of years of the registry for which incidence
-  is to be calculated. Defaults to using all available complete years. Note
-  that if more registry years are supplied than the number of years to
-  estimate prevalence for, the survival data from the surplus registry years
-  are still involved in the survival model fitting.}
+to the earliest entry date. This value is now inferred by counting back
+\code{num_reg_years} years of registry data from the \code{index_date}. and}
 }
 \value{
 A vector of length equal to the number of complete years of registry data
-between \code{earliest_date} and \code{index_date}, representing the number of
+  before \code{index_date} (given by \code{num_reg_years}), representing the number of
   incident cases in the corresponding year that contribute to the prevalence
   at the index date.
 }
 \description{
-Count prevalence from registry data. Counts prevalence at a specific index
-date using registry data.
+Counts contribution to prevalence at a specific index from each year of a
+registry. A person is included as contributing to disease prevalence if they
+are incident within the specified time-span, and are either alive or censored
+at the index date. The rationale for including censored cases in prevalence
+estimation is that such cases have typically been lost to follow-up, and are
+often more likely to have been alive at the index date than not.
 }
 \examples{
 data(prevsim)
