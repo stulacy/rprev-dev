@@ -42,7 +42,7 @@ test_that("prevalence returns same values as before - NEW PARAMETERISATION", {
 
 test_that("prevalence with a thousand bootstraps returns same values as before", {
     skip_on_cran()
-    #skip("too slow")
+    skip("too slow")
     set.seed(3)
     i <- 1
     expect_ref <- function(data, num_years_to_estimate, start, years, cure, boot) {
@@ -59,7 +59,7 @@ test_that("prevalence with a thousand bootstraps returns same values as before",
 
 test_that("prevalence with a thousand bootstraps returns same values as before - NEW PARAMETERISATION", {
     skip_on_cran()
-    #skip("too slow")
+    skip("too slow")
     set.seed(3)
     i <- 1
     expect_ref <- function(data, num_years_to_estimate, index, years, cure, boot) {
