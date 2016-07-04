@@ -14,14 +14,14 @@ License: GPL-2
 Depends:
     survival
 Imports:
-    abind ,
-    doParallel ,
-    dplyr ,
-    foreach ,
-    ggplot2 ,
+    abind,
+    doParallel,
+    dplyr,
+    foreach,
+    ggplot2,
     lazyeval,
-    magrittr ,
-    rms ,
+    magrittr,
+    rms,
     tidyr
 RoxygenNote: 5.0.1
 Suggests: testthat,
