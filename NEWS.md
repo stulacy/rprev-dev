@@ -4,6 +4,7 @@ Minor bug fixes and a slight change to the parameterisation of prevalence:
 
   - In prevalence, prevalence_counted, and prevalence_simulated, the user specifies the index date at which to estimate prevalence, rather than having it inferred from the data
   - max_yearly_incidence has been removed as a parameter from both prevalence and prevalence_simulated as it can be calculated from the supplied data
+  - prevalence per 100K estimates now have the confidence intervals the correct way around.
   
 # rprev 0.1.0
 
