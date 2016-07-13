@@ -2,7 +2,7 @@ Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
 Version: 0.2.0
-Date: 2016-05-16
+Date: 2016-07-08
 Authors@R: c(
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
         person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
@@ -14,18 +14,18 @@ License: GPL-2
 Depends:
     survival
 Imports:
-    abind ,
-    doParallel ,
-    dplyr ,
-    foreach ,
-    ggplot2 ,
+    abind,
+    doParallel,
+    dplyr,
+    foreach,
+    ggplot2,
     lazyeval,
-    magrittr ,
-    rms ,
+    magrittr,
+    rms,
     tidyr
 RoxygenNote: 5.0.1
 Suggests: testthat,
     knitr
-URL: https://cran.rstudio.com/web/packages/rprev/
+URL: https://cran.r-project.org/package=rprev
 VignetteBuilder: knitr
 

@@ -577,8 +577,8 @@ summary.prevalence <- function(object, ...) {
 
     result <- list(absolute.prevalence=the_estimate)
     result[est_lab] <- the_proportion
-    result[upper_lab] <- the_proportion - CI
-    result[lower_lab] <- the_proportion + CI
+    result[upper_lab] <- the_proportion + CI
+    result[lower_lab] <- the_proportion - CI
 
     lapply(result, round, precision)
 }

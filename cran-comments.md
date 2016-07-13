@@ -1,3 +1,7 @@
+## Resubmission
+
+This is a resubmission of the version submitted on 08.07.2016, which was rejected for the CRAN URL in the DESCRIPTION not being in the canonical format. This has been corrected.
+
 ## Release summary
 
 Second release of the package (0.2.0), addressing minor bug fixes and slightly modified arguments to the prevalence functions.
