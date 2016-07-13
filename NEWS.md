@@ -1,3 +1,12 @@
+# rprev 0.2.0
+
+Minor bug fixes and a slight change to the parameterisation of prevalence:
+
+  - In prevalence, prevalence_counted, and prevalence_simulated, the user specifies the index date at which to estimate prevalence, rather than having it inferred from the data
+  - max_yearly_incidence has been removed as a parameter from both prevalence and prevalence_simulated as it can be calculated from the supplied data
+  - prevalence per 100K estimates now have the confidence intervals the correct way around
+  - unit tests for prevalence functions don't rely on cached results any longer. This has helped to reduce the size of the source code from 25MB to 2MB.
+  
 # rprev 0.1.0
 
 First release of the package, working with all features necessary to provide estimates of point prevalence. Issues which we'd like to address in future releases are:

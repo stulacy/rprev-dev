@@ -1,6 +1,6 @@
 ---
 title: "rprev User Guide"
-author: "S J Lax"
+author: "S J Lax and S E Lacy"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 bibliography: bibliography.bib
@@ -12,9 +12,13 @@ vignette: >
 
 # Introduction
 
-In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient data set using `rprev`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+In this vignette we are going to demonstrate how predictions of disease prevalence are calculated from a synthetic patient data set using `rprev`. We define the term **prevalence** as *"point estimates of disease prevalence at a specific index date"*. This is typically estimated from incidence and modelled survival probability using registry data. Following the methodology of [@crouch2014determining], which has been employed in published work [@roman2016myeloid, @smith2015lymphoma], we calculate prevalence for *n* years, with *n* defined as the number of years prior to the index date for which we have included incident cases in the prevalent pool. In other words, prevalence estimates consider only those diagnosed in the preceding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. If *n* is greater than the number of registry years for which we have real patient data, then the contribution for the years preceding the registry back to *n* years is estimated using Monte Carlo simulation. This is illustrated in the diagram below:
+
+<div style="text-align:center" markdown="1">
 
 ![Estimating prevalence from registry data using rprev.](diagram.png)
+
+</div>
 
 Throughout we assume that a patient diagnosed with a particular disease remains prevalent while they are still alive. If time to death is replaced with "time to removal from prevalent pool" in the survival modelling, then estimates corresponding to this notion of prevalence can be made.
 
@@ -80,7 +84,7 @@ Another useful incidence statistic is the mean incidence rate per 100,000 within
 inc$mean
 ```
 
-Alongside the p-values from the over/under dispersion test (**reword correctly**), `rprev` provides visual tools to assess the consistency of the incidence data with an homogeneous Poisson process.
+Alongside the p-values from the over/under dispersion test, `rprev` provides visual tools to assess the consistency of the incidence data with an homogeneous Poisson process.
 
 `plot.incidence` displays a plot of the actual incidence rate as recorded in the registry, with the smooth overlaid. If incidence is an homogeneous Poisson process, both the smooth (green) and incidence process (red) should remain within the 95% confidence interval (dashed blue) and be evenly distributed about the mean (blue line). 
 
@@ -200,30 +204,31 @@ As a reminder, prevalence is estimated using incidence and survival data from *n
 
 In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* data set the last recorded incident case date and the last date of follow-up are different, as is typically the case in registry data sets where incidence and follow-up data are provided by different sources.
 
-`prevalence_counted` calculates prevalence contributions for each year of the provided registry data, specified using the `start` and `num_reg_years` arguments. The index date, automatically calculated to be the last date of the last year of registry data included by the user, is `r tail(determine_registry_years(start='2004-01-30', num_reg_years=9), n=1)` in our example. In `prevalence_counted()`, all cases alive after the index date are censored. 
-
-NB: all follow-up data for the available incident cases is still used in survival modelling.
+`prevalence_counted` calculates prevalence contributions for each year of the provided registry data to the index date - specified using the `index_date` argument. The `num_reg_years` parameter allows the user to specify the number of years of data to use in the estimation, in the example below incident cases from the first year of the registry in 2003 are discarded due to concerns about their accuracy. In `prevalence_counted()`, all cases alive after the index date are censored. 
 
 ```{r survival, error = TRUE}
 prevalence_counted(prevsim$entrydate, 
                    prevsim$eventdate, 
                    prevsim$status, 
-                   start="2004-01-30", 
-                   num_reg_years=9)
+                   index_date="2013-01-30",
+                   num_reg_years=9) 
 ```
 
 The function returns the prevalence contributions by year, in ascending order (i.e there are 44 contributions from the year between 2004-01-30 and 2005-01-30).
 
 ## Simulation
 
-Prevalence is estimated using simulation by calling `prevalence()`. `num_years_to_estimate` corresponds to the required number of years preceding the index date that contribute incident cases. If any values are larger than `num_reg_years` then the remainder of years have their incidence and survival characteristics simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `population_size` variable is used to estimate prevalence per one hundred thousand (or at any rate specified by the `proportion` argument).
+Prevalence is estimated using simulation by calling `prevalence()`. `index_date` and `num_reg_years` perform the same role as in `prevalence_counted`: specifying the date at which to estimate point prevalence, and allowing for the specification of the number of years of registry data to use. `num_years_to_estimate` corresponds to the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of complete years of registry data available before `index_date`, then the remainder of years have their incidence and survival characteristics simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `population_size` variable is used to estimate prevalence per one hundred thousand (or at any rate specified by the `proportion` argument).
+
+NB: all follow-up data for the available incident cases is still used in survival modelling.
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + 
                                    entry(entrydate) + event(eventdate),
                                prevsim, num_years_to_estimate=c(3, 5, 10), 
-                               population_size=1e6, cure=5, 
-                               start='2004-01-30', num_reg_years=9)
+                               population_size=1e6, 
+                               index_date='2013-01-30',
+                               num_reg_years=9, cure=5) 
 ```
 
 Printing the `prevalence` object returned by the function of the same name displays the point estimate of prevalence at the index date using `num_years_to_estimate` years of data:

@@ -2,41 +2,191 @@ library(rprev)
 context('Prevalence')
 data(prevsim)
 
+############################
+#
+#  SETUP
+#
+############################
+prev_oldimpl <- function(data, num_years_to_estimate, start, years, cure, boot) {
+    set.seed(17)
+    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+               data, num_years_to_estimate, population_size=1e6,
+               start=start, num_reg_years=years,
+               cure=cure, N_boot=boot)
+}
+
+prev_newimpl <- function(data, num_years_to_estimate, index, years, cure, boot) {
+    set.seed(17)
+    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+               data, num_years_to_estimate, population_size=1e6,
+               index_date=index, num_reg_years=years,
+               cure=cure, N_boot=boot)
+}
+
+prev_thousandoldimpl <- function(data, num_years_to_estimate, start, years, cure, boot) {
+    set.seed(17)
+    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+               data, num_years_to_estimate, population_size=1e6,
+               start=start, num_reg_years=years,
+               cure=cure, N_boot=boot)
+}
+
+prev_thousandnewimpl <- function(data, num_years_to_estimate, index, years, cure, boot) {
+    set.seed(17)
+    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+               data, num_years_to_estimate, population_size=1e6,
+               index_date=index, num_reg_years=years,
+               cure=cure, N_boot=boot)
+}
+
 test_that("prevalence returns same values as before", {
-    set.seed(3)
-    i <- 1
-    expect_ref <- function(data, num_years_to_estimate, start, years, cure, boot) {
-        fn <- paste('cache/prevalence/prevalence_', i, '.rds', sep='')
-        expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
-                                             data, num_years_to_estimate, population_size=1e6,
-                                             start=start, num_reg_years=years,
-                                             cure=cure, N_boot=boot), file=fn)
-        i <<- i + 1
-    }
-    expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=10)
-    expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=20)
-    expect_ref(prevsim, 10, '2005-05-23', 4, cure=5, boot=10)
-    expect_ref(prevsim, 10, '2004-01-01', 9, cure=3, boot=10)
-    expect_ref(prevsim, 4, '2004-01-01', 3, cure=5, boot=10)
-    expect_ref(prevsim, 4, '2004-01-01', 3, cure=1, boot=10)
+    p1 <- prev_oldimpl(prevsim, 10, '2004-01-01', 9, cure=5, boot=10)
+    p2 <- prev_oldimpl(prevsim, 10, '2004-01-01', 9, cure=5, boot=20)
+    p3 <- prev_oldimpl(prevsim, 10, '2005-05-23', 4, cure=5, boot=10)
+    p4 <- prev_oldimpl(prevsim, 10, '2004-01-01', 9, cure=3, boot=10)
+    p5 <- prev_oldimpl(prevsim, 4, '2004-01-01', 3, cure=5, boot=10)
+    p6 <- prev_oldimpl(prevsim, 4, '2004-01-01', 3, cure=1, boot=10)
+
+    # Estimates
+    expect_equal(p1$estimates$y10$absolute.prevalence, 515.4)
+    expect_equal(p2$estimates$y10$absolute.prevalence, 517.45)
+    expect_equal(p3$estimates$y10$absolute.prevalence, 463)
+    expect_equal(p4$estimates$y10$absolute.prevalence, 522.6)
+    expect_equal(p5$estimates$y4$absolute.prevalence, 262.4)
+    expect_equal(p6$estimates$y4$absolute.prevalence, 274.9)
+
+    # CIs
+    expect_equal(p1$estimates$y10$per100K.upper, 55.98)
+    expect_equal(p1$estimates$y10$per100K.lower, 47.1)
+    expect_equal(p2$estimates$y10$per100K.upper, 56.11)
+    expect_equal(p2$estimates$y10$per100K.lower, 47.38)
+    expect_equal(p3$estimates$y10$per100K.upper, 51.03)
+    expect_equal(p3$estimates$y10$per100K.lower, 41.57)
+    expect_equal(p4$estimates$y10$per100K.upper, 56.82)
+    expect_equal(p4$estimates$y10$per100K.lower, 47.7)
+    expect_equal(p5$estimates$y4$per100K.upper, 29.58)
+    expect_equal(p5$estimates$y4$per100K.lower, 22.9)
+    expect_equal(p6$estimates$y4$per100K.upper, 30.98)
+    expect_equal(p6$estimates$y4$per100K.lower, 24)
+
+    # Dimensions of posterior
+    expect_equal(dim(p1$simulated$posterior_age), c(20, 90, 10))
+    expect_equal(dim(p2$simulated$posterior_age), c(40, 90, 10))
+    expect_equal(dim(p3$simulated$posterior_age), c(20, 86, 10))
+    expect_equal(dim(p4$simulated$posterior_age), c(20, 90, 10))
+    expect_equal(dim(p5$simulated$posterior_age), c(20, 90, 4))
+    expect_equal(dim(p6$simulated$posterior_age), c(20, 90, 4))
+
+    # Num of NA in posterior
+    expect_equal(sum(is.na(p1$simulated$posterior_age)), 12908)
+    expect_equal(sum(is.na(p2$simulated$posterior_age)), 25700)
+    expect_equal(sum(is.na(p3$simulated$posterior_age)), 12694)
+    expect_equal(sum(is.na(p4$simulated$posterior_age)), 12539)
+    expect_equal(sum(is.na(p5$simulated$posterior_age)), 4638)
+    expect_equal(sum(is.na(p6$simulated$posterior_age)), 4349)
+
+})
+
+test_that("prevalence returns same values as before with new parameterisation", {
+    p1 <- prev_newimpl(prevsim, 10, '2013-01-01', 9, cure=5, boot=10)
+    p2 <- prev_newimpl(prevsim, 10, '2013-01-01', 9, cure=5, boot=20)
+    p3 <- prev_newimpl(prevsim, 10, '2009-05-23', 4, cure=5, boot=10)
+    p4 <- prev_newimpl(prevsim, 10, '2013-01-01', 9, cure=3, boot=10)
+    p5 <- prev_newimpl(prevsim, 4, '2007-01-01', 3, cure=5, boot=10)
+    p6 <- prev_newimpl(prevsim, 4, '2007-01-01', 3, cure=1, boot=10)
+
+    # Estimates
+    expect_equal(p1$estimates$y10$absolute.prevalence, 515.4)
+    expect_equal(p2$estimates$y10$absolute.prevalence, 517.45)
+    expect_equal(p3$estimates$y10$absolute.prevalence, 463)
+    expect_equal(p4$estimates$y10$absolute.prevalence, 522.6)
+    expect_equal(p5$estimates$y4$absolute.prevalence, 262.4)
+    expect_equal(p6$estimates$y4$absolute.prevalence, 274.9)
+
+    # CIs
+    expect_equal(p1$estimates$y10$per100K.upper, 55.98)
+    expect_equal(p1$estimates$y10$per100K.lower, 47.1)
+    expect_equal(p2$estimates$y10$per100K.upper, 56.11)
+    expect_equal(p2$estimates$y10$per100K.lower, 47.38)
+    expect_equal(p3$estimates$y10$per100K.upper, 51.03)
+    expect_equal(p3$estimates$y10$per100K.lower, 41.57)
+    expect_equal(p4$estimates$y10$per100K.upper, 56.82)
+    expect_equal(p4$estimates$y10$per100K.lower, 47.7)
+    expect_equal(p5$estimates$y4$per100K.upper, 29.58)
+    expect_equal(p5$estimates$y4$per100K.lower, 22.9)
+    expect_equal(p6$estimates$y4$per100K.upper, 30.98)
+    expect_equal(p6$estimates$y4$per100K.lower, 24)
+
+    # Dimensions of posterior
+    expect_equal(dim(p1$simulated$posterior_age), c(20, 90, 10))
+    expect_equal(dim(p2$simulated$posterior_age), c(40, 90, 10))
+    expect_equal(dim(p3$simulated$posterior_age), c(20, 86, 10))
+    expect_equal(dim(p4$simulated$posterior_age), c(20, 90, 10))
+    expect_equal(dim(p5$simulated$posterior_age), c(20, 90, 4))
+    expect_equal(dim(p6$simulated$posterior_age), c(20, 90, 4))
+
+    # Num of NA in posterior
+    expect_equal(sum(is.na(p1$simulated$posterior_age)), 12908)
+    expect_equal(sum(is.na(p2$simulated$posterior_age)), 25700)
+    expect_equal(sum(is.na(p3$simulated$posterior_age)), 12694)
+    expect_equal(sum(is.na(p4$simulated$posterior_age)), 12539)
+    expect_equal(sum(is.na(p5$simulated$posterior_age)), 4638)
+    expect_equal(sum(is.na(p6$simulated$posterior_age)), 4349)
+
 })
 
 test_that("prevalence with a thousand bootstraps returns same values as before", {
     skip_on_cran()
-    skip("too slow")
-    set.seed(3)
-    i <- 1
-    expect_ref <- function(data, num_years_to_estimate, start, years, cure, boot) {
-        fn <- paste('cache/prevalence/prevalence_thousand_', i, '.rds', sep='')
-        expect_equal_to_reference(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
-                                             data, num_years_to_estimate, population_size=1e6,
-                                             start=start, num_reg_years=years,
-                                             cure=cure, N_boot=boot), file=fn)
-        i <<- i + 1
-    }
-    expect_ref(prevsim, 10, '2004-01-01', 9, cure=5, boot=1000)
-    expect_ref(prevsim, 10, '2006-09-03', 5, cure=5, boot=1000)
+    skip("Too slow")
+
+    p1 <- prev_thousandoldimpl(prevsim, 10, '2004-01-01', 9, cure=5, boot=1000)
+    p2 <- prev_thousandoldimpl(prevsim, 10, '2006-09-03', 5, cure=5, boot=1000)
+
+    # Estimates
+    expect_equal(p1$estimates$y10$absolute.prevalence, 514.66)
+    expect_equal(p2$estimates$y10$absolute.prevalence, 482.6)
+
+    # CIs
+    expect_equal(p1$estimates$y10$per100K.upper, 55.92)
+    expect_equal(p1$estimates$y10$per100K.lower, 47.01)
+    expect_equal(p2$estimates$y10$per100K.upper, 52.89)
+    expect_equal(p2$estimates$y10$per100K.lower, 43.63)
+
+    # Dimensions of posterior
+    expect_equal(dim(p1$simulated$posterior_age), c(2000, 90, 10))
+    expect_equal(dim(p2$simulated$posterior_age), c(2000, 84, 10))
+
+    # Num of NA in posterior
+    expect_equal(sum(is.na(p1$simulated$posterior_age)), 1292559)
+    expect_equal(sum(is.na(p2$simulated$posterior_age)), 1202690)
 })
+
+test_that("prevalence with a thousand bootstraps returns same values as before with new parameterisation", {
+    skip_on_cran()
+    skip("Too slow")
+
+    p1 <- prev_thousandnewimpl(prevsim, 10, '2013-01-01', 9, cure=5, boot=1000)
+    p2 <- prev_thousandnewimpl(prevsim, 10, '2011-09-03', 5, cure=5, boot=1000)
+
+    # Estimates
+    expect_equal(p1$estimates$y10$absolute.prevalence, 514.66)
+    expect_equal(p2$estimates$y10$absolute.prevalence, 482.6)
+
+    # CIs
+    expect_equal(p1$estimates$y10$per100K.upper, 55.92)
+    expect_equal(p1$estimates$y10$per100K.lower, 47.01)
+    expect_equal(p2$estimates$y10$per100K.upper, 52.89)
+    expect_equal(p2$estimates$y10$per100K.lower, 43.63)
+
+    # Dimensions of posterior
+    expect_equal(dim(p1$simulated$posterior_age), c(2000, 90, 10))
+    expect_equal(dim(p2$simulated$posterior_age), c(2000, 84, 10))
+
+    # Num of NA in posterior
+    expect_equal(sum(is.na(p1$simulated$posterior_age)), 1292559)
+    expect_equal(sum(is.na(p2$simulated$posterior_age)), 1202690)
+})
+
 
 test_that("Error is raised when passing a population data frame not set up correctly", {
     expect_poperror <- function(popdata, msg) {
@@ -126,7 +276,7 @@ test_that("Prevalence messages the user when the number of registry years are gr
 test_that("prevalence_counted results in the same values as before", {
     set.seed(3)
     i <- 1
-    expect_ref <- function(entry, event, status, start, years=NULL, index=NULL) {
+    expect_ref <- function(entry, event, status, start, years=NULL) {
         fn <- paste('cache/prevalence/countedprevalence_', i, '.rds', sep='')
         expect_equal_to_reference(prevalence_counted(entry, event, status, start=start,
                                                      num_reg_years=years), file=fn)
@@ -134,4 +284,19 @@ test_that("prevalence_counted results in the same values as before", {
     }
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05', 5)
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2004-03-05')
+})
+
+test_that("prevalence_counted results in the same values as before - NEW PARAMETERISATION", {
+    set.seed(3)
+    i <- 1
+    expect_ref <- function(entry, event, status, index, years=NULL) {
+        fn <- paste('cache/prevalence/countedprevalence_newparam_', i, '.rds', sep='')
+        expect_equal_to_reference(prevalence_counted(entry, event, status, index_date=index,
+                                                     num_reg_years=years), file=fn)
+        i <<- i + 1
+    }
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2009-03-05', 6)
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2011-09-01', 7)
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2009-09-01')
+    expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2011-09-01')
 })

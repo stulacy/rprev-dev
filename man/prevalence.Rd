@@ -4,10 +4,10 @@
 \alias{prevalence}
 \title{Estimate point prevalence at an index date.}
 \usage{
-prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
-  num_reg_years = NULL, cure = 10, N_boot = 1000,
-  max_yearly_incidence = 500, level = 0.95, precision = 2,
-  proportion = 1e+05, population_data = NULL, n_cores = 1)
+prevalence(form, data, num_years_to_estimate, population_size,
+  index_date = NULL, num_reg_years = NULL, cure = 10, N_boot = 1000,
+  level = 0.95, precision = 2, proportion = 1e+05,
+  population_data = NULL, n_cores = 1, start = NULL)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv}
@@ -31,14 +31,15 @@ prevalence(form, data, num_years_to_estimate, population_size, start = NULL,
 
 \item{num_years_to_estimate}{Number of years of data to consider when
 estimating point prevalence; multiple values can be specified in a vector.
-If any values are greater than \code{num_registry_years}, incident cases
+If any values are greater than the number of years of registry data
+available before \code{index_date}, incident cases
 for the difference will be simulated.}
 
 \item{population_size}{Integer corresponding to the size of the population at
 risk.}
 
-\item{start}{Date from which incident cases are included in the format
-YYYY-MM-DD. Defaults to the earliest entry date.}
+\item{index_date}{The date at which to estimate point prevalence. Defaults to the
+latest registry entry date.}
 
 \item{num_reg_years}{The number of years of the registry for which incidence
 is to be calculated. Defaults to using all available complete years. Note
@@ -51,9 +52,6 @@ years). A patient who has survived beyond the cure time has a probability
 of surviving derived from the mortality rate of the general population.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
-
-\item{max_yearly_incidence}{Integer larger than the expected yearly incidence
-to allow for variation in incidence between years.}
 
 \item{level}{Double representing the desired confidence interval width.}
 
@@ -70,6 +68,12 @@ for custom datasets.}
 \item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
 survival models. Defaults to 1; multi-core functionality is provided by the
 \code{doParallel} package.}
+
+\item{start}{\strong{Deprecated: Use \code{index_date} instead and specify the
+number of years of registry data to use with \code{num_reg_years}.}
+Date from which incident cases are included in the format YYYY-MM-DD. Defaults
+to the earliest entry date. This value is now inferred by counting back
+\code{num_reg_years} years of registry data from the \code{index_date}. and}
 }
 \value{
 An S3 object of class \code{prevalence} with the following
@@ -120,8 +124,8 @@ data(prevsim)
 \dontrun{
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-           start = "2005-09-01",
-           num_reg_years = 8, cure = 5)
+           index_date = '2013-09-01', num_reg_years = 8,
+           cure = 5)
 
 prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
            data=prevsim, num_years_to_estimate = 5, population_size=1e6)
