@@ -26,6 +26,6 @@ Imports:
 RoxygenNote: 5.0.1
 Suggests: testthat,
     knitr
-URL: https://cran.r-project.org/web/packages/rprev/
+URL: https://cran.r-project.org/package=rprev
 VignetteBuilder: knitr
 
