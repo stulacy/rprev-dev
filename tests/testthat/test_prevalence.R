@@ -69,22 +69,12 @@ test_that("prevalence returns same values as before", {
     expect_equal(p6$estimates$y4$per100K.upper, 30.98)
     expect_equal(p6$estimates$y4$per100K.lower, 24)
 
-    # Dimensions of posterior
-    expect_equal(dim(p1$simulated$posterior_age), c(20, 90, 10))
-    expect_equal(dim(p2$simulated$posterior_age), c(40, 90, 10))
-    expect_equal(dim(p3$simulated$posterior_age), c(20, 86, 10))
-    expect_equal(dim(p4$simulated$posterior_age), c(20, 90, 10))
-    expect_equal(dim(p5$simulated$posterior_age), c(20, 90, 4))
-    expect_equal(dim(p6$simulated$posterior_age), c(20, 90, 4))
-
-    # Num of NA in posterior
-    expect_equal(sum(is.na(p1$simulated$posterior_age)), 12908)
-    expect_equal(sum(is.na(p2$simulated$posterior_age)), 25700)
-    expect_equal(sum(is.na(p3$simulated$posterior_age)), 12694)
-    expect_equal(sum(is.na(p4$simulated$posterior_age)), 12539)
-    expect_equal(sum(is.na(p5$simulated$posterior_age)), 4638)
-    expect_equal(sum(is.na(p6$simulated$posterior_age)), 4349)
-
+    # Number of entries in posterior
+    expect_equal(length(p1$simulated$posterior_age[[1]][[1]][[1]]), 42)
+    expect_equal(length(p2$simulated$posterior_age[[2]][[1]][[1]]), 53)
+    expect_equal(length(p3$simulated$posterior_age[[1]][[5]][[3]]), 17)
+    expect_equal(length(p4$simulated$posterior_age[[2]][[4]][[8]]), 19)
+    expect_equal(length(p5$simulated$posterior_age[[1]][[4]][[10]]), 33)
 })
 
 test_that("prevalence returns same values as before with new parameterisation", {
@@ -118,21 +108,11 @@ test_that("prevalence returns same values as before with new parameterisation", 
     expect_equal(p6$estimates$y4$per100K.lower, 24)
 
     # Dimensions of posterior
-    expect_equal(dim(p1$simulated$posterior_age), c(20, 90, 10))
-    expect_equal(dim(p2$simulated$posterior_age), c(40, 90, 10))
-    expect_equal(dim(p3$simulated$posterior_age), c(20, 86, 10))
-    expect_equal(dim(p4$simulated$posterior_age), c(20, 90, 10))
-    expect_equal(dim(p5$simulated$posterior_age), c(20, 90, 4))
-    expect_equal(dim(p6$simulated$posterior_age), c(20, 90, 4))
-
-    # Num of NA in posterior
-    expect_equal(sum(is.na(p1$simulated$posterior_age)), 12908)
-    expect_equal(sum(is.na(p2$simulated$posterior_age)), 25700)
-    expect_equal(sum(is.na(p3$simulated$posterior_age)), 12694)
-    expect_equal(sum(is.na(p4$simulated$posterior_age)), 12539)
-    expect_equal(sum(is.na(p5$simulated$posterior_age)), 4638)
-    expect_equal(sum(is.na(p6$simulated$posterior_age)), 4349)
-
+    expect_equal(length(p1$simulated$posterior_age[[1]][[1]][[1]]), 42)
+    expect_equal(length(p2$simulated$posterior_age[[2]][[1]][[1]]), 53)
+    expect_equal(length(p3$simulated$posterior_age[[1]][[5]][[10]]), 23)
+    expect_equal(length(p4$simulated$posterior_age[[2]][[3]][[9]]), 33)
+    expect_equal(length(p5$simulated$posterior_age[[1]][[4]][[10]]), 33)
 })
 
 test_that("prevalence with a thousand bootstraps returns same values as before", {
@@ -300,3 +280,5 @@ test_that("prevalence_counted results in the same values as before - NEW PARAMET
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2009-09-01')
     expect_ref(prevsim$entrydate, prevsim$eventdate, prevsim$status, '2011-09-01')
 })
+
+
