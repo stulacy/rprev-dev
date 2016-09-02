@@ -1,15 +1,11 @@
-## Resubmission
-
-This is a resubmission of the version submitted on 08.07.2016, which was rejected for the CRAN URL in the DESCRIPTION not being in the canonical format. This has been corrected.
-
 ## Release summary
 
-Second release of the package (0.2.0), addressing minor bug fixes and slightly modified arguments to the prevalence functions.
+Third release of the package (0.2.1), primarily addressing a bug fix.
 
 ## Test environments
 
-* local Windows 8.1 Enterprise install, R 3.3.0
-* local Fedora 22 install, R 3.3.0
+* local Windows 8.1 Enterprise install, R 3.3.1
+* local Fedora 22 install, R 3.3.1
 
 ## R CMD check results
 
