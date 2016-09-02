@@ -1,3 +1,7 @@
+## Resubmission
+
+This is a resubmission due to identifying a bug in the code (despite R CMD CHECK passing) since submitting version 0.2.1 to CRAN but before receiving a response.
+
 ## Release summary
 
 Third release of the package (0.2.1), primarily addressing a bug fix.
@@ -9,7 +13,7 @@ Third release of the package (0.2.1), primarily addressing a bug fix.
 
 ## R CMD check results
 
-There were no ERRORS or WARNINGs. In the testing environment there were no NOTEs, although on submission to CRAN there will be a single NOTE since it is the first submission.
+There were no ERRORS or WARNINGs. In the testing environment there were no NOTEs.
 
 ## Downstream dependencies
 
