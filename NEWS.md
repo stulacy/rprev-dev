@@ -1,3 +1,7 @@
+# rprev 0.2.1
+
+The posterior age distribution, returned from `prevalence` as in the `simulated` object, is now stored in the format of a nested list rather than a matrix as before. The first dimension of the list corresponds to each sex (if applicable), the next indexing the number of years of simulated cases, and the final corresponds to the bootstrap samples. The final level comprises a vector holding the ages of the simulated cases which are still contributing to prevalence at the index date from the corresponding sex, year, and bootstrap sample number.
+
 # rprev 0.2.0
 
 Minor bug fixes and a slight change to the parameterisation of prevalence:
