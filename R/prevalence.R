@@ -345,7 +345,6 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #'
 #' @importFrom utils data
 #' @import stats
-#' @importFrom abind abind
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
@@ -407,13 +406,11 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
         max(raw_incidence(as.character(sub_data$entry), start, num_reg_years))
     })
 
-    max_yearly_incidence <- round(1.5 * max(subgroup_max_incidence))
-
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(df$sex), function(x) {
         sub_data <- df[df$sex==x, ]
         .prevalence_subgroup(sub_data$age, as.character(sub_data$entry), start, wb_boot, num_reg_years,
-                             surv_functions[[x]], cure_days, as.numeric(x), max_yearly_incidence, num_years_to_estimate,
+                             surv_functions[[x]], cure_days, as.numeric(x), num_years_to_estimate,
                              include_sex=length(levels(df$sex)) == 2)
     })
 
@@ -422,7 +419,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
         # This is ugly but will work provided there aren't more than 2 sexs specified for, which is guarded
         # against anyway
         by_year_samples <- results[[1]]$cases + results[[2]]$cases
-        post_age_dist <- abind::abind(results[[1]]$post, results[[2]]$post, along=1)
+        post_age_dist <- lapply(results, function(x) x$post)
         fix_rate <- rev(results[[1]]$fix + results[[2]]$fix)
     } else {
         by_year_samples <- results[[1]]$cases
@@ -444,36 +441,35 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 
 .prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
-                                 cure_days, sex, max_year_inc, nprevyears, include_sex) {
+                                 cure_days, sex, nprevyears, include_sex) {
     fix_rate_rev <- rev(raw_incidence(entry, start, num_reg_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence
     yearly_rates = lapply(1:nprevyears, .yearly_prevalence, wboot, mean_rate, nregyears, fix_rate_rev,
-                          prior_age_d, survfunc, cure_days, sex, max_year_inc, include_sex)
+                          prior_age_d, survfunc, cure_days, sex, include_sex)
     # Unflatten by_year samples
     by_year_samples = do.call(rbind, lapply(yearly_rates, function(x) x$cases))
-    post_age_dist = abind::abind(lapply(yearly_rates, function(x) x$post), along=3)
+    post_age_dist = lapply(yearly_rates, function(x) x$post)
     return(list(cases=by_year_samples, post=post_age_dist, fix=fix_rate_rev))
 }
 
 
-.yearly_prevalence <- function(year, bootwb, meanrate, nregyears, fixrate, prior, dailysurv, cure_days, sex, max_inc, include_sex) {
+.yearly_prevalence <- function(year, bootwb, meanrate, nregyears, fixrate, prior, dailysurv, cure_days, sex, include_sex) {
     # Run the bootstrapping to obtain posterior distributions and # cases for this year
     post_results = apply(bootwb, 1, .post_age_bs, meanrate, nregyears, year-1, fixrate[year], prior, dailysurv,
-                         cure_days, sex, max_inc, inreg=year<=nregyears, include_sex=include_sex)
+                         cure_days, sex, inreg=year<=nregyears, include_sex=include_sex)
 
     # Post_age_bs returns a list with 'cases' and 'post' values for the number of cases and posterior age distribution
     # Need to flatten this into single array for boot_out and 2D array for post_age_dist
     bs_cases <- vapply(post_results, function(x) x$cases, integer(1))
-    bs_post <- do.call(rbind, lapply(post_results, function(x) x$post))
+    bs_post <- lapply(post_results, function(x) x$post)
     return(list(cases=bs_cases, post=bs_post))
 }
 
 
 .post_age_bs <- function(coefs_bs, meanrate, nregyears, year, fixrate, prior, daily_surv, cure_days,
-                         sex, maxyearinc, inreg=TRUE, include_sex=TRUE) {
-    post_age_dist <- rep(NA, maxyearinc)
+                         sex, inreg=TRUE, include_sex=TRUE) {
     if (inreg){
         rate <- fixrate
     } else{
@@ -502,7 +498,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     }
 
     if (num_alive > 0)
-        post_age_dist[1:num_alive] <- time_since_diag[!is_dead]/365 + boot_age_dist[!is_dead]
+        post_age_dist <- time_since_diag[!is_dead]/365 + boot_age_dist[!is_dead]
 
     return(list(cases=num_alive, post=post_age_dist))
 }

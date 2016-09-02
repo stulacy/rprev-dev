@@ -295,7 +295,7 @@ hist(prevsim$age[prevsim$entrydate >= min(registry_years) &
                      prevsim$entrydate < max(registry_years)], 
      col=rgb(1,0,0, alpha=0.5), xlim=c(0,100), ylim=c(0,0.045), 
      main = "", xlab = "age", prob = TRUE)
-hist(prevalence_total$simulated$posterior_age, 
+hist(unlist(prevalence_total$simulated$posterior_age),
      col=rgb(0,1,0, alpha=0.5), prob = TRUE, add=T)
 legend("topleft", legend = c("Incident", "Prevalent"), bty = "n", lty = 1, 
        col = c(rgb(1,0,0, alpha=0.5),
