@@ -1,10 +1,6 @@
-## Resubmission
-
-This is a resubmission due to identifying a bug in the code (despite R CMD CHECK passing) since submitting version 0.2.1 to CRAN but before receiving a response.
-
 ## Release summary
 
-Third release of the package (0.2.1), primarily addressing a bug fix.
+This is a quick resubmission due to identifying a bug in the code (despite R CMD CHECK passing) since submitting version 0.2.1 to CRAN but before receiving a response.
 
 ## Test environments
 
