@@ -345,7 +345,6 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #'
 #' @importFrom utils data
 #' @import stats
-#' @importFrom abind abind
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
