@@ -497,8 +497,11 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
         num_alive <- as.integer(0)
     }
 
-    if (num_alive > 0)
+    if (num_alive > 0) {
         post_age_dist <- time_since_diag[!is_dead]/365 + boot_age_dist[!is_dead]
+    } else {
+        post_age_dist <- numeric()
+    }
 
     return(list(cases=num_alive, post=post_age_dist))
 }
