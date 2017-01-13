@@ -167,21 +167,6 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 
-    if (num_reg_years_new > max(num_years_to_estimate)) {
-        msg <- paste("More registry years provided than prevalence is to be estimated from. Prevalence will be predicted using",
-                     num_years_to_estimate, "years using survival models built on", num_reg_years_new, "years of data.")
-        message(msg)
-    }
-
-    # Calculate simulated prevalence for 1:max(num_years_to_estimate)
-    prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
-                                     max(num_years_to_estimate), index_date,
-                                     num_reg_years_new, cure=cure, N_boot=N_boot,
-                                     population_data=population_data, n_cores=n_cores)
-    inc_rate <- prev_sim$known_inc_rate
-    prev_sim$known_inc_rate <- NULL
-
-
     # Calculate observed prevalence for 1:num_registry_years
     # Remove calls to num_registry_years and start when update
     prev_count <- prevalence_counted(data[, entry_var],
@@ -189,6 +174,25 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                                      survobj[, 2],
                                      index_date=index_date,
                                      num_reg_years=num_reg_years_new)
+
+
+    if (num_reg_years_new > max(num_years_to_estimate)) {
+        msg <- paste("More years of registry data provided than prevalence is to be estimated from.",
+                     "Prevalence will be counted from the available registry data with no simulation required.")
+        message(msg)
+        prev_sim <- NA
+        start <- as.character(as.Date(index_date) - num_reg_years * 365.25)
+        inc_rate <- rev(raw_incidence(data[, entry_var], start, num_reg_years=num_reg_years_new))
+    } else {
+        # Calculate simulated prevalence for 1:max(num_years_to_estimate)
+        prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
+                                         max(num_years_to_estimate), index_date,
+                                         num_reg_years_new, cure=cure, N_boot=N_boot,
+                                         population_data=population_data, n_cores=n_cores)
+        inc_rate <- prev_sim$known_inc_rate
+        prev_sim$known_inc_rate <- NULL
+    }
+
 
     # Calculate CIs and iterate for every year of interest
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
@@ -519,6 +523,10 @@ print.prevalence <- function(x, ...) {
 
 #' @export
 summary.prevalence <- function(object, ...) {
+    cat("Prevalence \n~~~~~~~~~~\n")
+    print(object)
+    cat("\n")
+
     cat("Registry Data\n~~~~~~~~~~~~~\n")
     cat("Index date:", object$index_date, "\n")
     cat("Start date:", object$start_date, "\n")
@@ -528,24 +536,33 @@ summary.prevalence <- function(object, ...) {
     cat("Counted prevalent cases:\n")
     cat(object$counted)
 
-    cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
-    cat("Iterations:", object$simulated$nbootstraps, "\n")
-    cat("Posterior age distribution summary:\n")
-    print(summary(object$simulated$posterior_age))
-    cat("Average simulated prevalent cases per year:\n")
-    cat(round(rev(object$simulated$mean_yearly_contributions)), "\n")
-    cat("P-value from chi-square test:", object$pval)
+    if (!all(is.na(object$simulated))) {
+        cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
+        cat("Iterations:", object$simulated$nbootstraps, "\n")
+        cat("Posterior age distribution summary:\n")
+        print(summary(unlist(object$simulated$posterior_age)))
+        cat("Average simulated prevalent cases per year:\n")
+        cat(round(rev(object$simulated$mean_yearly_contributions)), "\n")
+        cat("P-value from chi-square test:", object$pval)
+    }
 }
 
 
 .point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3,
                             level=0.95, precision=2) {
 
+    if (all(is.na(sim))) {
+        prev_estimate <- rev(obs)
+    } else {
+        prev_estimate <- sim$mean_yearly_contributions
+        prev_estimate[1:num_reg_years] <- rev(obs)
+    }
+
     # Replace simulated values for observed for the years we have simulated data
-    sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
+    #sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
     z_level <- qnorm((1+level)/2)
 
-    the_estimate <- sum(sim$mean_yearly_contributions[1:years])
+    the_estimate <- sum(prev_estimate[1:years])
     raw_proportion <- the_estimate / population_size
     the_proportion <- proportion * raw_proportion
 
@@ -554,7 +571,7 @@ summary.prevalence <- function(object, ...) {
     } else {
         the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=FALSE]
         by_sample_estimate <- colSums(the_samples)
-        the_estimate_n <- sum(sim$mean_yearly_contributions[1:num_reg_years])
+        the_estimate_n <- sum(prev_estimate[1:num_reg_years])
         raw_proportion_n <- the_estimate_n / population_size
         std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
         std_err_2 <- sd(by_sample_estimate)/population_size
