@@ -156,8 +156,7 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @param x An \code{incidence} object.
 #' @param level The desired confidence interval width.
 #' @param ... Arguments passed to \code{plot}.
-#' @return None, plots a side effect of incidence rate, confidence interval and
-#'   smoothed incidence function.
+#' @return An object of class \code{ggplot}.
 #' @examples
 #' data(prevsim)
 #'
@@ -211,7 +210,7 @@ plot.incidence <- function(x, level=0.95, ...){
                                          values=c('r'='red', 'g'='green', 'b'='#0080ff'),
                                          breaks=c('r', 'g', 'b'),
                                          labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
-    print(p)
+    p
 }
 
 #' Visualise incidence Poisson assumption.
@@ -230,9 +229,9 @@ plot.incidence <- function(x, level=0.95, ...){
 #' @param object An \code{incidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.
 #' @param level The desired confidence interval width.
-#' @return Plot of the smoothed incidence function and corresponding deviations.
 #' @param samples_per_bin Number of samples per bin.
 #' @param max_bins Maximum number of bins.
+#' @return An object of class \code{ggplot}.
 #' @examples
 #' data(prevsim)
 #'
@@ -285,7 +284,7 @@ plot.incidence <- function(x, level=0.95, ...){
                            ggplot2::aes_string(x='x', y='y'),
                            colour='orange', size=1) +
         ggplot2::labs(x="Days", y="Deviation from smooth")
-    print(p)
+    p
 }
 
 #' @export
