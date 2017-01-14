@@ -17,7 +17,7 @@
 #' @param level The desired confidence interval width.
 #' @return An S3 object of class \code{incidence} with the following attributes:
 #'   \item{raw_incidence}{Vector of absolute incidence values for each included
-#'   year of the registry, as generated using \code{\link{raw_incidence}}.}
+#'   year of the registry, as generated using \code{\link{yearly_incidence}}.}
 #'   \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
 #'   the earliest date of inclusion in the registry, ordered shortest to
 #'   longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
@@ -45,7 +45,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     if (is.null(num_reg_years))
         num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
 
-    reg_years <- determine_registry_years(start, num_reg_years)
+    reg_years <- determine_yearly_endpoints(start, num_reg_years)
     index_date <- reg_years[length(reg_years)]
 
     entry_trunc <- entry[entry >= start & entry < index_date]
@@ -53,7 +53,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     # Slightly confused that the following are not all integers:
     diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
     smo <- smooth.spline(diags, seq(length(diags)), df=df)
-    raw_inc <- raw_incidence(entry, start, num_reg_years)
+    raw_inc <- yearly_incidence(entry, start_date=start, years=num_reg_years)
 
     object <- list(raw_incidence=raw_inc,
                    ordered_diagnoses=diags,
@@ -67,6 +67,8 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     object
 }
 
+#' DEPRECATED: Please use \code{\link{yearly_incidence}} instead.
+#'
 #' Disease incidence.
 #'
 #' Calculates yearly incidence for the available registry data.
@@ -84,17 +86,55 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
 #'
 #' @export
 #' @family incidence functions
+#' @seealso \link{yearly_incidence}
 raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
+    .Deprecated("yearly_incidence")
+    yearly_incidence(entry, start_date=start, years=num_reg_years)
 
-    if (is.null(start))
-        start <- min(entry)
+}
 
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+#' Disease incidence.
+#'
+#' Calculates yearly incidence for the available registry data.
+#'
+#' @inheritParams incidence
+#' @return Vector of length num_reg_years of integers, representing the number
+#'   of absolute incidence values for each included year of the registry.
+#' @examples
+#' data(prevsim)
+#'
+#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", years=8)
+#' yearly_incidence(prevsim$entrydate)
+#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", years=5)
+#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
+#'
+#' @export
+#' @family incidence functions
+yearly_incidence <- function(entry, start_date=NULL, years=NULL, end_date=NULL) {
 
-    registry_years <- determine_registry_years(start, num_reg_years)
-
-    per_year <- vapply(seq(num_reg_years),
+    if (!is.null(start_date)) { # Having the start date takes priority
+        if (is.null(years)) {
+            if (is.null(end_date)) {
+                end_date <- max(entry)
+            }
+            years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+        }
+        registry_years <- determine_yearly_endpoints(start_date, years)
+    } else {
+        if (!is.null(end_date)) { # Having end date takes second priority
+            if (is.null(years)) {
+                years <- floor(as.numeric(difftime(end_date, min(entry)) / 365.25))
+            }
+            registry_years <- determine_yearly_endpoints(end_date, years, direction='backwards')
+        } else { # No start date, no end date
+            start_date <- min(entry)
+            if (is.null(years)) {
+                years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+            }
+            registry_years <- determine_yearly_endpoints(start_date, years)
+        }
+    }
+    per_year <- vapply(seq(years),
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
                        integer(1))
 
@@ -109,7 +149,7 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #'
 #' @inheritParams incidence
 #' @param raw_inc Vector of incidence values by year, as returned by
-#'   \code{\link{raw_incidence}}.
+#'   \code{\link{yearly_incidence}}.
 #' @return A list with the following values:
 #'
 #'   \item{absolute}{Overall incidence for the period of interest as a single
@@ -122,10 +162,10 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' @examples
 #' data(prevsim)
 #'
-#' rawinc <- raw_incidence(prevsim$entrydate)
+#' rawinc <- yearly_incidence(prevsim$entrydate)
 #' mean_incidence_rate(rawinc, population_size=3.5e6)
 #'
-#' rawinc2 <- raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
+#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", years=5)
 #' mean_incidence_rate(rawinc2, population_size=3.5e6)
 #'
 #' @export
