@@ -53,7 +53,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     # Slightly confused that the following are not all integers:
     diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
     smo <- smooth.spline(diags, seq(length(diags)), df=df)
-    raw_inc <- yearly_incidence(entry, start_date=start, years=num_reg_years)
+    raw_inc <- yearly_incidence(entry, start_date=start, num_years=num_reg_years)
 
     object <- list(raw_incidence=raw_inc,
                    ordered_diagnoses=diags,
@@ -89,7 +89,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
 #' @seealso \link{yearly_incidence}
 raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
     .Deprecated("yearly_incidence")
-    yearly_incidence(entry, start_date=start, years=num_reg_years)
+    yearly_incidence(entry, start_date=start, num_years=num_reg_years)
 
 }
 
@@ -103,38 +103,41 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' @examples
 #' data(prevsim)
 #'
-#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", years=8)
+#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", num_years=8)
 #' yearly_incidence(prevsim$entrydate)
-#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", years=5)
+#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
 #' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
 #'
 #' @export
 #' @family incidence functions
-yearly_incidence <- function(entry, start_date=NULL, years=NULL, end_date=NULL) {
+yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NULL) {
 
     if (!is.null(start_date)) { # Having the start date takes priority
-        if (is.null(years)) {
+        if (is.null(num_years)) {
             if (is.null(end_date)) {
                 end_date <- max(entry)
             }
-            years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+            num_years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
         }
-        registry_years <- determine_yearly_endpoints(start_date, years)
+        registry_years <- determine_yearly_endpoints(start_date, num_years)
     } else {
         if (!is.null(end_date)) { # Having end date takes second priority
-            if (is.null(years)) {
-                years <- floor(as.numeric(difftime(end_date, min(entry)) / 365.25))
+            if (is.null(num_years)) {
+                num_years <- floor(as.numeric(difftime(end_date, min(entry)) / 365.25))
             }
-            registry_years <- determine_yearly_endpoints(end_date, years, direction='backwards')
+            registry_years <- determine_yearly_endpoints(end_date, num_years, direction='backwards')
         } else { # No start date, no end date
             start_date <- min(entry)
-            if (is.null(years)) {
-                years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+            if (is.null(num_years)) {
+                num_years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
             }
-            registry_years <- determine_yearly_endpoints(start_date, years)
+            registry_years <- determine_yearly_endpoints(start_date, num_years)
         }
     }
-    per_year <- vapply(seq(years),
+
+    # Force date in case data isn't supplied correctly
+    entry <- as.Date(entry)
+    per_year <- vapply(seq(num_years),
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
                        integer(1))
 
@@ -165,7 +168,7 @@ yearly_incidence <- function(entry, start_date=NULL, years=NULL, end_date=NULL) 
 #' rawinc <- yearly_incidence(prevsim$entrydate)
 #' mean_incidence_rate(rawinc, population_size=3.5e6)
 #'
-#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", years=5)
+#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
 #' mean_incidence_rate(rawinc2, population_size=3.5e6)
 #'
 #' @export

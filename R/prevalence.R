@@ -181,8 +181,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
                      "Prevalence will be counted from the available registry data with no simulation required.")
         message(msg)
         prev_sim <- NA
-        start <- as.character(as.Date(index_date) - num_reg_years * 365.25)
-        inc_rate <- rev(yearly_incidence(data[, entry_var], start_date=start, years=num_reg_years_new))
+        inc_rate <- rev(yearly_incidence(data[, entry_var], start_date=start_date, num_years=num_reg_years_new))
     } else {
         # Calculate simulated prevalence for 1:max(num_years_to_estimate)
         prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
@@ -254,6 +253,8 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
 #' @family prevalence functions
 prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_reg_years=NULL, start=NULL ) {
 
+    entry <- as.Date(entry)
+
     if (length(unique(c(length(entry), length(eventdate), length(status)))) > 1)
         stop("Error: entry, eventdate, and status must all have the same length.")
 
@@ -289,7 +290,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 
     status_at_index <- ifelse(eventdate > index_date, 0, status)
 
-    per_year <- yearly_incidence(entry, start_date=start_date, years=num_reg_years_new)
+    per_year <- yearly_incidence(entry, start_date=start_date, num_years=num_reg_years_new)
     num_cens <- vapply(seq(num_reg_years_new), function(i)
                             sum(status_at_index[entry >= registry_years[i] & entry < registry_years[i + 1]]),
                        numeric(1))
@@ -407,7 +408,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Calculate maximum yearly incidence here as the max of the maximum for each subgroup with an additional bit of leeway
     subgroup_max_incidence <- sapply(levels(df$sex), function(x) {
         sub_data <- df[df$sex==x, ]
-        max(yearly_incidence(as.character(sub_data$entry), start_date=start, years=num_reg_years))
+        max(yearly_incidence(as.character(sub_data$entry), start_date=start, num_years=num_reg_years))
     })
 
     # Run the prevalence estimator for each subgroup
@@ -446,7 +447,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 .prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
                                  cure_days, sex, nprevyears, include_sex) {
-    fix_rate_rev <- rev(yearly_incidence(entry, start_date=start, years=nregyears))
+    fix_rate_rev <- rev(yearly_incidence(entry, start_date=start, num_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
     #  This is the new implementation of calculating the yearly predicted prevalence
