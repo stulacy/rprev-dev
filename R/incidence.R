@@ -305,7 +305,7 @@ plot.incidence <- function(x, level=0.95, ...){
     bootstraps = do.call(rbind, boot_out)
 
     num_bins_init <- floor(N / samples_per_bin)
-    num_bins <- ifelse(num_bins_init > max_bins, max_bins, num_bins_init)
+    num_bins <- if (num_bins_init > max_bins) max_bins else num_bins_init
     bin_segments <- seq(0, max(diags), by=max(diags) / num_bins)
     bin_segments[length(bin_segments)] <- bin_segments[length(bin_segments)] + 1  # Expand last bin to allow for max data point
 

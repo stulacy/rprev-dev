@@ -150,9 +150,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     if ((!is.null(start) & is.null(index_date))) {
         warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
         start_date <- start
-        num_reg_years_new <- ifelse(is.null(num_reg_years),
-                                    floor(as.numeric(difftime(max(data[, entry_var]), start_date) / 365)),
-                                    num_reg_years)
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(data[, entry_var]), start_date) / 365)) else num_reg_years
         foo <- determine_yearly_endpoints(start_date, num_reg_years_new)
         index_date = foo[length(foo)]
     } else {
@@ -161,9 +159,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        num_reg_years_new <- ifelse(is.null(num_reg_years),
-                                    floor(as.numeric(difftime(index_date, min(data[, entry_var])) / 365)),
-                                    num_reg_years)
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(data[, entry_var])) / 365)) else num_reg_years
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 
@@ -261,10 +257,8 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
     # Remove when deprecate
     if (!is.null(start) & is.null(index_date)) {
         warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
-        start_date <- ifelse(is.null(start), min(entry), start)
-        num_reg_years_new <- ifelse(is.null(num_reg_years),
-                                    floor(as.numeric(difftime(max(entry), start_date) / 365)),
-                                    num_reg_years)
+        start_date <- if (is.null(start)) min(entry) else start
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(entry), start_date) / 365)) else num_reg_years
         foo <- determine_yearly_endpoints(start_date, num_reg_years_new)
         index_date = foo[length(foo)]
     } else {
@@ -274,9 +268,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        num_reg_years_new <- ifelse(is.null(num_reg_years),
-                                    floor(as.numeric(difftime(index_date, min(entry)) / 365)),
-                                    num_reg_years)
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(entry)) / 365)) else num_reg_years
         start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
     }
 
@@ -399,7 +391,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     df <- df[as.character(df$entry) >= start, ]
 
     # Specify whether to include sex as a survival variable or not, this should be included within the formula!
-    req_covariate <- ifelse(length(levels(sex)) == 1, 'age', 'age + sex')
+    req_covariate <- if (length(levels(sex)) == 1) 'age' else 'age + sex'
     surv_form <- as.formula(paste('Surv(time, status)', '~',
                                   req_covariate))
     wb_boot <- .registry_survival_bootstrapped(surv_form, df, N_boot, n_cores=n_cores)
@@ -582,12 +574,12 @@ summary.prevalence <- function(object, ...) {
     CI <- z_level * sqrt(se) * proportion
 
     # Setup labels for proportion list outputs
-    proportion_unit <- ifelse(proportion / 1e6 >= 1, 'M',
-                              ifelse(proportion / 1e3 >= 1, 'K',
-                                     ''))
-    proportion_val <- ifelse(proportion / 1e6 >= 1, proportion / 1e6,
-                              ifelse(proportion / 1e3 >= 1, proportion / 1e3,
-                                     proportion))
+    proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
+                              if (proportion / 1e3 >= 1) 'K' else ''
+                          }
+    proportion_val <- if (proportion / 1e6 >= 1) proportion / 1e6 else {
+                              if (proportion / 1e3 >= 1) proportion / 1e3 else proportion
+                        }
     est_lab <- paste('per', proportion_val, proportion_unit, sep='')
     upper_lab <- paste(est_lab, '.upper', sep='')
     lower_lab <- paste(est_lab, '.lower', sep='')
