@@ -1,3 +1,31 @@
+# rprev 0.2.3
+Incidence function returning different values to the known_inc_rate function from a prevalence object
+This is due to how we define years. The prevalence function calculates a year based on 365.25 days and calculates the starting date of the time-period of interest using the above method. Whereas in your manual call to incidence you are interested in incidence from the 9 years from 2005-09-01 to 2014-09-01, and so specify the starting date as 2005-09-01. However, due to the extra .25 of a day, 9 years back from 2014-09-01 is actually 2005-08-31, so any patient incident on the first of September in any year gets shifted years. I'm happy to keep using our definition of years, although in order to aid user friendliness I've reparameterised incidence (see below) to allow either the starting date, the ending date, or both, similarly to the seq function in base R.
+
+Renamed raw_incidence to yearly_incidence and reparameterised
+Renamed to be more descriptive of what the function actually does, and reparameterised to allow the user to specify the ending date of the time interval of interested instead. Note I haven't removed raw_incidence, just deprecated it in favour of yearly_incidence.
+
+Renamed determine_registry_years to determine_yearly_limits and reparameterised
+I realised that the original function name isn't very descriptive for what it does (provides the yearly end points of a specific time interval) and so have tried to reflect its purpose with the new name. Not entirely sold on it so feel free to suggest improvements! Also have reparameterised so the user can specify the closing date in the interval rather than the opening.
+
+ plot.incidence not returning ggplot object
+It now does (along with other plot methods), allowing for easier manual tweaking. I'm not sure why I didn't have this behaviour originally, there must have been a reason...
+
+calculating prevalence rate / 100K and CIs from counted data
+This functionality was always present, but I've now made it more explicit by **not running the simulation when there is more registry data available than needed to estimate N-year prevalence** I'm a bit worried by this as why didn't I think of this before? The previous warning messaged remarked that survival models were still built using all available registry data, but these aren't required to count prevalence. I won't push this change through to release until I've checked with Simon that I'm not completely breaking some theoretical grounds, but in terms of implementation it actually changes nothing.
+
+ONS citation:
+Updated to include a link to the specific webpage where the data set is obtained from and improved formatting.
+
+other:
+
+    summary.prevalence correctly displaying posterior age distributions of simulated cases
+    summary.prevalence displaying the prevalence estimates themselves
+    unit tests updated to reflect the above changes
+    vignette updated to reflect the above changes
+
+
+
 # rprev 0.2.2
 
 Bug hotfix.
