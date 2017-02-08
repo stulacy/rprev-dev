@@ -99,12 +99,12 @@ print.survfit.prev <- function(x, ...) {
 summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 
     # Truncate years to the maximum number allowed
-    max_years <- floor(dim(object$surv)[2] / 365.25)
+    max_years <- floor(dim(object$surv)[2] / DAYS_IN_YEAR)
     if (sum(years > max_years) > 0)
         message("Cannot estimate survival probabilities beyond the ",
                 max_years, " years provided in the dataset.")
     years <- years[years <= max_years]
-    days <- sapply(years, function(x) floor(x * 365.25))
+    days <- sapply(years, function(x) floor(x * DAYS_IN_YEAR))
 
     probs <- colMeans(as.matrix(object$surv[, days]))
     lower <- apply(object$surv[, days], 2, function(x) quantile(x, 0.025))

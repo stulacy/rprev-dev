@@ -1,3 +1,5 @@
+DAYS_IN_YEAR <- 365.25
+
 #' DEPRECATED: Use \code{\link{determine_yearly_endpoints}} instead.
 #'
 #' A helper function to calculate dates a year apart, starting from a given date

@@ -150,7 +150,7 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
     if ((!is.null(start) & is.null(index_date))) {
         warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
         start_date <- start
-        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(data[, entry_var]), start_date) / 365)) else num_reg_years
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(data[, entry_var]), start_date) / DAYS_IN_YEAR)) else num_reg_years
         foo <- determine_yearly_endpoints(start_date, num_reg_years_new)
         index_date = foo[length(foo)]
     } else {
@@ -159,8 +159,8 @@ prevalence <- function(form, data, num_years_to_estimate, population_size,
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(data[, entry_var])) / 365)) else num_reg_years
-        start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(data[, entry_var])) / DAYS_IN_YEAR)) else num_reg_years
+        start_date <- as.character(as.Date(index_date) - num_reg_years_new * DAYS_IN_YEAR)
     }
 
     # Calculate observed prevalence for 1:num_registry_years
@@ -258,7 +258,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
     if (!is.null(start) & is.null(index_date)) {
         warning("'start' parameter is deprecated and will be removed in future releases. Specify index_date and num_reg_years instead.")
         start_date <- if (is.null(start)) min(entry) else start
-        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(entry), start_date) / 365)) else num_reg_years
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR)) else num_reg_years
         foo <- determine_yearly_endpoints(start_date, num_reg_years_new)
         index_date = foo[length(foo)]
     } else {
@@ -268,8 +268,8 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
             message("Index date not provided, using last entry date instead: ", index_date)
         }
 
-        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(entry)) / 365)) else num_reg_years
-        start_date <- as.character(as.Date(index_date) - num_reg_years_new * 365.25)
+        num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(index_date, min(entry)) / DAYS_IN_YEAR)) else num_reg_years
+        start_date <- as.character(as.Date(index_date) - num_reg_years_new * DAYS_IN_YEAR)
     }
 
 
@@ -352,7 +352,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
                                  N_boot=1000,
                                  population_data=NULL, n_cores=1) {
 
-    cure_days <- cure * 365
+    cure_days <- cure * DAYS_IN_YEAR
 
     sex <- as.factor(sex)
     if (length(levels(sex)) > 2)
@@ -377,7 +377,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
         warning("'start' parameter is deprecated and will be removed in future versions. Please use specify an index date using 'index_date' instead.")
     }
 
-    start <- as.character(as.Date(index_date) - num_reg_years * 365.25)
+    start <- as.character(as.Date(index_date) - num_reg_years * DAYS_IN_YEAR)
 
     population_data$sex <- as.factor(population_data$sex)
     if (!all(levels(sex) %in% levels(population_data$sex)))
@@ -477,7 +477,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
     if (num_diag > 0) {
         boot_age_dist <- sample(prior, num_diag, replace=TRUE)
-        time_since_diag <- year * 365 + runif(num_diag, 0, 365)
+        time_since_diag <- year * DAYS_IN_YEAR + runif(num_diag, 0, DAYS_IN_YEAR)
 
         # Combine data into a matrix
         bootstrapped_data <- matrix(c(rep(1, num_diag), boot_age_dist), nrow=num_diag)
@@ -495,7 +495,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     }
 
     if (num_alive > 0) {
-        post_age_dist <- time_since_diag[!is_dead]/365 + boot_age_dist[!is_dead]
+        post_age_dist <- time_since_diag[!is_dead]/DAYS_IN_YEAR + boot_age_dist[!is_dead]
     } else {
         post_age_dist <- numeric()
     }

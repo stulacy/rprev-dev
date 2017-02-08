@@ -43,7 +43,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
         start <- min(entry)
 
     if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / DAYS_IN_YEAR))
 
     reg_years <- determine_yearly_endpoints(start, num_reg_years)
     index_date <- reg_years[length(reg_years)]
@@ -123,19 +123,19 @@ yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NU
             if (is.null(end_date)) {
                 end_date <- max(entry)
             }
-            num_years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+            num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
         }
         registry_years <- determine_yearly_endpoints(start_date, num_years)
     } else {
         if (!is.null(end_date)) { # Having end date takes second priority
             if (is.null(num_years)) {
-                num_years <- floor(as.numeric(difftime(end_date, min(entry)) / 365.25))
+                num_years <- floor(as.numeric(difftime(end_date, min(entry)) / DAYS_IN_YEAR))
             }
             registry_years <- determine_yearly_endpoints(end_date, num_years, direction='backwards')
         } else { # No start date, no end date
             start_date <- min(entry)
             if (is.null(num_years)) {
-                num_years <- floor(as.numeric(difftime(max(entry), start_date) / 365.25))
+                num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
             }
             registry_years <- determine_yearly_endpoints(start_date, num_years)
         }
@@ -228,14 +228,14 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 plot.incidence <- function(x, level=0.95, ...){
     raw_incidence <- x$raw_incidence
     mean_rate <- mean(raw_incidence)
-    day_mean_rate <- mean_rate / 365
+    day_mean_rate <- mean_rate / DAYS_IN_YEAR
 
     z_conf <- qnorm((1+level)/2)
-    CI_lim <- z_conf * sqrt(mean_rate)/365
+    CI_lim <- z_conf * sqrt(mean_rate)/DAYS_IN_YEAR
     num_reg_years <- length(raw_incidence)
 
-    inc_rate <- data.frame(inc=raw_incidence/365, day=as.Date(x$index_dates[-length(x$index_dates)]) + 182, col='r')
-    pred_rate <- predict(x$smooth, seq(num_reg_years*365), deriv=1)
+    inc_rate <- data.frame(inc=raw_incidence/DAYS_IN_YEAR, day=as.Date(x$index_dates[-length(x$index_dates)]) + 182, col='r')
+    pred_rate <- predict(x$smooth, seq(num_reg_years*DAYS_IN_YEAR), deriv=1)
     smooth_rate <- data.frame(rate=pred_rate$y, day=as.Date(x$index_dates[1]) + pred_rate$x, col='g')
     mean_rate <- data.frame(mean=day_mean_rate, upper=day_mean_rate+CI_lim,
                             lower=day_mean_rate-CI_lim, col='b')
