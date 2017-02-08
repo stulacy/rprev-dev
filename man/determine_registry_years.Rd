@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{determine_registry_years}
 \alias{determine_registry_years}
-\title{Calculate yearly dates.}
+\title{DEPRECATED: Use \code{\link{determine_yearly_endpoints}} instead.}
 \usage{
 determine_registry_years(start, num_reg_years)
 }

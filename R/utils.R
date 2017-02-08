@@ -20,10 +20,10 @@ determine_registry_years <- function(start, num_reg_years) {
 #' for a set number of years. Useful for delimiting a specified time
 #' interval into a discrete number of years.
 #'
-#' @param date Either the starting date of the time interval (when \link{direction} is 'forwards')
-#' or the ending date (\link{direction} is 'backwards').
+#' @param date Either the starting date of the time interval (when \code{direction} is 'forwards')
+#' or the ending date (\code{direction} is 'backwards').
 #' @param num_years The number of years of the time interval.
-#' @param direction A string indicating whether the parameter \link{\code{date}} represents
+#' @param direction A string indicating whether the parameter \code{date} represents
 #' the opening or closing interval. Must take values either 'forwards' or 'backwards'.
 #' @return A vector of dates delineating complete years of registry data.
 #' @export

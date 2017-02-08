@@ -32,6 +32,8 @@ test_incidence_fit(inc)
 Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{incidence}},
   \code{\link{mean_incidence_rate}},
-  \code{\link{plot.incidence}}, \code{\link{raw_incidence}}
+  \code{\link{plot.incidence}},
+  \code{\link{raw_incidence}},
+  \code{\link{yearly_incidence}}
 }
 
