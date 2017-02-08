@@ -98,7 +98,12 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' Calculates yearly incidence for the available registry data.
 #'
 #' @inheritParams incidence
-#' @return Vector of length num_reg_years of integers, representing the number
+#' @param start_date The initial date in the \code{entry} vector to start estimating incidence from.
+#' @param num_years The number of complete years to calculate incidence over. Defaults to the number of complete
+#' years of registry data available in \code{entry}.
+#' @param end_date The ending date in the \code{entry} vector to estimate incidence counting back from.
+#' If both \code{end_date} and \code{start_date} are specified then \code{start_date} takes precedence.
+#' @return Vector of length \code{num_years} of integers, representing the number
 #'   of absolute incidence values for each included year of the registry.
 #' @examples
 #' data(prevsim)
@@ -107,6 +112,7 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' yearly_incidence(prevsim$entrydate)
 #' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
 #' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
+#' yearly_incidence(prevsim$entrydate, num_years=5, end_date="2015-05-01")
 #'
 #' @export
 #' @family incidence functions
@@ -215,7 +221,6 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @importFrom ggplot2 geom_hline
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 ylim
 #' @importFrom ggplot2 aes_string
 #' @importFrom ggplot2 scale_colour_manual
 #' @export
@@ -247,7 +252,6 @@ plot.incidence <- function(x, level=0.95, ...){
                                 linetype='dashed') +
             ggplot2::labs(x='Year', y='Daily incidence rate') +
             ggplot2::theme_bw() +
-            ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
             ggplot2::theme(legend.position='bottom') +
             ggplot2::scale_colour_manual(name='Data',
                                          values=c('r'='red', 'g'='green', 'b'='#0080ff'),
