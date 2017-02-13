@@ -19,7 +19,7 @@ following columns must be present: \code{sex}, \code{age}, and \code{rate}.}
 }
 \value{
 An estimate of the survival rate by age in days, with \code{max_age}
-  * 365 values.
+  * DAYS_IN_YEAR values.
 }
 \description{
 Calculates the daily mortality probability for a given population stratified

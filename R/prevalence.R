@@ -44,8 +44,6 @@
 #'   If any values are greater than the number of years of registry data
 #'   available before \code{index_date}, incident cases
 #'   for the difference will be simulated.
-#' @param population_size Integer corresponding to the size of the population at
-#'   risk.
 #' @param index_date The date at which to estimate point prevalence. Defaults to the
 #' latest registry entry date.
 #' @param num_reg_years The number of years of the registry for which incidence
@@ -57,14 +55,16 @@
 #'   years). A patient who has survived beyond the cure time has a probability
 #'   of surviving derived from the mortality rate of the general population.
 #' @param N_boot Number of bootstrapped calculations to perform.
-#' @param level Double representing the desired confidence interval width.
-#' @param precision Integer representing the number of decimal places required.
+#' @param population_size Integer corresponding to the size of the population at
+#'   risk.
 #' @param proportion The population ratio to estimate prevalence for.
+#' @param level Double representing the desired confidence interval width.
 #' @param population_data A dataframe that must contain the columns \code{age},
 #'   \code{rate}, and \code{sex}, where each row is the mortality rate for a
 #'   person of that age and sex. Ideally, age ranges from [0, 100]. Defaults to
 #'   the supplied data; see \code{\link{UKmortality}} for the format required
 #'   for custom datasets.
+#' @param precision Integer representing the number of decimal places required.
 #' @param n_cores Number of CPU cores to run the fitting of the bootstrapped
 #'   survival models. Defaults to 1; multi-core functionality is provided by the
 #'   \code{doParallel} package.
@@ -113,10 +113,12 @@
 #'
 #' @export
 #' @family prevalence functions
-prevalence <- function(form, data, num_years_to_estimate, population_size,
-                       index_date=NULL, num_reg_years=NULL, cure=10,
-                       N_boot=1000, level=0.95, precision=2,
-                       proportion=100e3, population_data=NULL, n_cores=1,
+prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
+                       num_reg_years=NULL, cure=10,
+                       N_boot=1000,
+                       population_size=NULL, proportion=100e3,
+                       level=0.95, population_data=NULL,
+                       precision=2, n_cores=1,
                        start=NULL) {
 
     # Extract required column names from formula
@@ -506,11 +508,17 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 #' @export
 print.prevalence <- function(x, ...) {
-    cat("Estimated prevalence per", x$proportion, "at", x$index_date, "\n")
+    cat(paste0("Estimated prevalence at ", x$index_date, ":\n"))
     lapply(names(x$estimates), function(item) {
         year <- strsplit(item, 'y')[[1]][2]
-        prev_est <- x$estimates[[item]][2]
-        cat(paste(year, "years:", prev_est, "\n"))
+        abs_prev_est <- x$estimates[[item]][1]
+        if (length(x$estimates[[item]]) > 1) {
+            rel_prev <- x$estimates[[item]][2]
+            rel_prev_est <- paste0("(", rel_prev, " per ", x$proportion, ")")
+        } else {
+            rel_prev_est <- NULL
+        }
+        cat(paste(year, "years:", abs_prev_est, rel_prev_est, '\n'))
     })
 }
 
@@ -541,9 +549,10 @@ summary.prevalence <- function(object, ...) {
 }
 
 
-.point_estimate <- function(years, sim, obs, num_reg_years, population_size, proportion=100e3,
+.point_estimate <- function(years, sim, obs, num_reg_years, population_size=NULL, proportion=100e3,
                             level=0.95, precision=2) {
 
+    # Replace simulated prevalence contributions from observed years with counted prevalence
     if (all(is.na(sim))) {
         prev_estimate <- rev(obs)
     } else {
@@ -553,41 +562,43 @@ summary.prevalence <- function(object, ...) {
 
     # Replace simulated values for observed for the years we have simulated data
     #sim$mean_yearly_contributions[1:num_reg_years] <- rev(obs)
-    z_level <- qnorm((1+level)/2)
 
     the_estimate <- sum(prev_estimate[1:years])
-    raw_proportion <- the_estimate / population_size
-    the_proportion <- proportion * raw_proportion
-
-    if (years <= num_reg_years) {
-        se <- (raw_proportion * (1 - raw_proportion)) / population_size
-    } else {
-        the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=FALSE]
-        by_sample_estimate <- colSums(the_samples)
-        the_estimate_n <- sum(prev_estimate[1:num_reg_years])
-        raw_proportion_n <- the_estimate_n / population_size
-        std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
-        std_err_2 <- sd(by_sample_estimate)/population_size
-        se <- std_err_1^2 + std_err_2^2
-    }
-
-    CI <- z_level * sqrt(se) * proportion
-
-    # Setup labels for proportion list outputs
-    proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
-                              if (proportion / 1e3 >= 1) 'K' else ''
-                          }
-    proportion_val <- if (proportion / 1e6 >= 1) proportion / 1e6 else {
-                              if (proportion / 1e3 >= 1) proportion / 1e3 else proportion
-                        }
-    est_lab <- paste('per', proportion_val, proportion_unit, sep='')
-    upper_lab <- paste(est_lab, '.upper', sep='')
-    lower_lab <- paste(est_lab, '.lower', sep='')
-
     result <- list(absolute.prevalence=the_estimate)
-    result[est_lab] <- the_proportion
-    result[upper_lab] <- the_proportion + CI
-    result[lower_lab] <- the_proportion - CI
+
+    if (!is.null(population_size)) {
+        raw_proportion <- the_estimate / population_size
+        the_proportion <- proportion * raw_proportion
+
+        if (years <= num_reg_years) {
+            se <- (raw_proportion * (1 - raw_proportion)) / population_size
+        } else {
+            the_samples <- sim$yearly_contributions[(num_reg_years + 1):years, , drop=FALSE]
+            by_sample_estimate <- colSums(the_samples)
+            the_estimate_n <- sum(prev_estimate[1:num_reg_years])
+            raw_proportion_n <- the_estimate_n / population_size
+            std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
+            std_err_2 <- sd(by_sample_estimate)/population_size
+            se <- std_err_1^2 + std_err_2^2
+        }
+
+        z_level <- qnorm((1+level)/2)
+        CI <- z_level * sqrt(se) * proportion
+
+        # Setup labels for proportion list outputs
+        proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
+                                  if (proportion / 1e3 >= 1) 'K' else ''
+                              }
+        proportion_val <- if (proportion / 1e6 >= 1) proportion / 1e6 else {
+                                  if (proportion / 1e3 >= 1) proportion / 1e3 else proportion
+                            }
+        est_lab <- paste('per', proportion_val, proportion_unit, sep='')
+        upper_lab <- paste(est_lab, '.upper', sep='')
+        lower_lab <- paste(est_lab, '.lower', sep='')
+        result[[est_lab]] <- the_proportion
+        result[[upper_lab]] <- the_proportion + CI
+        result[[lower_lab]] <- the_proportion - CI
+    }
 
     lapply(result, round, precision)
 }
