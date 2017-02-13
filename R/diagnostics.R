@@ -47,6 +47,9 @@ test_incidence_fit <- function(inc, N_sim = 1e5) {
 #' @export
 #' @family prevalence functions
 test_prevalence_fit <- function(object) {
+    if (all(is.na(object$simulated))) {
+        return(NA)
+    }
     predicted <- rev(object$simulated$mean_yearly_contributions[1:object$nregyears])
     chi <- sum(((object$counted - predicted)^2) / predicted)
     1 - pchisq(chi, object$nregyears - 1)

@@ -15,8 +15,7 @@ survival probabilities.}
 \item{...}{Arguments passed to \code{plot}.}
 }
 \value{
-An S3 object of class \code{survfit.prev} with the following
-  attributes:
+An S3 object of class \code{ggplot}.
 }
 \description{
 This method plots survival curves for a \code{survfit.prev} object.

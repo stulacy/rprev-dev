@@ -34,7 +34,7 @@ test_that("population_survival_rate returns doubles", {
 
 test_that("population_survival_rate returns the correct number of values", {
     expect_length <- function(data, age=100) {
-        expect_equal(length(population_survival_rate(rate ~ age, data, max_age=age)), age*365)
+        expect_equal(length(population_survival_rate(rate ~ age, data, max_age=age)), floor(age*365.25))
     }
 
     expect_length(UKmortality)

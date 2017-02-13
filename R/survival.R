@@ -11,7 +11,7 @@
 #'   following columns must be present: \code{sex}, \code{age}, and \code{rate}.
 #' @param max_age Maximum age to calculate mortality for.
 #' @return An estimate of the survival rate by age in days, with \code{max_age}
-#'   * 365 values.
+#'   * DAYS_IN_YEAR values.
 #' @examples
 #' data(UKmortality)
 #'
@@ -29,10 +29,10 @@ population_survival_rate <- function(form, data, max_age=100){
                    numeric(1))
 
     a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[max_age] - rate[max_age-1])
-    base <- 183 + 365 * (1:max_age) # Where does 183/182 come from?
+    base <- 183 + DAYS_IN_YEAR * (1:max_age) # Where does 183/182 come from?
     base <- c(-182, 183, base)
-    daily_rate <- approx(base, a_rate, 1:(max_age * 365))
-    daily_rate <- daily_rate$y / 365
+    daily_rate <- approx(base, a_rate, 1:(max_age * DAYS_IN_YEAR))
+    daily_rate <- daily_rate$y / DAYS_IN_YEAR
     cumprod(1 - daily_rate)
 }
 
@@ -124,9 +124,9 @@ population_survival_rate <- function(form, data, max_age=100){
     scale <- exp(boot_coefs[-length(boot_coefs)] %*% t(data)) + 0.000001  # Hack to ensure scale != 0
     shape <- 1 / boot_coefs[length(boot_coefs)]
     age <- data[, 2]  # hardcoded I know, but it will always be first after intercept
-    ifelse(age*365 + time > (max_age * 365),
+    ifelse(age*DAYS_IN_YEAR + time > (max_age * DAYS_IN_YEAR),
            0,
            ifelse(time < cure_days,
                   1 - pweibull(time, scale=scale, shape=shape),
-                  (1 - pweibull(cure_days, scale=scale, shape=shape)) * pop_surv_rate[age*365 + time]/pop_surv_rate[age*365 + cure_days]))
+                  (1 - pweibull(cure_days, scale=scale, shape=shape)) * pop_surv_rate[age*DAYS_IN_YEAR + time]/pop_surv_rate[age*DAYS_IN_YEAR + cure_days]))
 }

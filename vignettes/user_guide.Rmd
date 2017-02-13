@@ -130,8 +130,8 @@ It is also a useful diagnostic aid to plot the survival curve for each year of t
 plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="Days", 
      ylab="Survival probability")
 num_reg_years <- 9
-registry_years <- determine_registry_years(start='2004-01-30', 
-                                           num_reg_years=num_reg_years)
+registry_years <- determine_yearly_endpoints(date='2004-01-30', 
+                                             num_years=num_reg_years)
 sapply(seq(num_reg_years),
        function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=prevsim_r[prevsim_r$entrydate >= 

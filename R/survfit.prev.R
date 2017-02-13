@@ -99,12 +99,12 @@ print.survfit.prev <- function(x, ...) {
 summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 
     # Truncate years to the maximum number allowed
-    max_years <- floor(dim(object$surv)[2] / 365.25)
+    max_years <- floor(dim(object$surv)[2] / DAYS_IN_YEAR)
     if (sum(years > max_years) > 0)
         message("Cannot estimate survival probabilities beyond the ",
                 max_years, " years provided in the dataset.")
     years <- years[years <= max_years]
-    days <- sapply(years, function(x) floor(x * 365.25))
+    days <- sapply(years, function(x) floor(x * DAYS_IN_YEAR))
 
     probs <- colMeans(as.matrix(object$surv[, days]))
     lower <- apply(object$surv[, days], 2, function(x) quantile(x, 0.025))
@@ -132,8 +132,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' @param pct_show A list or dataframe with the covariate values to calculate
 #'   survival probabilities.
 #' @param ... Arguments passed to \code{plot}.
-#' @return An S3 object of class \code{survfit.prev} with the following
-#'   attributes:
+#' @return An S3 object of class \code{ggplot}.
 #' @examples
 #' data(prevsim)
 #'
@@ -195,14 +194,15 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
                     dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
                                    bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
 
-    ggplot2::ggplot() +
-        ggplot2::geom_line(data=outliers,
-                           ggplot2::aes_string(x='time', y='survprob', group='bootstrap'),
-                           colour='grey', linetype="dotted") +
-        ggplot2::geom_ribbon(data=smooth,
-                             ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.3) +
-        ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
-                           ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
-        ggplot2::theme_bw() +
-        ggplot2::labs(x="Days", y="Survival probability")
+    p <- ggplot2::ggplot() +
+            ggplot2::geom_line(data=outliers,
+                               ggplot2::aes_string(x='time', y='survprob', group='bootstrap'),
+                               colour='grey', linetype="dotted") +
+            ggplot2::geom_ribbon(data=smooth,
+                                 ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.3) +
+            ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
+                               ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
+            ggplot2::theme_bw() +
+            ggplot2::labs(x="Days", y="Survival probability")
+    p
 }
