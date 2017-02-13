@@ -1,6 +1,6 @@
 ## Release summary
 
-This is a quick resubmission due to identifying a bug in the code (despite R CMD CHECK passing) since submitting version 0.2.1 to CRAN but before receiving a response.
+Various bug fixes (detailed in NEWS.md) and reparameterisation of functions.
 
 ## Test environments
 
