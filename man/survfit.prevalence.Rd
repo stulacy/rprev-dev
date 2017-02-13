@@ -43,4 +43,3 @@ survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 }
 
 }
-

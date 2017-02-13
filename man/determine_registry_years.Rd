@@ -20,4 +20,3 @@ A vector of dates delineating complete years of registry data.
 A helper function to calculate dates a year apart, starting from a given date
 and running for a set number of years.
 }
-

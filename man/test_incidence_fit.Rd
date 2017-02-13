@@ -36,4 +36,3 @@ Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{raw_incidence}},
   \code{\link{yearly_incidence}}
 }
-

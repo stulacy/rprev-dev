@@ -22,4 +22,3 @@ Adapted from public sector information licensed under the Open Government Licenc
 Data were relabelled according to the mean year of the three-year birth window.
 }
 \keyword{datasets}
-

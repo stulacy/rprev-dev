@@ -9,7 +9,7 @@ This is a quick resubmission due to identifying a bug in the code (despite R CMD
 
 ## R CMD check results
 
-There were no ERRORS, with one WARNING due to the deprecation of a function.
+There were no ERRORS, WARNINGS, or NOTES.
 
 ## Downstream dependencies
 

@@ -22,9 +22,8 @@ Imports:
     magrittr,
     rms,
     tidyr
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Suggests: testthat,
     knitr
 URL: https://cran.r-project.org/package=rprev
 VignetteBuilder: knitr
-
