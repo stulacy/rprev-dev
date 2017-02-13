@@ -29,11 +29,6 @@ Calculates yearly incidence for the available registry data.
 \examples{
 data(prevsim)
 
-raw_incidence(prevsim$entrydate, start="2004-01-01", num_reg_years=8)
-raw_incidence(prevsim$entrydate)
-raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
-raw_incidence(prevsim$entrydate, start="2005-05-01")
-
 }
 \seealso{
 \link{yearly_incidence}
