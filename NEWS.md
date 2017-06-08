@@ -1,3 +1,22 @@
+# rprev 0.2.3
+
+## Renamed `raw_incidence` to `yearly_incidence` 
+This function has been renamed to be more descriptive of what the function actually does, and reparameterised to allow the user to specify the ending date of the time interval of interested instead. `raw_incidence` is still included but it throws a deprecated warning and suggests the use of `yearly_incidence`
+
+## Renamed `determine_registry_years` to `determine_yearly_limits`
+The original function name isn't very descriptive for what it does (provides the yearly end points of a specific time interval) and so have renamed it to better reflect its purpose. `determine_yearly_limits` has a slighlty different argument list to `determine_registry_years` to allow for the specification of the closing date in the interval rather than the opening.
+
+## Other
+
+  - Plot methods now return ggplot objects, allowing for easier manual tweaking
+  - `prevalence` no longer runs the simulation when there is more registry data available than needed to estimate N-year prevalence
+  - `prevalence` no longer requires a population size as an argument. Absolute prevalence is always calculated, with relative rates provided if population size is specified
+  - `user_manual`: Updated to include a link to the specific webpage where the ONS data set is obtained from and improved formatting
+  - `summary.prevalence` correctly displays posterior age distributions of simulated cases and now displays the prevalence estimates themselves
+  - unit tests updated to reflect the above changes
+  - vignette updated to reflect the above changes
+
+
 # rprev 0.2.2
 
 Bug hotfix.

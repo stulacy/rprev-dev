@@ -17,7 +17,7 @@
 #' @param level The desired confidence interval width.
 #' @return An S3 object of class \code{incidence} with the following attributes:
 #'   \item{raw_incidence}{Vector of absolute incidence values for each included
-#'   year of the registry, as generated using \code{\link{raw_incidence}}.}
+#'   year of the registry, as generated using \code{\link{yearly_incidence}}.}
 #'   \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
 #'   the earliest date of inclusion in the registry, ordered shortest to
 #'   longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
@@ -43,9 +43,9 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
         start <- min(entry)
 
     if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
+        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / DAYS_IN_YEAR))
 
-    reg_years <- determine_registry_years(start, num_reg_years)
+    reg_years <- determine_yearly_endpoints(start, num_reg_years)
     index_date <- reg_years[length(reg_years)]
 
     entry_trunc <- entry[entry >= start & entry < index_date]
@@ -53,7 +53,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     # Slightly confused that the following are not all integers:
     diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
     smo <- smooth.spline(diags, seq(length(diags)), df=df)
-    raw_inc <- raw_incidence(entry, start, num_reg_years)
+    raw_inc <- yearly_incidence(entry, start_date=start, num_years=num_reg_years)
 
     object <- list(raw_incidence=raw_inc,
                    ordered_diagnoses=diags,
@@ -67,6 +67,8 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     object
 }
 
+#' DEPRECATED: Please use \code{\link{yearly_incidence}} instead.
+#'
 #' Disease incidence.
 #'
 #' Calculates yearly incidence for the available registry data.
@@ -77,24 +79,66 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
 #' @examples
 #' data(prevsim)
 #'
-#' raw_incidence(prevsim$entrydate, start="2004-01-01", num_reg_years=8)
-#' raw_incidence(prevsim$entrydate)
-#' raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
-#' raw_incidence(prevsim$entrydate, start="2005-05-01")
+#' @export
+#' @family incidence functions
+#' @seealso \link{yearly_incidence}
+raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
+    .Deprecated("yearly_incidence")
+    yearly_incidence(entry, start_date=start, num_years=num_reg_years)
+
+}
+
+#' Disease incidence.
+#'
+#' Calculates yearly incidence for the available registry data.
+#'
+#' @inheritParams incidence
+#' @param start_date The initial date in the \code{entry} vector to start estimating incidence from.
+#' @param num_years The number of complete years to calculate incidence over. Defaults to the number of complete
+#' years of registry data available in \code{entry}.
+#' @param end_date The ending date in the \code{entry} vector to estimate incidence counting back from.
+#' If both \code{end_date} and \code{start_date} are specified then \code{start_date} takes precedence.
+#' @return Vector of length \code{num_years} of integers, representing the number
+#'   of absolute incidence values for each included year of the registry.
+#' @examples
+#' data(prevsim)
+#'
+#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", num_years=8)
+#' yearly_incidence(prevsim$entrydate)
+#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
+#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
+#' yearly_incidence(prevsim$entrydate, num_years=5, end_date="2015-05-01")
 #'
 #' @export
 #' @family incidence functions
-raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
+yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NULL) {
 
-    if (is.null(start))
-        start <- min(entry)
+    if (!is.null(start_date)) { # Having the start date takes priority
+        if (is.null(num_years)) {
+            if (is.null(end_date)) {
+                end_date <- max(entry)
+            }
+            num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
+        }
+        registry_years <- determine_yearly_endpoints(start_date, num_years)
+    } else {
+        if (!is.null(end_date)) { # Having end date takes second priority
+            if (is.null(num_years)) {
+                num_years <- floor(as.numeric(difftime(end_date, min(entry)) / DAYS_IN_YEAR))
+            }
+            registry_years <- determine_yearly_endpoints(end_date, num_years, direction='backwards')
+        } else { # No start date, no end date
+            start_date <- min(entry)
+            if (is.null(num_years)) {
+                num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
+            }
+            registry_years <- determine_yearly_endpoints(start_date, num_years)
+        }
+    }
 
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / 365.25))
-
-    registry_years <- determine_registry_years(start, num_reg_years)
-
-    per_year <- vapply(seq(num_reg_years),
+    # Force date in case data isn't supplied correctly
+    entry <- as.Date(entry)
+    per_year <- vapply(seq(num_years),
                        function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
                        integer(1))
 
@@ -109,7 +153,7 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #'
 #' @inheritParams incidence
 #' @param raw_inc Vector of incidence values by year, as returned by
-#'   \code{\link{raw_incidence}}.
+#'   \code{\link{yearly_incidence}}.
 #' @return A list with the following values:
 #'
 #'   \item{absolute}{Overall incidence for the period of interest as a single
@@ -122,10 +166,10 @@ raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
 #' @examples
 #' data(prevsim)
 #'
-#' rawinc <- raw_incidence(prevsim$entrydate)
+#' rawinc <- yearly_incidence(prevsim$entrydate)
 #' mean_incidence_rate(rawinc, population_size=3.5e6)
 #'
-#' rawinc2 <- raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
+#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
 #' mean_incidence_rate(rawinc2, population_size=3.5e6)
 #'
 #' @export
@@ -156,8 +200,7 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @param x An \code{incidence} object.
 #' @param level The desired confidence interval width.
 #' @param ... Arguments passed to \code{plot}.
-#' @return None, plots a side effect of incidence rate, confidence interval and
-#'   smoothed incidence function.
+#' @return An object of class \code{ggplot}.
 #' @examples
 #' data(prevsim)
 #'
@@ -173,7 +216,6 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' @importFrom ggplot2 geom_hline
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 ylim
 #' @importFrom ggplot2 aes_string
 #' @importFrom ggplot2 scale_colour_manual
 #' @export
@@ -181,14 +223,14 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 plot.incidence <- function(x, level=0.95, ...){
     raw_incidence <- x$raw_incidence
     mean_rate <- mean(raw_incidence)
-    day_mean_rate <- mean_rate / 365
+    day_mean_rate <- mean_rate / DAYS_IN_YEAR
 
     z_conf <- qnorm((1+level)/2)
-    CI_lim <- z_conf * sqrt(mean_rate)/365
+    CI_lim <- z_conf * sqrt(mean_rate)/DAYS_IN_YEAR
     num_reg_years <- length(raw_incidence)
 
-    inc_rate <- data.frame(inc=raw_incidence/365, day=as.Date(x$index_dates[-length(x$index_dates)]) + 182, col='r')
-    pred_rate <- predict(x$smooth, seq(num_reg_years*365), deriv=1)
+    inc_rate <- data.frame(inc=raw_incidence/DAYS_IN_YEAR, day=as.Date(x$index_dates[-length(x$index_dates)]) + 182, col='r')
+    pred_rate <- predict(x$smooth, seq(num_reg_years*DAYS_IN_YEAR), deriv=1)
     smooth_rate <- data.frame(rate=pred_rate$y, day=as.Date(x$index_dates[1]) + pred_rate$x, col='g')
     mean_rate <- data.frame(mean=day_mean_rate, upper=day_mean_rate+CI_lim,
                             lower=day_mean_rate-CI_lim, col='b')
@@ -205,13 +247,12 @@ plot.incidence <- function(x, level=0.95, ...){
                                 linetype='dashed') +
             ggplot2::labs(x='Year', y='Daily incidence rate') +
             ggplot2::theme_bw() +
-            ggplot2::ylim(mean_rate$lower-ci_diff, mean_rate$upper+ci_diff) +
             ggplot2::theme(legend.position='bottom') +
             ggplot2::scale_colour_manual(name='Data',
                                          values=c('r'='red', 'g'='green', 'b'='#0080ff'),
                                          breaks=c('r', 'g', 'b'),
                                          labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
-    print(p)
+    p
 }
 
 #' Visualise incidence Poisson assumption.
@@ -230,9 +271,9 @@ plot.incidence <- function(x, level=0.95, ...){
 #' @param object An \code{incidence} object.
 #' @param N_sim Number of draws from a homogeneous Poisson process.
 #' @param level The desired confidence interval width.
-#' @return Plot of the smoothed incidence function and corresponding deviations.
 #' @param samples_per_bin Number of samples per bin.
 #' @param max_bins Maximum number of bins.
+#' @return An object of class \code{ggplot}.
 #' @examples
 #' data(prevsim)
 #'
@@ -263,7 +304,7 @@ plot.incidence <- function(x, level=0.95, ...){
     bootstraps = do.call(rbind, boot_out)
 
     num_bins_init <- floor(N / samples_per_bin)
-    num_bins <- ifelse(num_bins_init > max_bins, max_bins, num_bins_init)
+    num_bins <- if (num_bins_init > max_bins) max_bins else num_bins_init
     bin_segments <- seq(0, max(diags), by=max(diags) / num_bins)
     bin_segments[length(bin_segments)] <- bin_segments[length(bin_segments)] + 1  # Expand last bin to allow for max data point
 
@@ -285,7 +326,7 @@ plot.incidence <- function(x, level=0.95, ...){
                            ggplot2::aes_string(x='x', y='y'),
                            colour='orange', size=1) +
         ggplot2::labs(x="Days", y="Deviation from smooth")
-    print(p)
+    p
 }
 
 #' @export

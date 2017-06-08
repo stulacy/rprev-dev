@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{determine_registry_years}
 \alias{determine_registry_years}
-\title{Calculate yearly dates.}
+\title{DEPRECATED: Use \code{\link{determine_yearly_endpoints}} instead.}
 \usage{
 determine_registry_years(start, num_reg_years)
 }
@@ -20,4 +20,3 @@ A vector of dates delineating complete years of registry data.
 A helper function to calculate dates a year apart, starting from a given date
 and running for a set number of years.
 }
-

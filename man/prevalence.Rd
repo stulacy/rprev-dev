@@ -4,10 +4,10 @@
 \alias{prevalence}
 \title{Estimate point prevalence at an index date.}
 \usage{
-prevalence(form, data, num_years_to_estimate, population_size,
-  index_date = NULL, num_reg_years = NULL, cure = 10, N_boot = 1000,
-  level = 0.95, precision = 2, proportion = 1e+05,
-  population_data = NULL, n_cores = 1, start = NULL)
+prevalence(form, data, num_years_to_estimate, index_date = NULL,
+  num_reg_years = NULL, cure = 10, N_boot = 1000,
+  population_size = NULL, proportion = 1e+05, level = 0.95,
+  population_data = NULL, precision = 2, n_cores = 1, start = NULL)
 }
 \arguments{
 \item{form}{Formula where the LHS is represented by a standard \code{Surv}
@@ -35,9 +35,6 @@ If any values are greater than the number of years of registry data
 available before \code{index_date}, incident cases
 for the difference will be simulated.}
 
-\item{population_size}{Integer corresponding to the size of the population at
-risk.}
-
 \item{index_date}{The date at which to estimate point prevalence. Defaults to the
 latest registry entry date.}
 
@@ -53,17 +50,20 @@ of surviving derived from the mortality rate of the general population.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 
-\item{level}{Double representing the desired confidence interval width.}
-
-\item{precision}{Integer representing the number of decimal places required.}
+\item{population_size}{Integer corresponding to the size of the population at
+risk.}
 
 \item{proportion}{The population ratio to estimate prevalence for.}
+
+\item{level}{Double representing the desired confidence interval width.}
 
 \item{population_data}{A dataframe that must contain the columns \code{age},
 \code{rate}, and \code{sex}, where each row is the mortality rate for a
 person of that age and sex. Ideally, age ranges from [0, 100]. Defaults to
 the supplied data; see \code{\link{UKmortality}} for the format required
 for custom datasets.}
+
+\item{precision}{Integer representing the number of decimal places required.}
 
 \item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
 survival models. Defaults to 1; multi-core functionality is provided by the
@@ -146,4 +146,3 @@ Other prevalence functions: \code{\link{prevalence_counted}},
   \code{\link{prevalence_simulated}},
   \code{\link{test_prevalence_fit}}
 }
-

@@ -8,7 +8,7 @@ mean_incidence_rate(raw_inc, population_size, precision = 2, level = 0.95)
 }
 \arguments{
 \item{raw_inc}{Vector of incidence values by year, as returned by
-\code{\link{raw_incidence}}.}
+\code{\link{yearly_incidence}}.}
 
 \item{population_size}{Integer corresponding to the size of the population at
 risk.}
@@ -34,10 +34,10 @@ confidence intervals for the given registry data.
 \examples{
 data(prevsim)
 
-rawinc <- raw_incidence(prevsim$entrydate)
+rawinc <- yearly_incidence(prevsim$entrydate)
 mean_incidence_rate(rawinc, population_size=3.5e6)
 
-rawinc2 <- raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
+rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
 mean_incidence_rate(rawinc2, population_size=3.5e6)
 
 }
@@ -45,6 +45,6 @@ mean_incidence_rate(rawinc2, population_size=3.5e6)
 Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{incidence}}, \code{\link{plot.incidence}},
   \code{\link{raw_incidence}},
-  \code{\link{test_incidence_fit}}
+  \code{\link{test_incidence_fit}},
+  \code{\link{yearly_incidence}}
 }
-

@@ -14,8 +14,7 @@
 \item{...}{Arguments passed to \code{plot}.}
 }
 \value{
-None, plots a side effect of incidence rate, confidence interval and
-  smoothed incidence function.
+An object of class \code{ggplot}.
 }
 \description{
 Plots a comparison between the smoothed daily incidence function and actual
@@ -43,6 +42,6 @@ Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{incidence}},
   \code{\link{mean_incidence_rate}},
   \code{\link{raw_incidence}},
-  \code{\link{test_incidence_fit}}
+  \code{\link{test_incidence_fit}},
+  \code{\link{yearly_incidence}}
 }
-

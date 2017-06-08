@@ -2,7 +2,7 @@
 % Please edit documentation in R/incidence.R
 \name{raw_incidence}
 \alias{raw_incidence}
-\title{Disease incidence.}
+\title{DEPRECATED: Please use \code{\link{yearly_incidence}} instead.}
 \usage{
 raw_incidence(entry, start = NULL, num_reg_years = NULL)
 }
@@ -21,22 +21,22 @@ Vector of length num_reg_years of integers, representing the number
   of absolute incidence values for each included year of the registry.
 }
 \description{
+Disease incidence.
+}
+\details{
 Calculates yearly incidence for the available registry data.
 }
 \examples{
 data(prevsim)
 
-raw_incidence(prevsim$entrydate, start="2004-01-01", num_reg_years=8)
-raw_incidence(prevsim$entrydate)
-raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
-raw_incidence(prevsim$entrydate, start="2005-05-01")
-
 }
 \seealso{
+\link{yearly_incidence}
+
 Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{incidence}},
   \code{\link{mean_incidence_rate}},
   \code{\link{plot.incidence}},
-  \code{\link{test_incidence_fit}}
+  \code{\link{test_incidence_fit}},
+  \code{\link{yearly_incidence}}
 }
-

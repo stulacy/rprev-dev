@@ -130,8 +130,8 @@ It is also a useful diagnostic aid to plot the survival curve for each year of t
 plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="Days", 
      ylab="Survival probability")
 num_reg_years <- 9
-registry_years <- determine_registry_years(start='2004-01-30', 
-                                           num_reg_years=num_reg_years)
+registry_years <- determine_yearly_endpoints(date='2004-01-30', 
+                                             num_years=num_reg_years)
 sapply(seq(num_reg_years),
        function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=prevsim_r[prevsim_r$entrydate >= 
@@ -218,7 +218,7 @@ The function returns the prevalence contributions by year, in ascending order (i
 
 ## Simulation
 
-Prevalence is estimated using simulation by calling `prevalence()`. `index_date` and `num_reg_years` perform the same role as in `prevalence_counted`: specifying the date at which to estimate point prevalence, and allowing for the specification of the number of years of registry data to use. `num_years_to_estimate` corresponds to the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of complete years of registry data available before `index_date`, then the remainder of years have their incidence and survival characteristics simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `population_size` variable is used to estimate prevalence per one hundred thousand (or at any rate specified by the `proportion` argument).
+Prevalence is estimated using simulation by calling `prevalence()`. `index_date` and `num_reg_years` perform the same role as in `prevalence_counted`: specifying the date at which to estimate point prevalence, and allowing for the specification of the number of years of registry data to use. `num_years_to_estimate` corresponds to the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of complete years of registry data available before `index_date`, then the remainder of years have their incidence and survival characteristics simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `population_size` argument is used to provide relative rates estimates (per one hundred thousand in this case although this can be specified by the `proportion` argument). If this argument is not provided then just the absolute prevalence estimates are returned.
 
 NB: all follow-up data for the available incident cases is still used in survival modelling.
 
@@ -226,7 +226,6 @@ NB: all follow-up data for the available incident cases is still used in surviva
 prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + 
                                    entry(entrydate) + event(eventdate),
                                prevsim, num_years_to_estimate=c(3, 5, 10), 
-                               population_size=1e6, 
                                index_date='2013-01-30',
                                num_reg_years=9, cure=5) 
 ```

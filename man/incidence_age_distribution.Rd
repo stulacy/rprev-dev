@@ -30,6 +30,6 @@ Other incidence functions: \code{\link{incidence}},
   \code{\link{mean_incidence_rate}},
   \code{\link{plot.incidence}},
   \code{\link{raw_incidence}},
-  \code{\link{test_incidence_fit}}
+  \code{\link{test_incidence_fit}},
+  \code{\link{yearly_incidence}}
 }
-

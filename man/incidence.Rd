@@ -29,7 +29,7 @@ is to be calculated. Defaults to using all available complete years.}
 \value{
 An S3 object of class \code{incidence} with the following attributes:
   \item{raw_incidence}{Vector of absolute incidence values for each included
-  year of the registry, as generated using \code{\link{raw_incidence}}.}
+  year of the registry, as generated using \code{\link{yearly_incidence}}.}
   \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
   the earliest date of inclusion in the registry, ordered shortest to
   longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
@@ -59,6 +59,6 @@ Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{mean_incidence_rate}},
   \code{\link{plot.incidence}},
   \code{\link{raw_incidence}},
-  \code{\link{test_incidence_fit}}
+  \code{\link{test_incidence_fit}},
+  \code{\link{yearly_incidence}}
 }
-
