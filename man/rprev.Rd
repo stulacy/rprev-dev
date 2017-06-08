@@ -33,4 +33,3 @@ probabilities at the index date.
 registry data set, allowing for inspection of whether the homogeneous Poisson
 process assumption holds for the disease in question.
 }
-

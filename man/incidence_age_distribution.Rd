@@ -33,4 +33,3 @@ Other incidence functions: \code{\link{incidence}},
   \code{\link{test_incidence_fit}},
   \code{\link{yearly_incidence}}
 }
-

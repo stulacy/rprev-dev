@@ -79,11 +79,6 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
 #' @examples
 #' data(prevsim)
 #'
-#' raw_incidence(prevsim$entrydate, start="2004-01-01", num_reg_years=8)
-#' raw_incidence(prevsim$entrydate)
-#' raw_incidence(prevsim$entrydate, start="2005-05-01", num_reg_years=5)
-#' raw_incidence(prevsim$entrydate, start="2005-05-01")
-#'
 #' @export
 #' @family incidence functions
 #' @seealso \link{yearly_incidence}

@@ -40,4 +40,3 @@ functional_form_age(Surv(time, status) ~ age, prevsim, df=3)
 functional_form_age(Surv(time, status) ~ age, prevsim, df=3, plot_fit=FALSE)
 
 }
-

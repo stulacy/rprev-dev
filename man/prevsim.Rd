@@ -29,4 +29,3 @@ last known follow-up with the patient, corresponding to death (\code{status = 1}
 censorship (\code{status = 0}).
 }
 \keyword{datasets}
-

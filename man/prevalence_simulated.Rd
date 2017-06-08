@@ -107,4 +107,3 @@ Other prevalence functions: \code{\link{prevalence_counted}},
   \code{\link{prevalence}},
   \code{\link{test_prevalence_fit}}
 }
-

@@ -48,4 +48,3 @@ Other incidence functions: \code{\link{incidence_age_distribution}},
   \code{\link{test_incidence_fit}},
   \code{\link{yearly_incidence}}
 }
-

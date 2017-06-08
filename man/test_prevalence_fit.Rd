@@ -37,4 +37,3 @@ Other prevalence functions: \code{\link{prevalence_counted}},
   \code{\link{prevalence_simulated}},
   \code{\link{prevalence}}
 }
-

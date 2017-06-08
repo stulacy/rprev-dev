@@ -23,4 +23,3 @@ A helper function to calculate dates a year apart, starting from a given date
 for a set number of years. Useful for delimiting a specified time
 interval into a discrete number of years.
 }
-

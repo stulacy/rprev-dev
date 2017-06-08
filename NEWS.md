@@ -10,6 +10,7 @@ The original function name isn't very descriptive for what it does (provides the
 
   - Plot methods now return ggplot objects, allowing for easier manual tweaking
   - `prevalence` no longer runs the simulation when there is more registry data available than needed to estimate N-year prevalence
+  - `prevalence` no longer requires a population size as an argument. Absolute prevalence is always calculated, with relative rates provided if population size is specified
   - `user_manual`: Updated to include a link to the specific webpage where the ONS data set is obtained from and improved formatting
   - `summary.prevalence` correctly displays posterior age distributions of simulated cases and now displays the prevalence estimates themselves
   - unit tests updated to reflect the above changes
