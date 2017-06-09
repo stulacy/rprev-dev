@@ -11,7 +11,7 @@ INCIDENCE_MARGIN <- 1.5
 #       or a formula? have separated formulae for incidence and survival?)
 #   - Also hardcode age to force user death at 100
 
-new_sim_prevalance <- function(data, index='2015-08-31', Nyears=c(10), inc_model=NULL, surv_model=NULL, nsims=1000,
+new_sim_prevalance <- function(data, index='2012-08-31', Nyears=c(10), inc_model=NULL, surv_model=NULL, nsims=1000,
                                dist='weibull')  # Currently does nothing
 {
     full_data <- data
@@ -32,7 +32,7 @@ new_sim_prevalance <- function(data, index='2015-08-31', Nyears=c(10), inc_model
         surv_model <- flexsurvreg(Surv(time, status) ~ age + sex, data=data, dist='weibull')
     }
 
-    all_results <- lapply(1:nsims, function(i) {
+    all_results <- replicate(nsims, {
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
@@ -60,14 +60,14 @@ new_sim_prevalance <- function(data, index='2015-08-31', Nyears=c(10), inc_model
         # Turn into Data Table (far quicker than data frame)
         dt <- data.table(newdata)
         dt[, c("time_to_entry", "time_to_death") := list(entry_times, event_times)]
-        # truncate death at age 100
-        dt[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
         dt
-    })
+    }, simplify=FALSE)
 
     # Combine into single table
     results <- rbindlist(all_results, idcol='sim')
 
+    # truncate death at age 100
+    results[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
     # Add the data into the equation, i.e. incidence date, death date
     results[, c('incident_date', 'death_date') := list(starting_date + time_to_entry,
                                                        starting_date + time_to_entry + time_to_death
@@ -83,6 +83,7 @@ new_sim_prevalance <- function(data, index='2015-08-31', Nyears=c(10), inc_model
     # And also the mean and CIs
     mean(prev_summary$num_prev)
     quantile(prev_summary$num_prev, c(0.025, 0.975))
+    prev_summary
 }
 
 # TODO Put these in a survival script somewhere
