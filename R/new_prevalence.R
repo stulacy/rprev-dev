@@ -1,4 +1,6 @@
 library(flexsurv)
+library(lubridate)
+library(dplyr)
 library(data.table)
 
 INCIDENCE_MARGIN <- 1.5
@@ -11,17 +13,157 @@ INCIDENCE_MARGIN <- 1.5
 #       or a formula? have separated formulae for incidence and survival?)
 #   - Also hardcode age to force user death at 100
 
-new_sim_prevalance <- function(data, index='2012-08-31', Nyears=c(10), inc_model=NULL, surv_model=NULL, nsims=1000,
+new_prevalence <- function(index, num_years_to_estimate,
+                           data,
+                           registry_start_date=NULL,
+                           N_boot=1000,
+                           population_size=NULL, proportion=100e3,
+                           level=0.95,
+                           precision=2, n_cores=1) {
+
+    # This argument allows the user to specify when their registry started. I.e. it could have
+    # started a month before received first incident case, in which case would want that taking into account when
+    # estimating incidence rate and prevalence
+    if (is.null(registry_start_date)) {
+        registry_start_date <- min(data$entrydate)
+    }
+
+    index <- lubridate::ymd(index)
+
+    # Determine counted prevalence for available registry data
+    prev_counted <- new_counted_prevalence(index, data, registry_start_date)
+
+    # Simulation time (t):       max(Nyears)      reg start                  index
+    #                                 |       t       |        registry        |
+    sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
+    sim_time <- difftime(lubridate::ymd(registry_start_date), sim_start_date, units='days')
+    if (sim_time <= 0) {
+        # TODO Should this always be error or just run counted prevalence?
+        stop("Error: Requested simulation to be run for ", sim_time, "days")
+    }
+
+    prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot)
+
+    # Create column indicating whether contributed to prevalence for each year of interest
+    # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
+    for (year in num_years_to_estimate) {
+        # Determine starting incident date
+        starting_incident_date <- index - lubridate::years(year)
+
+        # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
+        col_name <- paste0("prev_", year, "yr")
+
+        # Determine prevalence as incident date is in range and alive at index date
+        prev_sim[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
+    }
+
+    # Obtain absolute simulated prevalence estimate from results DT
+    names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
+    estimates <- lapply(setNames(num_years_to_estimate, names),
+                        new_point_estimate,  # Function
+                        prev_sim, prev_counted, population_size, proportion, level, precision)
+
+
+    # Return object
+    object <- list(estimates=estimates, simulated=prev_sim,
+                   counted=prev_counted,
+                   index_date=index,
+                   proportion=proportion)
+
+    # Calculate covariate means and save
+    # TODO What's this needed for?
+    #mean_df <- data[, c(age_var, sex_var)]
+    #mean_df <- apply(mean_df, 2, as.numeric)
+    #object$means <- colMeans(mean_df)
+    #object$y <- survobj
+
+    # TODO Get this working
+    #object$pval <- test_prevalence_fit(object)
+
+    attr(object, 'class') <- 'prevalence'
+    object
+
+}
+
+new_point_estimate <- function(year, sim_results, count_prev, population_size=NULL, proportion=100e3,
+                               level=0.95, precision=2) {
+
+    # Determine column name for this year
+    col_name <- paste0("prev_", year, "yr")
+
+    # TODO Determine if have simulated data for this year rather than attempting
+    # to aggregate over column that doesn't exist. Maybe need nested if for simulated data then each condition has proportion condition
+
+    # Estimate absolute prevalence as sum of simulated and counted
+    sim_prev <- sim_results[, sum(get(col_name)), by=sim][[2]]  # Return the results vector rather than sim key
+    the_estimate <- count_prev + mean(sim_prev)
+
+    result <- list(absolute.prevalence=the_estimate)
+
+    if (!is.null(population_size)) {
+        raw_proportion <- the_estimate / population_size
+        the_proportion <- proportion * raw_proportion
+
+        # TODO Have some way of testing whether had simulated data or not
+        if (FALSE) {
+            se <- (raw_proportion * (1 - raw_proportion)) / population_size
+        } else {
+
+            # Counted prevalence SE
+            raw_proportion_n <- count_prev / population_size
+            std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
+
+            # Simulated prevalence SE
+            sim_prev_sd <- sd(sim_prev)
+            std_err_2 <- sim_prev_sd / population_size
+
+            se <- std_err_1^2 + std_err_2^2
+        }
+
+        z_level <- qnorm((1+level)/2)
+        CI <- z_level * sqrt(se) * proportion
+
+        # Setup labels for proportion list outputs
+        proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
+                                  if (proportion / 1e3 >= 1) 'K' else ''
+                              }
+        proportion_val <- if (proportion / 1e6 >= 1) proportion / 1e6 else {
+                                  if (proportion / 1e3 >= 1) proportion / 1e3 else proportion
+                            }
+        est_lab <- paste('per', proportion_val, proportion_unit, sep='')
+        upper_lab <- paste(est_lab, '.upper', sep='')
+        lower_lab <- paste(est_lab, '.lower', sep='')
+        result[[est_lab]] <- the_proportion
+        result[[upper_lab]] <- the_proportion + CI
+        result[[lower_lab]] <- the_proportion - CI
+    }
+
+    lapply(result, round, precision)
+}
+
+
+
+# Requires columns with entrydate, eventdate, status
+# Start date allows users to specify how long estimating prevalence for, as otherwise including
+# all contributions in data set
+# TODO Make start date optional like in prevalence
+new_counted_prevalence <- function(index, data, start_date) {
+    data %>%
+        filter(entrydate >= start_date, entrydate < index) %>%
+        mutate(dead_at_index = ifelse(eventdate > index, 0, status)) %>%
+        summarise(sum(1 - dead_at_index)) %>%     # Prevalence is number of those still alive or censored at index
+        unname() %>%
+        as.numeric()
+}
+
+new_sim_prevalance <- function(data, index, number_incident_days, starting_date=NULL, inc_model=NULL, surv_model=NULL, nsims=1000,
                                dist='weibull')  # Currently does nothing
 {
     full_data <- data
-    ndays <- max(Nyears * 365.25)
-    starting_date <- as.Date(index) - Nyears * 365.25
-
-    # TODO Somewhere sort out how to calculate multiple starting_dates, so can obtain prevalence for each N year required
 
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
     if (is.null(inc_model)) {
+        # TODO Make the incidence model accept the registry starting date as an argument too
         inc_model <- fit_exponential_incidence(data)
     }
 
@@ -36,19 +178,19 @@ new_sim_prevalance <- function(data, index='2012-08-31', Nyears=c(10), inc_model
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
-        # fit incidence and survival models
+        # fit incidence and survival models.
         bs_inc <- eval(inc_model$call)
         bs_surv <- eval(surv_model$call)
 
         # Estimate how many people will be incident in this time frame
-        initial_num_inds <- INCIDENCE_MARGIN * expected_incidence(bs_inc, ndays)
+        initial_num_inds <- INCIDENCE_MARGIN * expected_incidence(bs_inc, number_incident_days)
 
-        # draw incidence times (time in days after the starting date (index date - Nyears))
+        # draw incidence times (time in days after the starting date)
         entry_times <- draw_interarrival_time(bs_inc, initial_num_inds)
-        entry_times <- entry_times[entry_times < ndays]
+        entry_times <- entry_times[entry_times < number_incident_days]
         num_inds <- length(entry_times)
 
-        # draw age and sex values
+        # draw covariate values from model (TODO maybe require that model has a "terms" attribute?)
         # TODO Expand this to determine the covariates in the model rather than being hardcoded
         newdata <- data.frame(age=sample(full_data$age, num_inds, replace=T),
                               sex=sample(full_data$sex, num_inds, replace=T)
@@ -68,22 +210,17 @@ new_sim_prevalance <- function(data, index='2012-08-31', Nyears=c(10), inc_model
 
     # truncate death at age 100
     results[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
+
     # Add the data into the equation, i.e. incidence date, death date
-    results[, c('incident_date', 'death_date') := list(starting_date + time_to_entry,
-                                                       starting_date + time_to_entry + time_to_death
-                                                       )]
+    if (!is.null(starting_date)) {
+        results[, c('incident_date', 'death_date') := list(as.Date(starting_date + time_to_entry),
+                                                           as.Date(starting_date + time_to_entry + time_to_death)
+                                                           )]
+    }
 
-    # Create column for prevalent at index
-    # TODO Have this iterated (or grouped by) each year of prevalence we're interested in
-    results[, prevalent := as.numeric(death_date > index)]
-
-    # Can view the number of prevalent cases by each simulation
-    prev_summary <- results[,. (num_prev = sum(prevalent)), by=sim]
-
-    # And also the mean and CIs
-    mean(prev_summary$num_prev)
-    quantile(prev_summary$num_prev, c(0.025, 0.975))
-    prev_summary
+    # Drop intermediary columns
+    results[, c("time_to_entry", "time_to_death") := NULL ]
+    results
 }
 
 # TODO Put these in a survival script somewhere
@@ -94,7 +231,7 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
     loc_param <- object$dlist$location
 
     # Obtain linear predictor for the location parameter
-    # Obtain name of covariates (typically just 'age' and 'sex')
+    # Obtain name of covariates
     covars <- colnames(newdata)
     formula <- as.formula(paste("~", paste(covars, collapse='+')))
     # Expand categorical variables in newdata frame
