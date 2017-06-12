@@ -30,44 +30,42 @@ new_prevalence <- function(index, num_years_to_estimate,
 
     index <- lubridate::ymd(index)
     registry_start_date <- lubridate::ymd(registry_start_date)
-
-    # Determine counted prevalence for available registry data
-    prev_counted <- new_counted_prevalence(index, data, registry_start_date)
-
-    # Simulation time (t):       max(Nyears)      reg start                  index
-    #                                 |       t       |        registry        |
     sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
-    sim_time <- difftime(index, sim_start_date, units='days')
-    if (sim_time <= 0) {
-        # TODO Should this always be error or just run counted prevalence?
-        stop("Error: Requested simulation to be run for ", sim_time, "days")
+
+    # If need simulation
+    if (sim_start_date < registry_start_date) {
+        sim_time <- difftime(index, sim_start_date, units='days')
+        prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot)
+        # Create column indicating whether contributed to prevalence for each year of interest
+        # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
+        for (year in num_years_to_estimate) {
+            # Determine starting incident date
+            starting_incident_date <- index - lubridate::years(year)
+
+            # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
+            col_name <- paste0("prev_", year, "yr")
+
+            # Determine prevalence as incident date is in range and alive at index date
+            prev_sim[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
+        }
+
+
+    } else {
+        prev_sim <- NULL
     }
 
-    prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot)
-
-    # Create column indicating whether contributed to prevalence for each year of interest
-    # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
-    for (year in num_years_to_estimate) {
-        # Determine starting incident date
-        starting_incident_date <- index - lubridate::years(year)
-
-        # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
-        col_name <- paste0("prev_", year, "yr")
-
-        # Determine prevalence as incident date is in range and alive at index date
-        prev_sim[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
-    }
-
-    # Obtain absolute simulated prevalence estimate from results DT
+    # Determine point estimates of prevalence by combining simulated and counted values
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
     estimates <- lapply(setNames(num_years_to_estimate, names),
                         new_point_estimate,  # Function
-                        prev_sim, prev_counted, registry_start_date, population_size, proportion, level, precision)
+                        prev_sim, index, data,
+                        registry_start_date,
+                        population_size, proportion, level, precision)
 
 
     # Return object
     object <- list(estimates=estimates, simulated=prev_sim,
-                   counted=prev_counted,
+                   counted=new_counted_prevalence(index, data, registry_start_date),
                    index_date=index,
                    proportion=proportion,
                    registry_start=registry_start_date)
@@ -79,25 +77,34 @@ new_prevalence <- function(index, num_years_to_estimate,
     #object$means <- colMeans(mean_df)
     #object$y <- survobj
 
-    object$pval <- new_test_prevalence_fit(object)
+    if (!is.null(prev_sim)) {
+        object$pval <- new_test_prevalence_fit(object)
+    }
 
     attr(object, 'class') <- 'prevalence'
     object
 
 }
 
-new_point_estimate <- function(year, sim_results, count_prev, registry_start_date, population_size=NULL, proportion=100e3,
+new_point_estimate <- function(year, sim_results, index, registry_data, registry_start_date, population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
 
-    # Determine column name for this year
-    col_name <- paste0("prev_", year, "yr")
+    # See if need simulation if have less registry data than required
+    initial_date <- index - years(year)
+    need_simulation <- initial_date < registry_start_date
 
-    # TODO Determine if have simulated data for this year rather than attempting
-    # to aggregate over column that doesn't exist. Maybe need nested if for simulated data then each condition has proportion condition
+    #need_simulation <- (as.numeric(difftime(index, registry_start_date, units='weeks')) / 52.25) < year
+    count_prev <- new_counted_prevalence(index, registry_data, max(initial_date, registry_start_date))
 
     # Estimate absolute prevalence as sum of simulated and counted
-    sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
-    the_estimate <- count_prev + mean(sim_contributions)
+    if (need_simulation) {
+        # Determine column name for this year
+        col_name <- paste0("prev_", year, "yr")
+        sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
+        the_estimate <- count_prev + mean(sim_contributions)
+    } else {
+        the_estimate <- count_prev
+    }
 
     result <- list(absolute.prevalence=the_estimate)
 
@@ -106,7 +113,7 @@ new_point_estimate <- function(year, sim_results, count_prev, registry_start_dat
         the_proportion <- proportion * raw_proportion
 
         # TODO Have some way of testing whether had simulated data or not
-        if (FALSE) {
+        if (! need_simulation) {
             se <- (raw_proportion * (1 - raw_proportion)) / population_size
         } else {
 
