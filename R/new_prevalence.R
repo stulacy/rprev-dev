@@ -29,6 +29,7 @@ new_prevalence <- function(index, num_years_to_estimate,
     }
 
     index <- lubridate::ymd(index)
+    registry_start_date <- lubridate::ymd(registry_start_date)
 
     # Determine counted prevalence for available registry data
     prev_counted <- new_counted_prevalence(index, data, registry_start_date)
@@ -36,7 +37,7 @@ new_prevalence <- function(index, num_years_to_estimate,
     # Simulation time (t):       max(Nyears)      reg start                  index
     #                                 |       t       |        registry        |
     sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
-    sim_time <- difftime(lubridate::ymd(registry_start_date), sim_start_date, units='days')
+    sim_time <- difftime(index, sim_start_date, units='days')
     if (sim_time <= 0) {
         # TODO Should this always be error or just run counted prevalence?
         stop("Error: Requested simulation to be run for ", sim_time, "days")
@@ -61,14 +62,15 @@ new_prevalence <- function(index, num_years_to_estimate,
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
     estimates <- lapply(setNames(num_years_to_estimate, names),
                         new_point_estimate,  # Function
-                        prev_sim, prev_counted, population_size, proportion, level, precision)
+                        prev_sim, prev_counted, registry_start_date, population_size, proportion, level, precision)
 
 
     # Return object
     object <- list(estimates=estimates, simulated=prev_sim,
                    counted=prev_counted,
                    index_date=index,
-                   proportion=proportion)
+                   proportion=proportion,
+                   registry_start=registry_start_date)
 
     # Calculate covariate means and save
     # TODO What's this needed for?
@@ -77,15 +79,14 @@ new_prevalence <- function(index, num_years_to_estimate,
     #object$means <- colMeans(mean_df)
     #object$y <- survobj
 
-    # TODO Get this working
-    #object$pval <- test_prevalence_fit(object)
+    object$pval <- new_test_prevalence_fit(object)
 
     attr(object, 'class') <- 'prevalence'
     object
 
 }
 
-new_point_estimate <- function(year, sim_results, count_prev, population_size=NULL, proportion=100e3,
+new_point_estimate <- function(year, sim_results, count_prev, registry_start_date, population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
 
     # Determine column name for this year
@@ -95,8 +96,8 @@ new_point_estimate <- function(year, sim_results, count_prev, population_size=NU
     # to aggregate over column that doesn't exist. Maybe need nested if for simulated data then each condition has proportion condition
 
     # Estimate absolute prevalence as sum of simulated and counted
-    sim_prev <- sim_results[, sum(get(col_name)), by=sim][[2]]  # Return the results vector rather than sim key
-    the_estimate <- count_prev + mean(sim_prev)
+    sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
+    the_estimate <- count_prev + mean(sim_contributions)
 
     result <- list(absolute.prevalence=the_estimate)
 
@@ -114,7 +115,7 @@ new_point_estimate <- function(year, sim_results, count_prev, population_size=NU
             std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
 
             # Simulated prevalence SE
-            sim_prev_sd <- sd(sim_prev)
+            sim_prev_sd <- sd(sim_contributions)
             std_err_2 <- sim_prev_sd / population_size
 
             se <- std_err_1^2 + std_err_2^2
@@ -219,7 +220,6 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
     }
 
     # Drop intermediary columns
-    results[, c("time_to_entry", "time_to_death") := NULL ]
     results
 }
 
