@@ -19,6 +19,7 @@ new_prevalence <- function(index, num_years_to_estimate,
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
+                           dist='weibull',
                            precision=2, n_cores=1) {
 
     # This argument allows the user to specify when their registry started. I.e. it could have
@@ -35,7 +36,8 @@ new_prevalence <- function(index, num_years_to_estimate,
     # If need simulation
     if (sim_start_date < registry_start_date) {
         sim_time <- difftime(index, sim_start_date, units='days')
-        prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot)
+        prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist)
+
         # Create column indicating whether contributed to prevalence for each year of interest
         # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
         for (year in num_years_to_estimate) {
@@ -46,7 +48,7 @@ new_prevalence <- function(index, num_years_to_estimate,
             col_name <- paste0("prev_", year, "yr")
 
             # Determine prevalence as incident date is in range and alive at index date
-            prev_sim[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
+            prev_sim$results[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
         }
 
 
@@ -58,14 +60,18 @@ new_prevalence <- function(index, num_years_to_estimate,
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
     estimates <- lapply(setNames(num_years_to_estimate, names),
                         new_point_estimate,  # Function
-                        prev_sim, index, data,
+                        prev_sim$results, index, data,
                         registry_start_date,
                         population_size, proportion, level, precision)
 
+    surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
+    inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
 
     # Return object
-    object <- list(estimates=estimates, simulated=prev_sim,
+    object <- list(estimates=estimates, simulated=prev_sim$results,
                    counted=new_counted_prevalence(index, data, registry_start_date),
+                   surv_model=surv_model,
+                   inc_model=inc_model,
                    index_date=index,
                    proportion=proportion,
                    registry_start=registry_start_date)
@@ -171,7 +177,6 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
 
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
     if (is.null(inc_model)) {
-        # TODO Make the incidence model accept the registry starting date as an argument too
         inc_model <- fit_exponential_incidence(data)
     }
 
@@ -179,7 +184,7 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
     # survival distribution
     # TODO Allow for the survival distribution to be chosen as one that ISN'T 3-parameter
     if (is.null(surv_model)) {
-        surv_model <- flexsurvreg(Surv(time, status) ~ age + sex, data=data, dist='weibull')
+        surv_model <- flexsurvreg(Surv(time, status) ~ age + sex, data=data, dist=dist)
     }
 
     all_results <- replicate(nsims, {
@@ -227,7 +232,9 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
     }
 
     # Drop intermediary columns
-    results
+    list(results=results,
+         surv_model=surv_model,
+         inc_model=inc_model)
 }
 
 # TODO Put these in a survival script somewhere
