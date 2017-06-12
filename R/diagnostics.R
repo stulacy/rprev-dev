@@ -55,6 +55,12 @@ test_prevalence_fit <- function(object) {
     1 - pchisq(chi, object$nregyears - 1)
 }
 
+new_test_prevalence_fit <- function(object) {
+    object$simulated[, prev_registry := as.numeric(incident_date >= object$registry_start & death_date > object$index_date)]
+    predicted <- round(mean(object$simulated[, sum(prev_registry), by=sim][[2]]))
+    poisson.test(c(object$counted, predicted))$p.value
+}
+
 #' Plot the age distribution of incident cases.
 #'
 #' This function plots the age distribution of incident cases from the registry.
