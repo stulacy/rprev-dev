@@ -171,11 +171,13 @@ new_counted_prevalence <- function(index, data, start_date) {
 new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
                                inc_model=NULL, surv_model=NULL,
                                dist='weibull', surv_formula=NULL, nsims=1000) {
-    full_data <- data
+    all_data <- data[complete.cases(data), ]
 
+    # TODO Change calls for both objects to use data = surv_data and inc_data so can use them without worry in main loop
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
     if (missing(inc_model)) {
-        inc_model <- fit_exponential_incidence(data)
+        inc_data <- all_data
+        inc_model <- fit_exponential_incidence(inc_data)
     }
 
     if (!missing(surv_model) && !(missing(surv_formula))) {
@@ -194,19 +196,43 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     # survival distribution
     # TODO Allow for the survival distribution to be chosen as one that ISN'T 3-parameter
     if (!missing(surv_formula)) {
-        # TODO obtain correct data
-        surv_model <- build_survreg(surv_formula, data, dist)
+        X <- model.matrix(surv_formula, all_data)
+        survobj <- with(all_data, eval(surv_formula[[2]]))
+        Y <- cbind(survobj[, 1], survobj[, 2])
+        surv_data <- cbind(Y, X)
+        surv_model <- build_survreg(surv_data, dist)
+        full_surv_data <- surv_data
+
+        covar_names <- rownames(attr(terms(surv_formula), "factors"))[2:nrow(attr(terms(surv_formula), "factors"))]
+
+        # Obtain the column index(ices) for each covariate for the design matrix
+        covars <- setNames(lapply(covar_names, function(x) {
+            # If categorical variable obtain column indices for all columns that have this factor
+            if (x %in% names(attr(X, "contrasts"))) {
+                grep(paste0("^", x, "[[:alnum:]]+"),
+                     colnames(full_surv_data))
+
+            } else {
+                which(colnames(full_surv_data) == x)
+            }
+
+        }), covar_names)
+
+        # Obtain whether categorical or continuous and each column index
+
+    } else {
+        full_surv_data <- all_data
+        covars <- extract_covars(surv_model)
     }
 
     if (missing(surv_model)) {
         stop("Error: Please provide one of surv_model or surv_formula.")
     }
 
-    covars <- extract_covars(surv_model)
-
     all_results <- replicate(nsims, {
         # bootstrap dataset
-        data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
+        surv_data <- full_surv_data[sample(seq(nrow(full_surv_data)), replace=T), ]
+        inc_data <- all_data[sample(seq(nrow(all_data)), replace=T), ]
 
         # fit incidence and survival models.
         bs_inc <- eval(inc_model$call)
@@ -221,7 +247,16 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
         num_inds <- length(entry_times)
 
         # draw covariate values from model
-        newdata <- data.frame(setNames(lapply(covars, function(x) sample(full_data[[x]], num_inds, replace=T)), covars))
+        # TODO If using my minimal survreg method this samples from matrix instead of data frame
+        if (is.list(covars)) {
+            newdata <- cbind(1, matrix(unlist(lapply(names(covars), function(x) full_surv_data[sample(1:nrow(full_surv_data), num_inds, replace=T),
+                                                                                               covars[[x]]])),
+                              nrow=num_inds,
+                              byrow=F))
+
+        } else {
+            newdata <- data.frame(setNames(lapply(covars, function(x) sample(all_data[[x]], num_inds, replace=T)), covars))
+        }
 
         # draw event times
         event_times <- draw_time_to_death(surv_model, newdata)
@@ -251,25 +286,20 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
          inc_model=inc_model)
 }
 
-build_survreg <- function(formula, data, user_dist) {
+build_survreg <- function(data, user_dist, terms) {
     # Transforms the registry data into the format specified by survreg.fit,
     # i.e. as a matrix of values with the survival times log transformed.
-    complete <- data[complete.cases(data), ]
-    X <- model.matrix(formula, complete)
-    survobj <- with(complete, eval(formula[[2]]))
-    Y <- cbind(survobj[, 1], survobj[, 2])
-    data_mat <- cbind(Y, X)
 
     # Transform of y
-    data_mat[, 1] <- survreg.distributions[[user_dist]]$trans(data_mat[, 1])
+    data[, 1] <- survreg.distributions[[user_dist]]$trans(data[, 1])
 
     # Obtain actual dist
     surv_dist <- survreg.distributions[[user_dist]]$dist
     scale <- if (is.null(survival::survreg.distributions[[user_dist]]$scale)) 0 else survival::survreg.distributions[[user_dist]]$scale
 
     mod <- survival::survreg.fit(
-                         data_mat[, 3:ncol(data_mat)],
-                         data_mat[, 1:2],
+                         data[, 3:ncol(data)],
+                         data[, 1:2],
                          NULL, # weights
                          numeric(nrow(data)), # offset
                          NULL, # init
@@ -282,10 +312,9 @@ build_survreg <- function(formula, data, user_dist) {
                          )
 
     object <- list(coefs=coef(mod),
-                   covars = rownames(attr(terms(formula), "factors"))[2:nrow(attr(terms(formula), "factors"))],
                    call = match.call(),
                    dist = user_dist,
-                   terms= labels(terms(formula))
+                   num_params = distribution_params[[user_dist]]
                    )
     class(object) <- c(class(object), 'survregmin')
     object
@@ -306,17 +335,11 @@ draw_time_to_death <- function(object, newdata) UseMethod("draw_time_to_death")
 
 draw_time_to_death.survregmin <- function(object, newdata) {
 
-    # Expand data into dummy categorical and include intercept
-    formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
-    wide_df <- model.matrix(formula, newdata)
-
-    # Obtain coefficient for location parameter
-    # TODO Determine if have 2 params or 1
-    num_params <- length(object$coefs) - length(object$terms)
+    num_params <- object$num_params
     if (num_params == 2) {
-        lps <- wide_df %*% object$coefs[-length(object$coefs)]
+        lps <- newdata %*% object$coefs[-length(object$coefs)]
     } else if (num_params == 1) {
-        lps <- wide_df %*% object$coefs
+        lps <- newdata %*% object$coefs
     } else {
         stop("Error: Unknown number of parameters ", num_params)
     }
@@ -345,6 +368,12 @@ distribution_drawing <- list('weibull' = function(n, lps, scale=NULL) {
                              'exponential' = function(n, lps, scale=NULL) {
                                  rexp(n, 1/exp(lps))
                              }
+                             )
+# TODO Combine this with draw function into one list
+distribution_params <- list('weibull' = 2,
+                             'lognormal' = 2,
+                             'loglogistic' = 2,
+                             'exponential' = 1
                              )
 
 draw_time_to_death.flexsurvreg <- function(object, newdata) {
