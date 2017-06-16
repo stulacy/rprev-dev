@@ -7,8 +7,6 @@ INCIDENCE_MARGIN <- 1.5
 
 # TODO Current hardcoded values:
 #   - Column names
-#   - Weibull distribution for the survival model (not going to touch custom incident and survival objects although in theory shouldn't
-#       be too much work)
 #   - Covariates used in survival modelling! Currently hardcoded as age and sex (could have these passed in as a variable? surv_covars,
 #       or a formula? have separated formulae for incidence and survival?)
 #   - Also hardcode age to force user death at 100
@@ -36,7 +34,7 @@ new_prevalence <- function(index, num_years_to_estimate,
     # If need simulation
     if (sim_start_date < registry_start_date) {
         sim_time <- difftime(index, sim_start_date, units='days')
-        prev_sim <- new_sim_prevalance(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist)
+        prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
@@ -170,22 +168,41 @@ new_counted_prevalence <- function(index, data, start_date) {
         as.numeric()
 }
 
-new_sim_prevalance <- function(data, index, number_incident_days, starting_date=NULL, inc_model=NULL, surv_model=NULL, nsims=1000,
-                               dist='weibull')  # Currently does nothing
-{
+new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
+                               inc_model=NULL, surv_model=NULL,
+                               dist='weibull', surv_formula=NULL, nsims=1000) {
     full_data <- data
 
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
-    if (is.null(inc_model)) {
+    if (missing(inc_model)) {
         inc_model <- fit_exponential_incidence(data)
+    }
+
+    if (!missing(surv_model) && !(missing(surv_formula))) {
+        stop("Error: Please provide only one of surv_model and surv_formula.")
+    }
+    if (!missing(surv_model) && !(missing(dist))) {
+        stop("Error: Please provide only one of surv_model and dist.")
+    }
+
+    available_dists <- c('lognormal', 'weibull', 'exponential')
+    if (!missing(dist) && ! dist %in% available_dists) {
+        stop("Error: Please select one of the following distributions: ", paste(available_dists))
     }
 
     # If surv_model is null then make one ourselves, must be a function of data frame with age and sex values that returns draws from
     # survival distribution
     # TODO Allow for the survival distribution to be chosen as one that ISN'T 3-parameter
-    if (is.null(surv_model)) {
-        surv_model <- flexsurvreg(Surv(time, status) ~ age + sex, data=data, dist=dist)
+    if (!missing(surv_formula)) {
+        # TODO obtain correct data
+        surv_model <- build_survreg(surv_formula, data, dist)
     }
+
+    if (missing(surv_model)) {
+        stop("Error: Please provide one of surv_model or surv_formula.")
+    }
+
+    covars <- extract_covars(surv_model)
 
     all_results <- replicate(nsims, {
         # bootstrap dataset
@@ -203,14 +220,11 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
         entry_times <- entry_times[entry_times < number_incident_days]
         num_inds <- length(entry_times)
 
-        # draw covariate values from model (TODO maybe require that model has a "terms" attribute?)
-        # TODO Expand this to determine the covariates in the model rather than being hardcoded
-        newdata <- data.frame(age=sample(full_data$age, num_inds, replace=T),
-                              sex=sample(full_data$sex, num_inds, replace=T)
-                              )
+        # draw covariate values from model
+        newdata <- data.frame(setNames(lapply(covars, function(x) sample(full_data[[x]], num_inds, replace=T)), covars))
 
         # draw event times
-        event_times <- draw_time_to_death.flexsurvreg(surv_model, newdata)
+        event_times <- draw_time_to_death(surv_model, newdata)
 
         # Turn into Data Table (far quicker than data frame)
         dt <- data.table(newdata)
@@ -237,8 +251,101 @@ new_sim_prevalance <- function(data, index, number_incident_days, starting_date=
          inc_model=inc_model)
 }
 
+build_survreg <- function(formula, data, user_dist) {
+    # Transforms the registry data into the format specified by survreg.fit,
+    # i.e. as a matrix of values with the survival times log transformed.
+    complete <- data[complete.cases(data), ]
+    X <- model.matrix(formula, complete)
+    survobj <- with(complete, eval(formula[[2]]))
+    Y <- cbind(survobj[, 1], survobj[, 2])
+    data_mat <- cbind(Y, X)
+
+    # Transform of y
+    data_mat[, 1] <- survreg.distributions[[user_dist]]$trans(data_mat[, 1])
+
+    # Obtain actual dist
+    surv_dist <- survreg.distributions[[user_dist]]$dist
+    scale <- if (is.null(survival::survreg.distributions[[user_dist]]$scale)) 0 else survival::survreg.distributions[[user_dist]]$scale
+
+    mod <- survival::survreg.fit(
+                         data_mat[, 3:ncol(data_mat)],
+                         data_mat[, 1:2],
+                         NULL, # weights
+                         numeric(nrow(data)), # offset
+                         NULL, # init
+                         survival::survreg.control(), # controlvars
+                         survival::survreg.distributions[[surv_dist]], # dist  TODO WHY IS THIS EXTREME FOR WEIBULL?
+                         scale,
+                         1, # nstrat
+                         0, # strata
+                         NULL # parms
+                         )
+
+    object <- list(coefs=coef(mod),
+                   covars = rownames(attr(terms(formula), "factors"))[2:nrow(attr(terms(formula), "factors"))],
+                   call = match.call(),
+                   dist = user_dist,
+                   terms= labels(terms(formula))
+                   )
+    class(object) <- c(class(object), 'survregmin')
+    object
+}
+
+extract_covars <- function(object) UseMethod("extract_covars")
+
+extract_covars.flexsurvreg <- function(object) {
+    attr(object$concat.formula, "covnames")
+}
+
+extract_covars.survregmin <- function(object) {
+    object$covars
+}
+
 # TODO Put these in a survival script somewhere
-draw_time_to_death <- function(object, newdata, ...) UseMethod("draw_time_to_death")
+draw_time_to_death <- function(object, newdata) UseMethod("draw_time_to_death")
+
+draw_time_to_death.survregmin <- function(object, newdata) {
+
+    # Expand data into dummy categorical and include intercept
+    formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
+    wide_df <- model.matrix(formula, newdata)
+
+    # Obtain coefficient for location parameter
+    # TODO Determine if have 2 params or 1
+    num_params <- length(object$coefs) - length(object$terms)
+    if (num_params == 2) {
+        lps <- wide_df %*% object$coefs[-length(object$coefs)]
+    } else if (num_params == 1) {
+        lps <- wide_df %*% object$coefs
+    } else {
+        stop("Error: Unknown number of parameters ", num_params)
+    }
+
+    # Can't see any other way to do this without making subclasses for each distribution
+    if (num_params == 2) {
+        scale <- object$coefs[length(object$coefs)]
+    } else if (num_params == 1) {
+        scale <- NULL
+    } else {
+        stop("Error: Unknown number of parameters ", num_params)
+    }
+
+    distribution_drawing[[object$dist]](nrow(newdata), lps, scale)
+}
+
+distribution_drawing <- list('weibull' = function(n, lps, scale=NULL) {
+                                rweibull(n, 1 / exp(scale), exp(lps))
+                             },
+                             'lognormal' = function(n, lps, scale=NULL) {
+                                 rlnorm(n, lps, exp(scale))
+                             },
+                             'loglogistic' = function(n, lps, scale=NULL) {
+                                 rllogis(n, 1 / exp(scale), exp(lps))
+                             },
+                             'exponential' = function(n, lps, scale=NULL) {
+                                 rexp(n, 1/exp(lps))
+                             }
+                             )
 
 draw_time_to_death.flexsurvreg <- function(object, newdata) {
     # Obtain location parameter (i.e. one that covariates act on)
@@ -246,6 +353,8 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
 
     # Obtain linear predictor for the location parameter
     # Obtain name of covariates
+    # TODO This won't work for interactions, should either see if have formula in the call somewhere
+    # or save it manually in my own constructor
     covars <- colnames(newdata)
     formula <- as.formula(paste("~", paste(covars, collapse='+')))
     # Expand categorical variables in newdata frame
