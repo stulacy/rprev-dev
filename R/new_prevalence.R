@@ -47,13 +47,16 @@ new_prevalence <- function(index, num_years_to_estimate,
             # Determine starting incident date
             starting_incident_date <- index - lubridate::years(year)
 
+            if (starting_incident_date > registry_start_date) {
+                next
+            }
+
             # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
             col_name <- paste0("prev_", year, "yr")
 
             # Determine prevalence as incident date is in range and alive at index date
             prev_sim$results[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
         }
-
 
     } else {
         prev_sim <- NULL
@@ -86,9 +89,9 @@ new_prevalence <- function(index, num_years_to_estimate,
     #object$means <- colMeans(mean_df)
     #object$y <- survobj
 
-    #if (!is.null(prev_sim)) {
-    #    object$pval <- new_test_prevalence_fit(object)
-    #}
+    if (!is.null(prev_sim)) {
+        object$pval <- new_test_prevalence_fit(object)
+    }
 
     attr(object, 'class') <- 'prevalence'
     object
@@ -102,7 +105,6 @@ new_point_estimate <- function(year, sim_results, index, registry_data, registry
     initial_date <- index - years(year)
     need_simulation <- initial_date < registry_start_date
 
-    #need_simulation <- (as.numeric(difftime(index, registry_start_date, units='weeks')) / 52.25) < year
     count_prev <- new_counted_prevalence(index, registry_data, max(initial_date, registry_start_date))
 
     # Estimate absolute prevalence as sum of simulated and counted
@@ -121,7 +123,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, registry
         raw_proportion <- the_estimate / population_size
         the_proportion <- proportion * raw_proportion
 
-        # TODO Have some way of testing whether had simulated data or not
+        # Standard error for estimates that combine simulation and counting are more involved
         if (! need_simulation) {
             se <- (raw_proportion * (1 - raw_proportion)) / population_size
         } else {
