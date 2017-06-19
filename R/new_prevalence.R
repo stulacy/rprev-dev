@@ -241,7 +241,11 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     results <- rbindlist(all_results, idcol='sim')
 
     # truncate death at age 100
-    results[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
+    if ('age' %in% colnames(results)) {
+        results[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
+    } else {
+        message("No 'age' column found so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
+    }
 
     # Add the data into the equation, i.e. incidence date, death date
     if (!is.null(starting_date)) {
