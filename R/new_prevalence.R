@@ -14,6 +14,9 @@ INCIDENCE_MARGIN <- 1.5
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
                            registry_start_date=NULL,
+                           inc_model=NULL,
+                           surv_formula=NULL,
+                           surv_model=NULL,
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
@@ -34,7 +37,9 @@ new_prevalence <- function(index, num_years_to_estimate,
     # If need simulation
     if (sim_start_date < registry_start_date) {
         sim_time <- difftime(index, sim_start_date, units='days')
-        prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist)
+        prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist,
+                                       surv_formula = surv_formula, surv_model=surv_model,
+                                       inc_model=inc_model)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
@@ -81,9 +86,9 @@ new_prevalence <- function(index, num_years_to_estimate,
     #object$means <- colMeans(mean_df)
     #object$y <- survobj
 
-    if (!is.null(prev_sim)) {
-        object$pval <- new_test_prevalence_fit(object)
-    }
+    #if (!is.null(prev_sim)) {
+    #    object$pval <- new_test_prevalence_fit(object)
+    #}
 
     attr(object, 'class') <- 'prevalence'
     object
@@ -177,14 +182,14 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     full_data <- data
 
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
-    if (missing(inc_model)) {
+    if (is.null(inc_model)) {
         inc_model <- fit_exponential_incidence(data)
     }
 
-    if (!missing(surv_model) && !(missing(surv_formula))) {
+    if (!is.null(surv_model) && !(is.null(surv_formula))) {
         stop("Error: Please provide only one of surv_model and surv_formula.")
     }
-    if (!missing(surv_model) && !(missing(dist))) {
+    if (!is.null(surv_model) && !(is.null(dist))) {
         stop("Error: Please provide only one of surv_model and dist.")
     }
 
