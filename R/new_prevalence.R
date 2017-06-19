@@ -171,6 +171,9 @@ new_counted_prevalence <- function(index, data, start_date) {
 new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
                                inc_model=NULL, surv_model=NULL,
                                dist='weibull', surv_formula=NULL, nsims=1000) {
+    # TODO Obtain this column name dynamically
+    data <- data[complete.cases(data), ]
+    data$entrydate <- as.Date(data$entrydate)
     full_data <- data
 
     # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
@@ -189,6 +192,8 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     if (!missing(dist) && ! dist %in% available_dists) {
         stop("Error: Please select one of the following distributions: ", paste(available_dists))
     }
+
+
 
     # If surv_model is null then make one ourselves, must be a function of data frame with age and sex values that returns draws from
     # survival distribution
@@ -388,7 +393,7 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
 
 # TODO Put these in an incidence script somewhere
 fit_exponential_incidence <- function(data) {
-    rate <- length(data$entrydate) / as.numeric(max(as.Date(data$entrydate)) - min(as.Date(data$entrydate)))
+    rate <- length(data$entrydate) / as.numeric(difftime(max(data$entrydate),  min(data$entrydate), units='days'))
     obj <- list(rate=rate, call=match.call())
     class(obj) <- "expinc"
     obj
