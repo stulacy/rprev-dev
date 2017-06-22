@@ -42,7 +42,6 @@ new_prevalence <- function(index, num_years_to_estimate,
                                        inc_model=inc_model)
 
         # Create column indicating whether contributed to prevalence for each year of interest
-        # For each year in Nyear TODO **THAT IS GREATER THAN NUMBER OF YEARS AVAILABLE IN REGISTRY**:
         for (year in num_years_to_estimate) {
             # Determine starting incident date
             starting_incident_date <- index - lubridate::years(year)
@@ -197,7 +196,7 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
 
     available_dists <- c('lognormal', 'weibull', 'exponential')
     if (!missing(dist) && ! dist %in% available_dists) {
-        stop("Error: Please select one of the following distributions: ", paste(available_dists))
+        stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
     }
 
 

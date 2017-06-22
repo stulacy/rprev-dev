@@ -240,7 +240,8 @@ lnorm_20
 And compare that to the Weibull:
 
 ```{r}
-wei_20 <- new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, population_size = 1e6,
+wei_20 <- new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, 
+                         surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
                          dist='weibull')
 wei_20
 ```
@@ -278,5 +279,3 @@ system.time({
                              dist='lnorm')
 })
 ```
-
-This

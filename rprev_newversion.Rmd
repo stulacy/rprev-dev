@@ -1,0 +1,222 @@
+---
+title: "rprev update"
+output:
+    html_notebook:
+        toc: true
+        toc_float: 
+            collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+This notebook details the changes that have been made to `rprev`, those under development, and future plans. I'll stress that this version is by no means finished or production ready, but it's at the point where I mostly know how it will be implemented when complete and would very much appreciate any feedback. It's also useful for me to document this process in a more structured manner than just git commit messages, which is why this is rather verbose and provides more detail than either you probably want or need.
+
+## Changes
+
+### Survival simulation
+
+The new version estimates the prevalence by simulation in a manner more akin to a Discrete Event Framework, rather than the old method which estimated survival probability at yearly points. This works as follows:
+
+  1. Fit an incidence model (see below)
+  2. Fit a survival model (see below)
+  3. Determine the starting date as `index date - Nyear`
+  4. Determine the number of individuals incident in the specified time-frame 
+  5. Draw patient attributes from the prior distributions for this number 
+  6. Draw inter-arrival times for the patients
+  7. Draw an event time for each person from the specified survival model 
+  8. Determine incident and death dates from these times
+  9. See how many individuals have a death date greater than the index date (and therefore contribute to prevalence)
+
+This has several advantages:
+  - Far cleaner code. There is no looping over years and steps 4-8 are simply implemented by adding new columns to a data frame
+  - More interpretable time-scale. In the old version, the user had to keep thinking backwards through time from the incident date, causing lots of headaches. In this version, the only time that time is counted backwards from the index is in determining the starting date, from that point on time flows forward
+  - In theory quicker execution, as each patient just has one draw from the survival time distribution rather than determining survival probability at each year and then drawing from the binomial. In practice this isn't the case (see below), but this is due to the new version of the code being far more flexible rather than hardcoding the incidence and survival models
+  - Scales better to larger N. Related to the point above.
+  
+One disadvantage is that this requires a means of generating an estimated event time. With a parametric distribution this is realised as a simple draw, but for non-parametric approaches, where the old method of requiring a function $S(t | x)$ is no problem, this is more challenging. One method could be to obtain an *expected event time* and then add some randomness to this in some way? Drawing from a normal distribution with the expected value as the mean? **Ask Simon for advice**
+  
+### Day timescale
+
+The old version discretised time into years and calculated the prevalence contributions from each year of incidence. The new version uses a more granular time-scale in the form of days. This provides several benefits:
+
+  - Don't have to make awkward cut-offs, i.e. having to round each year to the nearest day
+  - Can use more of the registry data. Previously, if 9 years and 10 months of data (approx 3587 days) were available this would be reduced down to 9 complete years. Now, prevalence can be counted for the exact number of days that the registry holds and simulation can be used to estimate prevalence contributions for the remaining number of days. The user still gets to deal with the more friendly years however, in specifying N-year prevalence and having the estimates on this time-scale
+  
+
+### Survival model specification
+
+Rather than hardcoding the survival model as a Weibull acting on age and sex, the new version allows the user a lot more freedom. There are two options for specifying the survival function:
+
+  1. Provide a formula and specify a parameteric distribution from one of the standard families and the code will build the resulting model.
+  2. Provide a previously fitted survival object that has a method called `draw_time_to_death(newdata)` which simply draws the predicted survival time for each individual. This requires more familiarity with Object Oriented programming and R in general, but allows the user to use any modelling technique or package they want
+
+### Incidence model specification
+
+Likewise, the incidence model is now no longer forced to be an exponential and is specifiable. The default implementation is a homogeneous Poisson process that works as before, by estimating the incidence rate from the registry data (although now the rate daily, rather than the average yearly rate). However, if the user wants more flexibility they can provide an object that has a method called `draw_interarrival_time(N)`, which simply draws $N$ inter-arrival times. I haven't played around with this much, but when finished it will allow the user to make incidence a function of covariates as well as not relying upon homogeneity.
+
+### Neater API
+
+By modularising the code into two primary factors: an **incidence** object and a **survival** object, the API has been cleaned up significantly. Here is the function call of the old version for estimating 20-year prevalence.
+
+```{r}
+rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+           data=prevsim, num_years_to_estimate = 12,
+           index_date = '2013-01-01', num_reg_years = 10)
+```
+
+```{r}
+new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, 
+               surv_formula = Surv(time, status) ~ age + sex)
+```
+
+Rather than having the rather convoluted formula of the original, there is now a single formula which provides the form of the survival model in a familiar way. I also like that this API explicitly makes it clear how the survival model will be fitted, and when finished so will the incidence model specification.
+
+The old version had the column names specified for `age`, `sex`, `entry` and `event` for the following reasons:
+
+  - `age`: For survival modelling, determining death at 100, and for matching with population mortality for cure model
+  - `sex`: For survival modelling, stratifying incidence, and matching with population mortality for cure model
+  - `entry date`: Incidence
+  - `event date`: Counted prevalence
+  
+These are now handled as follows:
+
+  - `age`: 
+    - survival modelling: Specified in the survival formula
+    - determining death at 100: Code checks for a column called `age`, if it exists it truncates at 100
+    - matching with population mortality for cure model: Currently a cure model isn't implemented (see below)
+  - `sex`: 
+    - survival modelling: Specified in the survival formula
+    - stratifying incidence: I'd actually forgotten that incidence was stratified until I wrote this document. This gives me an oppertunity to test the user specified incidence model mechanism
+    - matching with population mortality for cure model: Currently a cure model isn't implemented (see below)
+  - `entry date`: 
+    - Incidence: Currently hardcoded. Need to think about how to specify this for the default homogeneous Poisson model given that it needs to be specified for counted prevalence too.
+    - Counted prevalence: Currently hardcoded but can easily provide an argument to specify this column name
+  - `event date`: 
+    - Counted prevalence: Currently hardcoded but can easily provide an argument to specify this column name
+
+### Differences with the old version
+
+There are three main functional differences with the new version:
+
+  1. New version doesn't have a cure model
+  2. New version doesn't stratify incidence by sex
+  3. Because of the new timescale, a different method has been used to obtain a p-value for the simualted prevalence estimates matching the counted.
+  
+The second is because I'd completely forgotten about this, although I'm happy with making the default incidence model not stratifying by sex but instead implementing the incidence model system so that the user can get a homogenous Poisson process without having to make their own method, maybe by producing a formula like the survival model does
+
+The lack of a cure model is due to the fact I want to keep the default implementation as basic as possible. Once I've determined an appropriate algorithm for drawing an event time from a cure model, it wouldn't be a problem to provide a cure model object with the package. Although the drawing of the event time would take some considerable thought. 
+
+The old p-value was determined by a chi-square test on the observed prevalence contributions from the registry against the simulated estimates on the same year. Since time is no longer discretised into years this isn't possible. Instead, I do a test based on a Poisson distribution (`poisson.test` in R) to see the evidence for the two rates having arisen from the same distribution. This is a different test as it now assumes that prevalence is Poisson distributed. On the one hand this makes sense to me as it is a counting process. On the other hand, there isn't a single stochastic process underlying these counts, it's a combination of an incidence and a survival function, and so this assumption may not be correct. **Check with Simon**
+
+## Demos
+
+### Using the new version
+
+Here are a few examples using the new API, showing how easy it is to change the functional form of the survival model and the affect this has on the prevalence estimates:
+
+```{r}
+new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, 
+               surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
+               dist='weibull')
+```
+
+```{r}
+new_prevalence(index='2013-01-01', num_years_to_estimate=c(5, 10, 20), data=prevsim, 
+               surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
+               dist='lognormal')
+```
+
+
+```{r}
+new_prevalence(index='2013-01-01', num_years_to_estimate=c(5, 15, 20), data=prevsim, 
+               surv_formula = Surv(time, status) ~ age + sex + age*sex, population_size = 1e6,
+               dist='weibull')
+```
+
+### Comparison to old version
+
+```{r}
+old <- rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                         data=prevsim, num_years_to_estimate = 20, num_reg_years = 10,
+                         population_size = 1e6,
+                         index_date = '2013-01-01')
+old
+```
+
+```{r}
+new <- new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, 
+                      surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
+                      dist='weibull')
+new
+```
+
+This highlights that the output of the program is exactly the same as the old implementation, it's just the inner workings and the user-input that have changed. The estimate itself is slightly lower for the old version, but if we look at the confidence intervals they overlap:
+
+```{r}
+old$estimates
+```
+
+```{r}
+new$estimates
+```
+
+Also, a fairer comparison is with the old version not using a cure model:
+
+```{r}
+old_nocure <- rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                         data=prevsim, num_years_to_estimate = 20, num_reg_years = 10,
+                         population_size = 1e6, cure = 999,
+                         index_date = '2013-01-01')
+old_nocure
+```
+
+This brings the estimate closer to the new implementation. Interesting that removing the cure model increases the number of people alive, this is similar behaviour to what Steph identified a while ago.
+
+Let's just confirm the p-values seem to be similar:
+
+```{r}
+new$pval
+```
+
+```{r}
+old$pval
+```
+
+The p-values are rather similar and neither of them reject the null hypothesis.
+
+**NB: To properly compare the two implementations, the prevalence estimates and p-values should be compared under a range of conditions.**
+
+### Runtime
+
+An important aspect of any simulation is runtime, how does this new implementation compare in this regard? I'd expect it to be far quicker since it only needs to draw an event time for each individual, but it does have the drawback of having more generic code rather than optimising survival probability estimation since the manner in which it is calculated is hardcoded.
+
+```{r}
+old_times <- replicate(3, system.time(
+    rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                             data=prevsim, num_years_to_estimate = c(5, 10, 20), num_reg_years = 10,
+                             population_size = 1e6, cure = 999,
+                             index_date = '2013-01-01')
+)[3])
+```
+
+```{r}
+new_times <- replicate(3, system.time(
+    new_prevalence(index='2013-01-01', num_years_to_estimate=c(5, 10, 20), data=prevsim, 
+                   surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
+                   dist='weibull')
+)[3])
+```
+
+
+```{r}
+data.frame(old=old_times,
+           new=new_times)
+```
+
+Unexpectedly, the new version is slightly slower, around 2.5-3s out of 7, however, in the grand scheme of things this isn't a significant margin given the far increased flexibility of the new code.
+
