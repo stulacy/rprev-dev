@@ -14,13 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This notebook details the changes that have been made to `rprev`, those under development, and future plans. I'll stress that this version is by no means finished or production ready, but it's at the point where I mostly know how it will be implemented when complete and would very much appreciate any feedback. It's also useful for me to document this process in a more structured manner than just git commit messages, which is why this is rather verbose and provides more detail than either you probably want or need.
+I've found time to sit down and redesign the `rprev` package armed with experience in writing Discrete Event Simulations. I'll stress that this version is by no means finished or production ready, but it's at the point where I have a pretty good vision of the end product and would very much appreciate any feedback. It's also useful for me to document the developments in a more structured manner than just git commit messages, which is why this notebook is rather verbose and provides more detail than either you probably want or need!
 
 ## Changes
 
 ### Survival simulation
 
-The new version estimates the prevalence by simulation in a manner more akin to a Discrete Event Framework, rather than the old method which estimated survival probability at yearly points. This works as follows:
+The new version estimates the prevalence by simulation in a manner more akin to a discrete event simulation, rather than the old method which estimated survival probability at yearly points. Here's a high level overview of the steps taken in each bootstrap sample:
 
   1. Fit an incidence model (see below)
   2. Fit a survival model (see below)
@@ -32,15 +32,16 @@ The new version estimates the prevalence by simulation in a manner more akin to 
   8. Determine incident and death dates from these times
   9. See how many individuals have a death date greater than the index date (and therefore contribute to prevalence)
 
-This has several advantages:
-  - Far cleaner code. There is no looping over years and steps 4-8 are simply implemented by adding new columns to a data frame
-  - More interpretable time-scale. In the old version, the user had to keep thinking backwards through time from the incident date, causing lots of headaches. In this version, the only time that time is counted backwards from the index is in determining the starting date, from that point on time flows forward
+This has several advantages over the old yearly-indexed method with regards to the code (this doesn't affect the user interface):
+
+  - Far cleaner code. There is no looping over years and steps 5-8 are simply vectorised function calls that add a new column to a data frame
+  - More interpretable time-scale. In the old version, the developer had to counting backwards through time from the index date, causing lots of headaches. This is now only done once when calculating the starting date, from that point on time flows forward
   - In theory quicker execution, as each patient just has one draw from the survival time distribution rather than determining survival probability at each year and then drawing from the binomial. In practice this isn't the case (see below), but this is due to the new version of the code being far more flexible rather than hardcoding the incidence and survival models
   - Scales better to larger N. Related to the point above.
   
-One disadvantage is that this requires a means of generating an estimated event time. With a parametric distribution this is realised as a simple draw, but for non-parametric approaches, where the old method of requiring a function $S(t | x)$ is no problem, this is more challenging. One method could be to obtain an *expected event time* and then add some randomness to this in some way? Drawing from a normal distribution with the expected value as the mean? **Ask Simon for advice**
+One disadvantage is that this requires a means of generating an estimated event time. With a parametric distribution this isn't a problem, but for non-parametric approaches, where the old method of requiring $S(t | x)$ is no problem, this is more challenging. One method could be to obtain an *expected event time* and then add some randomness to this in some way? Drawing from a normal distribution with the expected value as the mean? Or would the inverse CDF transform method always work? Do we even need to consider non-parametric methods? **Ask Simon for advice**
   
-### Day timescale
+### Timescale in days
 
 The old version discretised time into years and calculated the prevalence contributions from each year of incidence. The new version uses a more granular time-scale in the form of days. This provides several benefits:
 
@@ -52,12 +53,14 @@ The old version discretised time into years and calculated the prevalence contri
 
 Rather than hardcoding the survival model as a Weibull acting on age and sex, the new version allows the user a lot more freedom. There are two options for specifying the survival function:
 
-  1. Provide a formula and specify a parameteric distribution from one of the standard families and the code will build the resulting model.
+  1. Provide a formula (i.e. `Surv(time, status) ~ sex + age`) and specify a parameteric distribution from one of the standard families
   2. Provide a previously fitted survival object that has a method called `draw_time_to_death(newdata)` which simply draws the predicted survival time for each individual. This requires more familiarity with Object Oriented programming and R in general, but allows the user to use any modelling technique or package they want
 
 ### Incidence model specification
 
-Likewise, the incidence model is now no longer forced to be an exponential and is specifiable. The default implementation is a homogeneous Poisson process that works as before, by estimating the incidence rate from the registry data (although now the rate daily, rather than the average yearly rate). However, if the user wants more flexibility they can provide an object that has a method called `draw_interarrival_time(N)`, which simply draws $N$ inter-arrival times. I haven't played around with this much, but when finished it will allow the user to make incidence a function of covariates as well as not relying upon homogeneity.
+Likewise, the incidence model is now no longer forced to be homogeneous Poisson process and is specifiable. The default implementation is a homogeneous Poisson process as before, and estimates the incidence rate from the registry data (now a daily rate, rather than the average yearly rate).
+
+However, if the user wants more flexibility they can provide an object that has a method `draw_interarrival_time(N)`, which simply draws $N$ inter-arrival times. I haven't played around with this much, but when finished it will allow the user to make incidence a function of covariates as well as not relying upon homogeneity.
 
 ### Neater API
 
@@ -74,7 +77,9 @@ new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim,
                surv_formula = Surv(time, status) ~ age + sex)
 ```
 
-Rather than having the rather convoluted formula of the original, there is now a single formula which provides the form of the survival model in a familiar way. I also like that this API explicitly makes it clear how the survival model will be fitted, and when finished so will the incidence model specification.
+Rather than having the rather opaque and convoluted formula of the original, there is now a single formula for the survival model written in the same way that you'd use in the `survival` package. This makes it transparent to the user exactly what the survival model is.
+
+When completed I imagine the default incidence model will have a formula too to allow the user to select which covariates to stratify over. 
 
 The old version had the column names specified for `age`, `sex`, `entry` and `event` for the following reasons:
 
@@ -91,10 +96,10 @@ These are now handled as follows:
     - matching with population mortality for cure model: Currently a cure model isn't implemented (see below)
   - `sex`: 
     - survival modelling: Specified in the survival formula
-    - stratifying incidence: I'd actually forgotten that incidence was stratified until I wrote this document. This gives me an oppertunity to test the user specified incidence model mechanism
+    - stratifying incidence: This currently isn't implemented but I imagine I will make a formula in a similar way to the survival formula
     - matching with population mortality for cure model: Currently a cure model isn't implemented (see below)
   - `entry date`: 
-    - Incidence: Currently hardcoded. Need to think about how to specify this for the default homogeneous Poisson model given that it needs to be specified for counted prevalence too.
+    - Incidence: Currently hardcoded. Again, thinking of a formula interface to specify the incidence model
     - Counted prevalence: Currently hardcoded but can easily provide an argument to specify this column name
   - `event date`: 
     - Counted prevalence: Currently hardcoded but can easily provide an argument to specify this column name
@@ -105,13 +110,15 @@ There are three main functional differences with the new version:
 
   1. New version doesn't have a cure model
   2. New version doesn't stratify incidence by sex
-  3. Because of the new timescale, a different method has been used to obtain a p-value for the simualted prevalence estimates matching the counted.
+  3. Because of the new timescale, a different method has been used to obtain a p-value for the simulated prevalence estimates matching the counted.
   
-The second is because I'd completely forgotten about this, although I'm happy with making the default incidence model not stratifying by sex but instead implementing the incidence model system so that the user can get a homogenous Poisson process without having to make their own method, maybe by producing a formula like the survival model does
-
 The lack of a cure model is due to the fact I want to keep the default implementation as basic as possible. Once I've determined an appropriate algorithm for drawing an event time from a cure model, it wouldn't be a problem to provide a cure model object with the package. Although the drawing of the event time would take some considerable thought. 
 
-The old p-value was determined by a chi-square test on the observed prevalence contributions from the registry against the simulated estimates on the same year. Since time is no longer discretised into years this isn't possible. Instead, I do a test based on a Poisson distribution (`poisson.test` in R) to see the evidence for the two rates having arisen from the same distribution. This is a different test as it now assumes that prevalence is Poisson distributed. On the one hand this makes sense to me as it is a counting process. On the other hand, there isn't a single stochastic process underlying these counts, it's a combination of an incidence and a survival function, and so this assumption may not be correct. **Check with Simon**
+I haven't gotten round to specifying the default incidence model yet, although I envisage a formula interface with the LHS specifying the entry date column and RHS the names of categorical covariates that stratify incidence.
+
+For example, `entry ~ sex` for sex stratified incidence, or `entry ~ 1` for no stratification
+
+The old p-value was determined by a chi-square test on the observed prevalence contributions from the registry against the simulated estimates on the same year. Since time is no longer discretised this isn't possible. Instead, I do a test based on a Poisson distribution (`poisson.test` in R) to see the evidence for the two counts having arisen from the same distribution. On the one hand this assumption makes sense to me as prevalence is counted data. On the other hand, there isn't a single stochastic process underlying these counts, it's a combination of an incidence and a survival process, and so this assumption may not be correct. **Check with Simon**
 
 ## Demos
 
@@ -177,7 +184,7 @@ old_nocure
 
 This brings the estimate closer to the new implementation. Interesting that removing the cure model increases the number of people alive, this is similar behaviour to what Steph identified a while ago.
 
-Let's just confirm the p-values seem to be similar:
+Let's compare the p-values (remember the old test is a chi-square and the new is Poisson):
 
 ```{r}
 new$pval
@@ -187,13 +194,13 @@ new$pval
 old$pval
 ```
 
-The p-values are rather similar and neither of them reject the null hypothesis.
+The p-values are rather similar and neither of them have enough evidence reject the null hypothesis at the 5% level.
 
 **NB: To properly compare the two implementations, the prevalence estimates and p-values should be compared under a range of conditions.**
 
 ### Runtime
 
-An important aspect of any simulation is runtime, how does this new implementation compare in this regard? I'd expect it to be far quicker since it only needs to draw an event time for each individual, but it does have the drawback of having more generic code rather than optimising survival probability estimation since the manner in which it is calculated is hardcoded.
+An important aspect of any simulation is runtime, how does this new implementation compare in this regard? I'd expect it to be far quicker since it only needs to draw an event time for each individual, but it does have the drawback of having more generic code and so cannot be as optimised as the method that has the incidence and survival functions hardcoded.
 
 ```{r}
 old_times <- replicate(3, system.time(
@@ -220,3 +227,24 @@ data.frame(old=old_times,
 
 Unexpectedly, the new version is slightly slower, around 2.5-3s out of 7, however, in the grand scheme of things this isn't a significant margin given the far increased flexibility of the new code.
 
+## Future work
+
+Overall, I think this new direction is a lot more user friendly and flexible than the old one. It provides a nice easy interface to providing custom survival functions using standard distributions, as well as an option for advanced users to specify the entire model. By making the formulas for both survival and incidence processes it also makes the assumptions made much more transparent rather than hiding the implementation details in hardcoded functions and relying on the user to read the documentation.
+
+While there is still some functionality from the original to be implemented (mainly cure models), I don't believe this will take too long (although it may involve a fair amount of head scratching). Of course, rigorous testing will be required before it can be released, particularly given the increased scope of the package.
+
+### Code
+
+The code is still far from finished, the areas I'm going to work on are:
+
+  - Improving the default incidence model, adding a formula interface as mentioned above
+  - More rigorous testing and comparison of the prevalence estimates with the old version
+  - Update the diagnostic functions to be compatible with the new code
+  - Think about how best to implement a cure model, both in terms of the how the drawing event times will work, and also how to add it as a user option
+  - Test that the code works reliably with user provided survival and incidence objects
+
+### Publication
+
+After the original package release we discussed the possibility of publishing an accompanying paper in the *Journal of Statistical Software*. I believe that with the additional flexibility of this package there is a lot more scope for a paper detailing the software and how to use it, as well as guidance for testing the assumptions with the provided diagnostic tools.
+
+In particular, it could include a use case of providing a custom survival function with instructions on how to correctly setup an object with a correctly specified method. This could even be a flexible parametric model, since there are some of the Leicester guys involved with the JSS it could win some favour.
