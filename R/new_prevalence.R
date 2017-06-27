@@ -4,6 +4,7 @@ library(dplyr)
 library(data.table)
 
 INCIDENCE_MARGIN <- 1.5
+MIN_INCIDENCE <- 10
 
 # TODO Current hardcoded values:
 #   - Column names
@@ -14,9 +15,11 @@ INCIDENCE_MARGIN <- 1.5
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
                            registry_start_date=NULL,
+                           inc_formula=NULL,
                            inc_model=NULL,
                            surv_formula=NULL,
                            surv_model=NULL,
+                           death_column=NULL,
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
@@ -36,10 +39,10 @@ new_prevalence <- function(index, num_years_to_estimate,
 
     # If need simulation
     if (sim_start_date < registry_start_date) {
-        sim_time <- difftime(index, sim_start_date, units='days')
+        sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
         prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist,
-                                       surv_formula = surv_formula, surv_model=surv_model,
-                                       inc_model=inc_model)
+                                       surv_formula=surv_formula, surv_model=surv_model,
+                                       inc_formula=inc_formula, inc_model=inc_model)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -71,6 +74,8 @@ new_prevalence <- function(index, num_years_to_estimate,
 
     surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
     inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
+
+    # TODO Only use counted prevalence if have event date column
 
     # Return object
     object <- list(estimates=estimates, simulated=prev_sim$results,
@@ -175,21 +180,32 @@ new_counted_prevalence <- function(index, data, start_date) {
 }
 
 new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
-                               inc_model=NULL, surv_model=NULL,
+                               inc_model=NULL, inc_formula=NULL, surv_model=NULL,
                                dist='weibull', surv_formula=NULL, nsims=1000) {
     # TODO Obtain this column name dynamically
     data <- data[complete.cases(data), ]
     data$entrydate <- as.Date(data$entrydate)
     full_data <- data
 
-    # If inc_model is null then make one ourselves, must be a func of time and N and returns interarrival times
+    # Incidence models
+    if (is.null(inc_model) && is.null(inc_formula)) {
+        stop("Error: Please provide one of inc_model and inc_formula.")
+    }
+    if (!is.null(inc_model) && !(is.null(inc_formula))) {
+        stop("Error: Please provide only one of inc_model and inc_formula.")
+    }
+    if (is.null(inc_formula )) {
+        stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
+    }
     if (is.null(inc_model)) {
-        inc_model <- fit_exponential_incidence(data)
+        inc_model <- fit_exponential_incidence(inc_formula, data)
     }
 
+    # Survival models
     if (!is.null(surv_model) && !(is.null(surv_formula))) {
         stop("Error: Please provide only one of surv_model and surv_formula.")
     }
+
     if (!is.null(surv_model) && !(is.null(dist))) {
         stop("Error: Please provide only one of surv_model and dist.")
     }
@@ -205,7 +221,6 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     # survival distribution
     # TODO Allow for the survival distribution to be chosen as one that ISN'T 3-parameter
     if (!missing(surv_formula)) {
-        # TODO obtain correct data
         surv_model <- build_survreg(surv_formula, data, dist)
     }
 
@@ -224,23 +239,14 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
         bs_surv <- eval(surv_model$call)
 
         # Estimate how many people will be incident in this time frame
-        initial_num_inds <- INCIDENCE_MARGIN * expected_incidence(bs_inc, number_incident_days)
+        # TODO Should this new population be sampled from bootstrapped data or full?
+        incident_population <- draw_incident_population(bs_inc, data, number_incident_days, extract_covars(bs_surv))
 
-        # draw incidence times (time in days after the starting date)
-        entry_times <- draw_interarrival_time(bs_inc, initial_num_inds)
-        entry_times <- entry_times[entry_times < number_incident_days]
-        num_inds <- length(entry_times)
+        # TODO Confirm this works with unordered factors, only tested on sex as 0/1
+        event_times <- draw_time_to_death(surv_model, incident_population)
 
-        # draw covariate values from model
-        newdata <- data.frame(setNames(lapply(covars, function(x) sample(full_data[[x]], num_inds, replace=T)), covars))
-
-        # draw event times
-        event_times <- draw_time_to_death(surv_model, newdata)
-
-        # Turn into Data Table (far quicker than data frame)
-        dt <- data.table(newdata)
-        dt[, c("time_to_entry", "time_to_death") := list(entry_times, event_times)]
-        dt
+        incident_population[, "time_to_death" := event_times]
+        incident_population
     }, simplify=FALSE)
 
     # Combine into single table
@@ -296,6 +302,7 @@ build_survreg <- function(formula, data, user_dist) {
                          NULL # parms
                          )
 
+
     object <- list(coefs=coef(mod),
                    covars = rownames(attr(terms(formula), "factors"))[2:nrow(attr(terms(formula), "factors"))],
                    call = match.call(),
@@ -326,8 +333,7 @@ draw_time_to_death.survregmin <- function(object, newdata) {
     wide_df <- model.matrix(formula, newdata)
 
     # Obtain coefficient for location parameter
-    # TODO Determine if have 2 params or 1
-    num_params <- length(object$coefs) - length(object$terms)
+    num_params <- distribution_params[[object$dist]]
     if (num_params == 2) {
         lps <- wide_df %*% object$coefs[-length(object$coefs)]
     } else if (num_params == 1) {
@@ -348,6 +354,7 @@ draw_time_to_death.survregmin <- function(object, newdata) {
     distribution_drawing[[object$dist]](nrow(newdata), lps, scale)
 }
 
+# TODO Combine these
 distribution_drawing <- list('weibull' = function(n, lps, scale=NULL) {
                                 rweibull(n, 1 / exp(scale), exp(lps))
                              },
@@ -361,6 +368,11 @@ distribution_drawing <- list('weibull' = function(n, lps, scale=NULL) {
                                  rexp(n, 1/exp(lps))
                              }
                              )
+distribution_params <- list('weibull'=2,
+                            'lognormal'=2,
+                            'loglogistic'=2,
+                            'exponential'=1
+                            )
 
 draw_time_to_death.flexsurvreg <- function(object, newdata) {
     # Obtain location parameter (i.e. one that covariates act on)
@@ -402,21 +414,68 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
 }
 
 # TODO Put these in an incidence script somewhere
-fit_exponential_incidence <- function(data) {
-    rate <- length(data$entrydate) / as.numeric(difftime(max(data$entrydate),  min(data$entrydate), units='days'))
-    obj <- list(rate=rate, call=match.call())
+fit_exponential_incidence <- function(inc_form, data) {
+    entry_col <- all.vars(update(inc_form, .~0))
+    if (is.null(entry_col) || length(entry_col) != 1) {
+        stop("Error: Please provide only a single LHS term in the inc_formula, representing the column holding incident date.")
+    }
+
+    registry_duration <- as.numeric(difftime(max(data[[entry_col]]), min(data[[entry_col]]), units='days'))
+
+    strata <- all.vars(update(inc_form, 0~.))
+    # Obtain rate for combination of each of these factors and throw error if any instances < required
+    if (length(strata) > 0) {
+
+        if (!all(sapply(strata, function(x) is.factor(data[[x]])))) {
+            stop("Error: Please format any incidence strata as factors.")
+        }
+
+        strata_counts <- table(data[, strata])
+        if (any(strata_counts < MIN_INCIDENCE)) {
+            stop("Error: Less than ", MIN_INCIDENCE, " incident cases. Please ensure data has sufficient incident cases.")
+        }
+
+        rate <- data.frame(strata_counts / registry_duration)
+        names(rate)[1:(ncol(rate)-1)] <- strata
+        strata_names <- strata
+    } else {
+        rate <- nrow(data) / registry_duration
+        strata_names <- NULL
+    }
+
+    obj <- list(rate=rate, call=match.call(), strata=strata_names)
     class(obj) <- "expinc"
     obj
 }
 
-draw_interarrival_time <- function(object, N, ...) UseMethod("draw_interarrival_time")
+draw_incident_population <- function(object, data, timeframe, covars, ...) UseMethod("draw_incident_population")
 
-draw_interarrival_time.expinc <- function(object, N) {
-    cumsum(rexp(N, object$rate))
-}
+draw_incident_population.expinc <- function(object, data, timeframe, covars) {
 
-expected_incidence <- function(object, timeframe, ...) UseMethod("expected_incidence")
+    if (is.null(object$strata)) {
+        initial_num_inds <- INCIDENCE_MARGIN * object$rate * timeframe
+        time_to_entry <- cumsum(rexp(initial_num_inds, object$rate))
+        time_to_entry <- time_to_time_to_entry[time_to_entry < timeframe]
+        newdata <- data.table(time_to_entry)
+    } else {
+        new_data <- rbindlist(apply(object$rate, 1, function(row) {
+            rate <- as.numeric(row['Freq'])
+            initial_num_inds <- INCIDENCE_MARGIN * rate * timeframe
+            time_to_entry <- cumsum(rexp(initial_num_inds, rate))
+            time_to_entry <- time_to_entry[time_to_entry < timeframe]
+            # Form data frame with these factor levels too
+            new_data <- data.table(time_to_entry)
+            new_data[, names(row[-length(row)]) := row[-length(row)]]
+            new_data
+        }))
+    }
 
-expected_incidence.expinc <- function(object, timeframe) {
-    timeframe * object$rate
+    # draw covariate values from model that are in survival formula and not in data frame
+    missing_covars <- setdiff(covars, colnames(new_data))
+
+    new_covars <- setNames(lapply(missing_covars, function(x) sample(data[[x]], nrow(new_data), replace=T)), missing_covars)
+    setDT(new_covars)
+
+    # Combine together to form a population that has an entry time and the required covariates for modelling survival
+    cbind(new_data, new_covars)
 }
