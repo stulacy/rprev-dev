@@ -7,18 +7,16 @@ INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
 # TODO Current hardcoded values:
-#   - Column names
-#   - Covariates used in survival modelling! Currently hardcoded as age and sex (could have these passed in as a variable? surv_covars,
-#       or a formula? have separated formulae for incidence and survival?)
-#   - Also hardcode age to force user death at 100
+#   - Age to force user death at 100
+#   - Event date column for counted prevalence
 
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
-                           registry_start_date=NULL,
                            inc_formula=NULL,
                            inc_model=NULL,
                            surv_formula=NULL,
                            surv_model=NULL,
+                           registry_start_date=NULL,
                            death_column=NULL,
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
@@ -188,6 +186,7 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     full_data <- data
 
     # Incidence models
+    # TODO Should these guards be in new_prevalence and assume that user has correct call here?
     if (is.null(inc_model) && is.null(inc_formula)) {
         stop("Error: Please provide one of inc_model and inc_formula.")
     }
@@ -215,11 +214,6 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
         stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
     }
 
-
-
-    # If surv_model is null then make one ourselves, must be a function of data frame with age and sex values that returns draws from
-    # survival distribution
-    # TODO Allow for the survival distribution to be chosen as one that ISN'T 3-parameter
     if (!missing(surv_formula)) {
         surv_model <- build_survreg(surv_formula, data, dist)
     }
@@ -327,7 +321,6 @@ extract_covars.survregmin <- function(object) {
 draw_time_to_death <- function(object, newdata) UseMethod("draw_time_to_death")
 
 draw_time_to_death.survregmin <- function(object, newdata) {
-
     # Expand data into dummy categorical and include intercept
     formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
     wide_df <- model.matrix(formula, newdata)
@@ -472,9 +465,19 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
 
     # draw covariate values from model that are in survival formula and not in data frame
     missing_covars <- setdiff(covars, colnames(new_data))
+    higher_order <- missing_covars[grep("^I\\(.+\\)$", missing_covars)]
+    covars_to_sample <- setdiff(missing_covars, higher_order)
 
-    new_covars <- setNames(lapply(missing_covars, function(x) sample(data[[x]], nrow(new_data), replace=T)), missing_covars)
+    new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
     setDT(new_covars)
+
+    # Add in higher order terms
+    # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
+    # this is acceptable as the covariates missing from this data set will be those used in the incidence modelling and
+    # so will be categorical and thus not not have higher order terms
+    for (term in higher_order) {
+        new_covars[, (term) := eval(parse(text=term))]
+    }
 
     # Combine together to form a population that has an entry time and the required covariates for modelling survival
     cbind(new_data, new_covars)
