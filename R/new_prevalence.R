@@ -30,8 +30,6 @@ new_prevalence <- function(index, num_years_to_estimate,
         registry_start_date <- min(data$entrydate)
     }
 
-    # TODO Put other guards in here so that simulation function is clean
-
     # Form formula for counted prevalence
     # extract entry column from incidence formula
     if (!is.null(death_column)) {
@@ -46,15 +44,51 @@ new_prevalence <- function(index, num_years_to_estimate,
     registry_start_date <- lubridate::ymd(registry_start_date)
     sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
 
-    # Run simulation when:
+    # NEED SIMULATION:
     #   - have N years > R registry years available
     #   - haven't provided date of death for registry data (not always available)
-    # If need simulation
     if (!((sim_start_date >= registry_start_date) & (!is.null(death_column)))) {
+
+        # Incidence models
+        if (is.null(inc_model) && is.null(inc_formula)) {
+            stop("Error: Please provide one of inc_model and inc_formula.")
+        }
+        if (!is.null(inc_model) && !(is.null(inc_formula))) {
+            stop("Error: Please provide only one of inc_model and inc_formula.")
+        }
+        if (is.null(inc_formula )) {
+            stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
+        }
+        if (is.null(inc_model)) {
+            inc_model <- fit_exponential_incidence(inc_formula, data)
+        }
+
+        # Survival models
+        if (!is.null(surv_model) && !(is.null(surv_formula))) {
+            stop("Error: Please provide only one of surv_model and surv_formula.")
+        }
+
+        if (!is.null(surv_model) && !(is.null(dist))) {
+            stop("Error: Please provide only one of surv_model and dist.")
+        }
+
+        available_dists <- c('lognormal', 'weibull', 'exponential')
+        if (!missing(dist) && ! dist %in% available_dists) {
+            stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
+        }
+
+        if (!missing(surv_formula)) {
+            surv_model <- build_survreg(surv_formula, data, dist)
+        }
+
+        if (missing(surv_model)) {
+            stop("Error: Please provide one of surv_model or surv_formula.")
+        }
+
         sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
-        prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist,
-                                       surv_formula=surv_formula, surv_model=surv_model,
-                                       inc_formula=inc_formula, inc_model=inc_model)
+        prev_sim <- new_sim_prevalence(data, index, sim_time,
+                                       inc_model, surv_model,
+                                       starting_date=sim_start_date, nsims=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -239,9 +273,10 @@ new_counted_prevalence <- function(formula, index, data, start_date, status_col=
     sum(incident & !dead_at_index)
 }
 
-new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
-                               inc_model=NULL, inc_formula=NULL, surv_model=NULL,
-                               dist='weibull', surv_formula=NULL, nsims=1000) {
+new_sim_prevalence <- function(data, index, number_incident_days,
+                               inc_model, surv_model,
+                               starting_date=NULL, nsims=1000) {
+
     # TODO Obtain this column name dynamically
     data <- data[complete.cases(data), ]
     data$entrydate <- as.Date(data$entrydate)
@@ -249,40 +284,40 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
 
     # Incidence models
     # TODO Place guards in new_prevalence and assume that user has correct call here?
-    if (is.null(inc_model) && is.null(inc_formula)) {
-        stop("Error: Please provide one of inc_model and inc_formula.")
-    }
-    if (!is.null(inc_model) && !(is.null(inc_formula))) {
-        stop("Error: Please provide only one of inc_model and inc_formula.")
-    }
-    if (is.null(inc_formula )) {
-        stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
-    }
-    if (is.null(inc_model)) {
-        inc_model <- fit_exponential_incidence(inc_formula, data)
-    }
-
-    # Survival models
-    if (!is.null(surv_model) && !(is.null(surv_formula))) {
-        stop("Error: Please provide only one of surv_model and surv_formula.")
-    }
-
-    if (!is.null(surv_model) && !(is.null(dist))) {
-        stop("Error: Please provide only one of surv_model and dist.")
-    }
-
-    available_dists <- c('lognormal', 'weibull', 'exponential')
-    if (!missing(dist) && ! dist %in% available_dists) {
-        stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
-    }
-
-    if (!missing(surv_formula)) {
-        surv_model <- build_survreg(surv_formula, data, dist)
-    }
-
-    if (missing(surv_model)) {
-        stop("Error: Please provide one of surv_model or surv_formula.")
-    }
+    #if (is.null(inc_model) && is.null(inc_formula)) {
+    #    stop("Error: Please provide one of inc_model and inc_formula.")
+    #}
+    #if (!is.null(inc_model) && !(is.null(inc_formula))) {
+    #    stop("Error: Please provide only one of inc_model and inc_formula.")
+    #}
+    #if (is.null(inc_formula )) {
+    #    stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
+    #}
+    #if (is.null(inc_model)) {
+    #    inc_model <- fit_exponential_incidence(inc_formula, data)
+    #}
+#
+    ## Survival models
+    #if (!is.null(surv_model) && !(is.null(surv_formula))) {
+    #    stop("Error: Please provide only one of surv_model and surv_formula.")
+    #}
+#
+    #if (!is.null(surv_model) && !(is.null(dist))) {
+    #    stop("Error: Please provide only one of surv_model and dist.")
+    #}
+#
+    #available_dists <- c('lognormal', 'weibull', 'exponential')
+    #if (!missing(dist) && ! dist %in% available_dists) {
+    #    stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
+    #}
+#
+    #if (!missing(surv_formula)) {
+    #    surv_model <- build_survreg(surv_formula, data, dist)
+    #}
+#
+    #if (missing(surv_model)) {
+    #    stop("Error: Please provide one of surv_model or surv_formula.")
+    #}
 
     covars <- extract_covars(surv_model)
 
@@ -290,6 +325,7 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
+        browser()
         # fit incidence and survival models.
         bs_inc <- eval(inc_model$call)
         bs_surv <- eval(surv_model$call)
