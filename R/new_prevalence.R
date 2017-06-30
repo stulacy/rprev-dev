@@ -8,7 +8,6 @@ MIN_INCIDENCE <- 10
 
 # TODO Current hardcoded values:
 #   - Age to force user death at 100
-#   - Event date column for counted prevalence
 
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
@@ -31,12 +30,27 @@ new_prevalence <- function(index, num_years_to_estimate,
         registry_start_date <- min(data$entrydate)
     }
 
+    # TODO Put other guards in here so that simulation function is clean
+
+    # Form formula for counted prevalence
+    # extract entry column from incidence formula
+    if (!is.null(death_column)) {
+        entry_column <- all.vars(update(inc_formula, .~0))
+        counted_formula <- as.formula(paste(death_column, entry_column, sep='~'))
+    } else {
+        message("death_column not provided so prevalence cannot be counted over the registry. Estimates will be solely from simulation.")
+        counted_formula <- NULL
+    }
+
     index <- lubridate::ymd(index)
     registry_start_date <- lubridate::ymd(registry_start_date)
     sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
 
+    # Run simulation when:
+    #   - have N years > R registry years available
+    #   - haven't provided date of death for registry data (not always available)
     # If need simulation
-    if (sim_start_date < registry_start_date) {
+    if (!((sim_start_date >= registry_start_date) & (!is.null(death_column)))) {
         sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
         prev_sim <- new_sim_prevalence(data, index, sim_time, starting_date=sim_start_date, nsims=N_boot, dist=dist,
                                        surv_formula=surv_formula, surv_model=surv_model,
@@ -47,15 +61,11 @@ new_prevalence <- function(index, num_years_to_estimate,
             # Determine starting incident date
             starting_incident_date <- index - lubridate::years(year)
 
-            if (starting_incident_date > registry_start_date) {
-                next
-            }
-
             # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
             col_name <- paste0("prev_", year, "yr")
 
             # Determine prevalence as incident date is in range and alive at index date
-            prev_sim$results[, (col_name) := as.numeric(incident_date > starting_incident_date & death_date > index)]
+            prev_sim$results[, (col_name) := as.numeric(incident_date > starting_incident_date & incident_date < index & death_date > index)]
         }
 
     } else {
@@ -67,17 +77,20 @@ new_prevalence <- function(index, num_years_to_estimate,
     estimates <- lapply(setNames(num_years_to_estimate, names),
                         new_point_estimate,  # Function
                         prev_sim$results, index, data,
+                        counted_formula,
                         registry_start_date,
                         population_size, proportion, level, precision)
 
     surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
     inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
 
-    # TODO Only use counted prevalence if have event date column
-
-    # Return object
+    if (!is.null(counted_formula)) {
+        counted_prev <- new_counted_prevalence(counted_formula, index, data, registry_start_date)
+    } else {
+        counted_prev <- NULL
+    }
     object <- list(estimates=estimates, simulated=prev_sim$results,
-                   counted=new_counted_prevalence(index, data, registry_start_date),
+                   counted=counted_prev,
                    surv_model=surv_model,
                    inc_model=inc_model,
                    index_date=index,
@@ -100,49 +113,64 @@ new_prevalence <- function(index, num_years_to_estimate,
 
 }
 
-new_point_estimate <- function(year, sim_results, index, registry_data, registry_start_date, population_size=NULL, proportion=100e3,
+new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
 
     # See if need simulation if have less registry data than required
     initial_date <- index - years(year)
     need_simulation <- initial_date < registry_start_date
 
-    count_prev <- new_counted_prevalence(index, registry_data, max(initial_date, registry_start_date))
+    # Only count prevalence if formula isn't null
+    #browser()
+    if (!is.null(prev_formula)) {
+        count_prev <- new_counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date))
 
-    # Estimate absolute prevalence as sum of simulated and counted
-    if (need_simulation) {
-        # Determine column name for this year
-        col_name <- paste0("prev_", year, "yr")
-        sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
-        the_estimate <- count_prev + mean(sim_contributions)
+        # See if appending prevalence to simulation data or it's entirely counted
+        if (initial_date < registry_start_date) {
+            stopifnot(!is.null(sim_results))
+
+            col_name <- paste0("prev_", year, "yr")
+            sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
+            the_estimate <- count_prev + mean(sim_contributions)
+
+            # Closure to calculate combined standard error
+            se_func <- build_se_func(counted_contribs=count_prev, sim_contribs=sim_contributions)
+            #se_func <- function(population_size) {
+            #    calculate_se_combined(population_size, counted_contribs=count_prev, sim_contribs=sim_contributions)
+            #}
+
+        } else {
+            the_estimate <- count_prev
+
+            # Closure to calculate standard error of counted data
+            se_func <- build_se_func(counted_contribs=count_prev)
+            #se_func <- function(population_size) {
+            #    calculate_se_counted(population_size, counted_contribs=count_prev)
+            #}
+
+        }
     } else {
-        the_estimate <- count_prev
+        # If don't have counted data then prevalence estimates are entirely simulated
+        col_name <- paste0("prev_", year, "yr")
+        sim_contributions <- sim_results[, sum(get(col_name)), by=sim][[2]]  # Return results column
+        the_estimate <- mean(sim_contributions)
+
+        # Closure to calculate standard error of simulated data
+        #se_func <- function(population_size) {
+        #    calculate_se_sim(population_size, sim_contribs=sim_contributions)
+        #}
+        se_func <- build_se_func(sim_contribs=sim_contributions)
     }
 
     result <- list(absolute.prevalence=the_estimate)
 
     if (!is.null(population_size)) {
-        raw_proportion <- the_estimate / population_size
-        the_proportion <- proportion * raw_proportion
-
-        # Standard error for estimates that combine simulation and counting are more involved
-        if (! need_simulation) {
-            se <- (raw_proportion * (1 - raw_proportion)) / population_size
-        } else {
-
-            # Counted prevalence SE
-            raw_proportion_n <- count_prev / population_size
-            std_err_1 <- sqrt((raw_proportion_n * (1 - raw_proportion_n)) / population_size)
-
-            # Simulated prevalence SE
-            sim_prev_sd <- sd(sim_contributions)
-            std_err_2 <- sim_prev_sd / population_size
-
-            se <- std_err_1^2 + std_err_2^2
-        }
+        #browser()
+        the_proportion <- (the_estimate / population_size) * proportion
+        se <- se_func(population_size)
 
         z_level <- qnorm((1+level)/2)
-        CI <- z_level * sqrt(se) * proportion
+        CI <- z_level * se * proportion
 
         # Setup labels for proportion list outputs
         proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
@@ -162,19 +190,53 @@ new_point_estimate <- function(year, sim_results, index, registry_data, registry
     lapply(result, round, precision)
 }
 
+build_se_func <- function(counted_contribs=NULL, sim_contribs=NULL) {
+    # Pure simulated
+    if (is.null(counted_contribs)) {
+        function(pop_size) {
+            calculate_se_sim(pop_size, sim_contribs)
+        }
+    }  else if (is.null(sim_contribs)) {
+        # Pure counted
+        function(pop_size) {
+            calculate_se_counted(pop_size, counted_contribs)
+        }
+    } else {
+        # Combination
+        function(pop_size) {
+            calculate_se_combined(pop_size, counted_contribs, sim_contribs)
+        }
+    }
+}
+
+calculate_se_combined <- function(population_size, counted_contribs, sim_contribs) {
+    calculate_se_sim(population_size, sim_contribs) +
+        calculate_se_counted(population_size, counted_contribs)
+}
+
+calculate_se_sim <- function(population_size, sim_contribs) {
+    sd(sim_contribs) / population_size
+}
+calculate_se_counted <- function(population_size, counted_contribs) {
+    raw_proportion <- counted_contribs / population_size
+    sqrt((raw_proportion * (1 - raw_proportion)) / population_size)
+}
 
 
 # Requires columns with entrydate, eventdate, status
 # Start date allows users to specify how long estimating prevalence for, as otherwise including
 # all contributions in data set
-# TODO Make start date optional like in prevalence
-new_counted_prevalence <- function(index, data, start_date) {
-    data %>%
-        filter(entrydate >= start_date, entrydate < index) %>%
-        mutate(dead_at_index = ifelse(eventdate > index, 0, status)) %>%
-        summarise(sum(1 - dead_at_index)) %>%     # Prevalence is number of those still alive or censored at index
-        unname() %>%
-        as.numeric()
+# TODO Hardcoded status column! Get this from survival function
+new_counted_prevalence <- function(formula, index, data, start_date, status_col='status') {
+    death_col <- all.vars(update(formula, .~0))
+    entry_col <- all.vars(update(formula, 0~.))
+
+    incident <- data[[entry_col]] >= start_date & data[[entry_col]] < index
+
+    # Use dead at index as it's a simpler boolean operation that just needs negating
+    dead_at_index <- !(data[[death_col]] > index) & (data[[status_col]] == 1)
+
+    sum(incident & !dead_at_index)
 }
 
 new_sim_prevalence <- function(data, index, number_incident_days, starting_date=NULL,
@@ -186,7 +248,7 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
     full_data <- data
 
     # Incidence models
-    # TODO Should these guards be in new_prevalence and assume that user has correct call here?
+    # TODO Place guards in new_prevalence and assume that user has correct call here?
     if (is.null(inc_model) && is.null(inc_formula)) {
         stop("Error: Please provide one of inc_model and inc_formula.")
     }
@@ -232,13 +294,9 @@ new_sim_prevalence <- function(data, index, number_incident_days, starting_date=
         bs_inc <- eval(inc_model$call)
         bs_surv <- eval(surv_model$call)
 
-        # Estimate how many people will be incident in this time frame
-        # TODO Should this new population be sampled from bootstrapped data or full?
-        incident_population <- draw_incident_population(bs_inc, data, number_incident_days, extract_covars(bs_surv))
-
-        # TODO Confirm this works with unordered factors, only tested on sex as 0/1
+        # Draw the incident population using the fitted model and predict their death times
+        incident_population <- draw_incident_population(bs_inc, full_data, number_incident_days, extract_covars(bs_surv))
         event_times <- draw_time_to_death(surv_model, incident_population)
-
         incident_population[, "time_to_death" := event_times]
         incident_population
     }, simplify=FALSE)
@@ -289,7 +347,7 @@ build_survreg <- function(formula, data, user_dist) {
                          numeric(nrow(data)), # offset
                          NULL, # init
                          survival::survreg.control(), # controlvars
-                         survival::survreg.distributions[[surv_dist]], # dist  TODO WHY IS THIS EXTREME FOR WEIBULL?
+                         survival::survreg.distributions[[surv_dist]], # dist
                          scale,
                          1, # nstrat
                          0, # strata
