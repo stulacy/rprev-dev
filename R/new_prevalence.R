@@ -7,7 +7,6 @@ INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
 # TODO Current hardcoded values:
-#   - Age to force user death at 100
 #   - Status column for the counted prevalence function. Should be determined from the survival object
 
 new_prevalence <- function(index, num_years_to_estimate,
@@ -20,6 +19,7 @@ new_prevalence <- function(index, num_years_to_estimate,
                            death_column=NULL,
                            incident_column=NULL,
                            age_column='age',
+                           status_column='status',
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
@@ -30,6 +30,12 @@ new_prevalence <- function(index, num_years_to_estimate,
         if (!is.null(inc_formula)) {
             incident_column <- all.vars(update(inc_formula, .~0))
         }
+    }
+
+    # Is it right for surv_formula to have precedence over surv_formula?
+    if (!is.null(surv_formula)) {
+        surv_LHS <- all.vars(update(foo, .~0))
+        status_column <- surv_LHS[length(surv_LHS)]
     }
 
     # Form formula for counted prevalence
@@ -135,13 +141,17 @@ new_prevalence <- function(index, num_years_to_estimate,
                         prev_sim$results, index, data,
                         counted_formula,
                         registry_start_date,
+                        status_column,
                         population_size, proportion, level, precision)
 
     surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
     inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
 
     if (!is.null(counted_formula)) {
-        counted_prev <- new_counted_prevalence(counted_formula, index, data, registry_start_date)
+        if (!status_column %in% colnames(data)) {
+            stop("Error: cannot find status column ", status_column, " in data frame.")
+        }
+        counted_prev <- new_counted_prevalence(counted_formula, index, data, registry_start_date, status_column)
     } else {
         counted_prev <- NULL
     }
@@ -151,7 +161,8 @@ new_prevalence <- function(index, num_years_to_estimate,
                    inc_model=inc_model,
                    index_date=index,
                    proportion=proportion,
-                   registry_start=registry_start_date)
+                   registry_start=registry_start_date,
+                   status_col=status_column)
 
     # Calculate covariate means and save
     # TODO What's this needed for?
@@ -169,7 +180,8 @@ new_prevalence <- function(index, num_years_to_estimate,
 
 }
 
-new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, population_size=NULL, proportion=100e3,
+new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col,
+                               population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
 
     # See if need simulation if have less registry data than required
@@ -178,7 +190,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
 
     # Only count prevalence if formula isn't null
     if (!is.null(prev_formula)) {
-        count_prev <- new_counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date))
+        count_prev <- new_counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date), status_col)
 
         # See if appending prevalence to simulation data or it's entirely counted
         if (initial_date < registry_start_date) {
@@ -267,8 +279,7 @@ calculate_se_counted <- function(population_size, counted_contribs) {
 
 # Start date allows users to specify how long estimating prevalence for, as otherwise including
 # all contributions in data set
-# TODO Hardcoded status column! Get this from survival function
-new_counted_prevalence <- function(formula, index, data, start_date, status_col='status') {
+new_counted_prevalence <- function(formula, index, data, start_date, status_col) {
     death_col <- all.vars(update(formula, .~0))
     entry_col <- all.vars(update(formula, 0~.))
 
