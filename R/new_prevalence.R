@@ -8,6 +8,7 @@ MIN_INCIDENCE <- 10
 
 # TODO Current hardcoded values:
 #   - Age to force user death at 100
+#   - Status column for the counted prevalence function. Should be determined from the survival object
 
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
@@ -18,6 +19,7 @@ new_prevalence <- function(index, num_years_to_estimate,
                            registry_start_date=NULL,
                            death_column=NULL,
                            incident_column=NULL,
+                           age_column='age',
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
@@ -107,6 +109,7 @@ new_prevalence <- function(index, num_years_to_estimate,
         sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
         prev_sim <- new_sim_prevalence(data, index, sim_time,
                                        inc_model, surv_model,
+                                       age_col=age_column,
                                        starting_date=sim_start_date, nsims=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
@@ -279,9 +282,9 @@ new_counted_prevalence <- function(formula, index, data, start_date, status_col=
 
 new_sim_prevalence <- function(data, index, number_incident_days,
                                inc_model, surv_model,
+                               age_col='age',
                                starting_date=NULL, nsims=1000) {
 
-    # TODO Obtain this column name dynamically
     data <- data[complete.cases(data), ]
     full_data <- data
 
@@ -305,11 +308,11 @@ new_sim_prevalence <- function(data, index, number_incident_days,
     # Combine into single table
     results <- rbindlist(all_results, idcol='sim')
 
-    # truncate death at age 100
-    if ('age' %in% colnames(results)) {
-        results[(age*365.25 + time_to_death) > 36525, time_to_death := 36525 - age*365.25]
+    # Force death at 100 if possible
+    if (!is.null(age_col) & age_col %in% colnames(results)) {
+        results[(get(age_col)*365.25 + time_to_death) > 36525, time_to_death := 36525 - get(age_col)*365.25]
     } else {
-        message("No 'age' column found so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
+        message("No column found for age in ", age_col, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
     # Add the data into the equation, i.e. incidence date, death date
@@ -435,8 +438,6 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
 
     # Obtain linear predictor for the location parameter
     # Obtain name of covariates
-    # TODO This won't work for interactions, should either see if have formula in the call somewhere
-    # or save it manually in my own constructor
     covars <- colnames(newdata)
     formula <- as.formula(paste("~", paste(covars, collapse='+')))
     # Expand categorical variables in newdata frame
