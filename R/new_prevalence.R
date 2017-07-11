@@ -17,27 +17,46 @@ new_prevalence <- function(index, num_years_to_estimate,
                            surv_model=NULL,
                            registry_start_date=NULL,
                            death_column=NULL,
+                           incident_column=NULL,
                            N_boot=1000,
                            population_size=NULL, proportion=100e3,
                            level=0.95,
                            dist='weibull',
                            precision=2, n_cores=1) {
 
-    # This argument allows the user to specify when their registry started. I.e. it could have
-    # started a month before received first incident case, in which case would want that taking into account when
-    # estimating incidence rate and prevalence
-    if (is.null(registry_start_date)) {
-        registry_start_date <- min(data$entrydate)
+    if (is.null(incident_column)) {
+        if (!is.null(inc_formula)) {
+            incident_column <- all.vars(update(inc_formula, .~0))
+        }
     }
 
     # Form formula for counted prevalence
     # extract entry column from incidence formula
-    if (!is.null(death_column)) {
-        entry_column <- all.vars(update(inc_formula, .~0))
-        counted_formula <- as.formula(paste(death_column, entry_column, sep='~'))
-    } else {
+    if (is.null(death_column)) {
         message("death_column not provided so prevalence cannot be counted over the registry. Estimates will be solely from simulation.")
         counted_formula <- NULL
+    } else if (is.null(incident_column)) {
+        message("incident_column not provided so prevalence cannot be counted over the registry. Estimates will be solely from simulation.")
+        counted_formula <- NULL
+    } else {
+        counted_formula <- as.formula(paste(death_column, incident_column, sep='~'))
+    }
+
+    if (!is.null(incident_column)) {
+        data[[incident_column]] <- lubridate::ymd(data[[incident_column]])
+    }
+    if (!is.null(death_column)) {
+        data[[death_column]] <- lubridate::ymd(data[[death_column]])
+    }
+
+    # This argument allows the user to specify when their registry started. I.e. it could have
+    # started a month before received first incident case, in which case would want that taking into account when
+    # estimating incidence rate and prevalence
+    if (is.null(registry_start_date)) {
+        if (is.null(incident_column)) {
+            stop("Error: Unknown registry starting date. Please either provide 'registry_start_date' or the incident column in 'inc_formula'.")
+        }
+        registry_start_date <- min(data[[incident_column]])
     }
 
     index <- lubridate::ymd(index)
@@ -264,7 +283,6 @@ new_sim_prevalence <- function(data, index, number_incident_days,
 
     # TODO Obtain this column name dynamically
     data <- data[complete.cases(data), ]
-    data$entrydate <- as.Date(data$entrydate)
     full_data <- data
 
     covars <- extract_covars(surv_model)
