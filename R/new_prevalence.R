@@ -155,7 +155,6 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
     need_simulation <- initial_date < registry_start_date
 
     # Only count prevalence if formula isn't null
-    #browser()
     if (!is.null(prev_formula)) {
         count_prev <- new_counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date))
 
@@ -169,19 +168,11 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
 
             # Closure to calculate combined standard error
             se_func <- build_se_func(counted_contribs=count_prev, sim_contribs=sim_contributions)
-            #se_func <- function(population_size) {
-            #    calculate_se_combined(population_size, counted_contribs=count_prev, sim_contribs=sim_contributions)
-            #}
 
         } else {
             the_estimate <- count_prev
-
             # Closure to calculate standard error of counted data
             se_func <- build_se_func(counted_contribs=count_prev)
-            #se_func <- function(population_size) {
-            #    calculate_se_counted(population_size, counted_contribs=count_prev)
-            #}
-
         }
     } else {
         # If don't have counted data then prevalence estimates are entirely simulated
@@ -190,16 +181,12 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         the_estimate <- mean(sim_contributions)
 
         # Closure to calculate standard error of simulated data
-        #se_func <- function(population_size) {
-        #    calculate_se_sim(population_size, sim_contribs=sim_contributions)
-        #}
         se_func <- build_se_func(sim_contribs=sim_contributions)
     }
 
     result <- list(absolute.prevalence=the_estimate)
 
     if (!is.null(population_size)) {
-        #browser()
         the_proportion <- (the_estimate / population_size) * proportion
         se <- se_func(population_size)
 
@@ -256,8 +243,6 @@ calculate_se_counted <- function(population_size, counted_contribs) {
     sqrt((raw_proportion * (1 - raw_proportion)) / population_size)
 }
 
-
-# Requires columns with entrydate, eventdate, status
 # Start date allows users to specify how long estimating prevalence for, as otherwise including
 # all contributions in data set
 # TODO Hardcoded status column! Get this from survival function
@@ -282,50 +267,12 @@ new_sim_prevalence <- function(data, index, number_incident_days,
     data$entrydate <- as.Date(data$entrydate)
     full_data <- data
 
-    # Incidence models
-    # TODO Place guards in new_prevalence and assume that user has correct call here?
-    #if (is.null(inc_model) && is.null(inc_formula)) {
-    #    stop("Error: Please provide one of inc_model and inc_formula.")
-    #}
-    #if (!is.null(inc_model) && !(is.null(inc_formula))) {
-    #    stop("Error: Please provide only one of inc_model and inc_formula.")
-    #}
-    #if (is.null(inc_formula )) {
-    #    stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
-    #}
-    #if (is.null(inc_model)) {
-    #    inc_model <- fit_exponential_incidence(inc_formula, data)
-    #}
-#
-    ## Survival models
-    #if (!is.null(surv_model) && !(is.null(surv_formula))) {
-    #    stop("Error: Please provide only one of surv_model and surv_formula.")
-    #}
-#
-    #if (!is.null(surv_model) && !(is.null(dist))) {
-    #    stop("Error: Please provide only one of surv_model and dist.")
-    #}
-#
-    #available_dists <- c('lognormal', 'weibull', 'exponential')
-    #if (!missing(dist) && ! dist %in% available_dists) {
-    #    stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
-    #}
-#
-    #if (!missing(surv_formula)) {
-    #    surv_model <- build_survreg(surv_formula, data, dist)
-    #}
-#
-    #if (missing(surv_model)) {
-    #    stop("Error: Please provide one of surv_model or surv_formula.")
-    #}
-
     covars <- extract_covars(surv_model)
 
     all_results <- replicate(nsims, {
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
-        browser()
         # fit incidence and survival models.
         bs_inc <- eval(inc_model$call)
         bs_surv <- eval(surv_model$call)
@@ -390,10 +337,13 @@ build_survreg <- function(formula, data, user_dist) {
                          NULL # parms
                          )
 
+    func_call <- match.call()
+    func_call$formula <- eval(formula)
+    func_call$user_dist <- eval(user_dist)
 
     object <- list(coefs=coef(mod),
                    covars = rownames(attr(terms(formula), "factors"))[2:nrow(attr(terms(formula), "factors"))],
-                   call = match.call(),
+                   call = func_call,
                    dist = user_dist,
                    terms= labels(terms(formula))
                    )
@@ -530,7 +480,12 @@ fit_exponential_incidence <- function(inc_form, data) {
         strata_names <- NULL
     }
 
-    obj <- list(rate=rate, call=match.call(), strata=strata_names)
+    # Formulate call with the formula evaluated in this environment with the data argument as a promise
+    # that will be evaluated later on the bootstrapped data
+    func_call <- match.call()
+    func_call$inc_form <- eval(inc_form)
+
+    obj <- list(rate=rate, call=func_call, strata=strata_names)
     class(obj) <- "expinc"
     obj
 }
