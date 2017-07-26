@@ -34,7 +34,7 @@ new_prevalence <- function(index, num_years_to_estimate,
 
     # Is it right for surv_formula to have precedence over surv_formula?
     if (!is.null(surv_formula)) {
-        surv_LHS <- all.vars(update(foo, .~0))
+        surv_LHS <- all.vars(update(surv_formula, .~0))
         status_column <- surv_LHS[length(surv_LHS)]
     }
 
@@ -113,10 +113,10 @@ new_prevalence <- function(index, num_years_to_estimate,
         }
 
         sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
-        prev_sim <- new_sim_prevalence(data, index, sim_time,
-                                       inc_model, surv_model,
+        prev_sim <- new_sim_prevalence(data, index, sim_start_date,
+                                       sim_time, inc_model, surv_model,
                                        age_col=age_column,
-                                       starting_date=sim_start_date, nsims=N_boot)
+                                       nsims=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -127,7 +127,7 @@ new_prevalence <- function(index, num_years_to_estimate,
             col_name <- paste0("prev_", year, "yr")
 
             # Determine prevalence as incident date is in range and alive at index date
-            prev_sim$results[, (col_name) := as.numeric(incident_date > starting_incident_date & incident_date < index & death_date > index)]
+            prev_sim$results[, (col_name) := as.numeric((incident_date > starting_incident_date & incident_date < index) & alive_at_index)]
         }
 
     } else {
@@ -291,10 +291,11 @@ new_counted_prevalence <- function(formula, index, data, start_date, status_col)
     sum(incident & !dead_at_index)
 }
 
-new_sim_prevalence <- function(data, index, number_incident_days,
+new_sim_prevalence <- function(data, index, starting_date,
+                               number_incident_days,
                                inc_model, surv_model,
                                age_col='age',
-                               starting_date=NULL, nsims=1000) {
+                               nsims=1000) {
 
     data <- data[complete.cases(data), ]
     full_data <- data
@@ -311,9 +312,19 @@ new_sim_prevalence <- function(data, index, number_incident_days,
 
         # Draw the incident population using the fitted model and predict their death times
         incident_population <- draw_incident_population(bs_inc, full_data, number_incident_days, extract_covars(bs_surv))
-        event_times <- draw_time_to_death(surv_model, incident_population)
-        incident_population[, "time_to_death" := event_times]
+        setDT(incident_population)
+
+        # For each individual determine the time between incidence and the index
+        incident_date <- as.Date(starting_date + incident_population$time_to_entry)
+        time_to_index <- as.numeric(difftime(index, incident_date, units='days'))
+
+        # Estimate whether alive as Bernouilli trial with p = S(t)
+        surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
+        incident_population[, 'incident_date' := incident_date]
+        incident_population[, 'time_to_index' := time_to_index]
+        incident_population[, 'alive_at_index' := rbinom(length(surv_prob), size=1, prob=surv_prob)]
         incident_population
+
     }, simplify=FALSE)
 
     # Combine into single table
@@ -321,19 +332,14 @@ new_sim_prevalence <- function(data, index, number_incident_days,
 
     # Force death at 100 if possible
     if (!is.null(age_col) & age_col %in% colnames(results)) {
-        results[(get(age_col)*365.25 + time_to_death) > 36525, time_to_death := 36525 - get(age_col)*365.25]
+        results[(get(age_col)*365.25 + time_to_index) > 36525, alive_at_index := 0]
     } else {
         message("No column found for age in ", age_col, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
-    # Add the data into the equation, i.e. incidence date, death date
-    if (!is.null(starting_date)) {
-        results[, c('incident_date', 'death_date') := list(as.Date(starting_date + time_to_entry),
-                                                           as.Date(starting_date + time_to_entry + time_to_death)
-                                                           )]
-    }
+    # This intermediary column isn't useful for the user and would just clutter up the output
+    results[, time_to_index := NULL]
 
-    # Drop intermediary columns
     list(results=results,
          surv_model=surv_model,
          inc_model=inc_model)
@@ -393,10 +399,11 @@ extract_covars.survregmin <- function(object) {
     object$covars
 }
 
-# TODO Put these in a survival script somewhere
-draw_time_to_death <- function(object, newdata) UseMethod("draw_time_to_death")
 
-draw_time_to_death.survregmin <- function(object, newdata) {
+predict_survival_probability <- function(object, newdata, times) UseMethod("predict_survival_probability")
+
+predict_survival_probability.survregmin <- function(object, newdata, times) {
+
     # Expand data into dummy categorical and include intercept
     formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
     wide_df <- model.matrix(formula, newdata)
@@ -420,21 +427,21 @@ draw_time_to_death.survregmin <- function(object, newdata) {
         stop("Error: Unknown number of parameters ", num_params)
     }
 
-    distribution_drawing[[object$dist]](nrow(newdata), lps, scale)
+    1- distribution_drawing[[object$dist]](times, lps, scale)
 }
 
 # TODO Combine these
-distribution_drawing <- list('weibull' = function(n, lps, scale=NULL) {
-                                rweibull(n, 1 / exp(scale), exp(lps))
+distribution_drawing <- list('weibull' = function(times, lps, scale=NULL) {
+                                pweibull(times, 1 / exp(scale), exp(lps))
                              },
-                             'lognormal' = function(n, lps, scale=NULL) {
-                                 rlnorm(n, lps, exp(scale))
+                             'lognormal' = function(times, lps, scale=NULL) {
+                                 plnorm(times, lps, exp(scale))
                              },
-                             'loglogistic' = function(n, lps, scale=NULL) {
-                                 rllogis(n, 1 / exp(scale), exp(lps))
+                             'loglogistic' = function(times, lps, scale=NULL) {
+                                 pllogis(times, 1 / exp(scale), exp(lps))
                              },
-                             'exponential' = function(n, lps, scale=NULL) {
-                                 rexp(n, 1/exp(lps))
+                             'exponential' = function(times, lps, scale=NULL) {
+                                 pexp(times, 1/exp(lps))
                              }
                              )
 distribution_params <- list('weibull'=2,
@@ -527,8 +534,8 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
     if (is.null(object$strata)) {
         initial_num_inds <- INCIDENCE_MARGIN * object$rate * timeframe
         time_to_entry <- cumsum(rexp(initial_num_inds, object$rate))
-        time_to_entry <- time_to_time_to_entry[time_to_entry < timeframe]
-        newdata <- data.table(time_to_entry)
+        time_to_entry <- time_to_entry[time_to_entry < timeframe]
+        new_data <- data.table(time_to_entry)
     } else {
         new_data <- rbindlist(apply(object$rate, 1, function(row) {
             rate <- as.numeric(row['Freq'])
