@@ -1,5 +1,7 @@
 library(flexsurvcure)
 library(rprev)
+library(ggplot2)
+library(tidyr)
 data(prevsim)
 
 cure_model <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, link="logistic",
@@ -31,7 +33,16 @@ length(daily_pop_mort)
 # Now predict relative survival for 4016 days for a 50 year old man
 pred <- summary(cure_model, newdata=data.frame(age=50, sex=factor(1)), t=1:4015)
 pred_surv <- pred$`age=50, sex=1`$est
-plot(1:4015, pred_surv * daily_pop_mort)
+pred_surv_overall <- pred_surv * daily_pop_mort
+
+data.frame(time=1:length(pred_surv),
+           rel = pred_surv,
+           overall = pred_surv_overall) %>%
+    gather(method, prob, -time) %>%
+    ggplot(aes(x=time, y=prob, colour=method)) +
+        geom_line() +
+        ylim(0, 1) +
+        theme_bw()
 
 # Yep that is 100% a discrete survival curve...
 

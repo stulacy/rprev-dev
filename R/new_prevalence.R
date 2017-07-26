@@ -77,10 +77,10 @@ new_prevalence <- function(index, num_years_to_estimate,
     if (!((sim_start_date >= registry_start_date) & (!is.null(death_column)))) {
 
         # Incidence models
-        if (is.null(inc_model) && is.null(inc_formula)) {
+        if (is.null(inc_model) & is.null(inc_formula)) {
             stop("Error: Please provide one of inc_model and inc_formula.")
         }
-        if (!is.null(inc_model) && !(is.null(inc_formula))) {
+        if (!is.null(inc_model) & !(is.null(inc_formula))) {
             stop("Error: Please provide only one of inc_model and inc_formula.")
         }
         if (is.null(inc_formula )) {
@@ -91,16 +91,16 @@ new_prevalence <- function(index, num_years_to_estimate,
         }
 
         # Survival models
-        if (!is.null(surv_model) && !(is.null(surv_formula))) {
+        if (!is.null(surv_model) & !(is.null(surv_formula))) {
             stop("Error: Please provide only one of surv_model and surv_formula.")
         }
 
-        if (!is.null(surv_model) && !(is.null(dist))) {
+        if (!is.null(surv_model) & !(missing(dist))) {
             stop("Error: Please provide only one of surv_model and dist.")
         }
 
         available_dists <- c('lognormal', 'weibull', 'exponential')
-        if (!missing(dist) && ! dist %in% available_dists) {
+        if (!missing(dist) & ! dist %in% available_dists) {
             stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
         }
 
@@ -345,6 +345,10 @@ new_sim_prevalence <- function(data, index, starting_date,
          inc_model=inc_model)
 }
 
+build_curemodel <- function(formula, data, ...) {
+
+}
+
 build_survreg <- function(formula, data, user_dist) {
     # Transforms the registry data into the format specified by survreg.fit,
     # i.e. as a matrix of values with the survival times log transformed.
@@ -430,27 +434,7 @@ predict_survival_probability.survregmin <- function(object, newdata, times) {
     1- distribution_drawing[[object$dist]](times, lps, scale)
 }
 
-# TODO Combine these
-distribution_drawing <- list('weibull' = function(times, lps, scale=NULL) {
-                                pweibull(times, 1 / exp(scale), exp(lps))
-                             },
-                             'lognormal' = function(times, lps, scale=NULL) {
-                                 plnorm(times, lps, exp(scale))
-                             },
-                             'loglogistic' = function(times, lps, scale=NULL) {
-                                 pllogis(times, 1 / exp(scale), exp(lps))
-                             },
-                             'exponential' = function(times, lps, scale=NULL) {
-                                 pexp(times, 1/exp(lps))
-                             }
-                             )
-distribution_params <- list('weibull'=2,
-                            'lognormal'=2,
-                            'loglogistic'=2,
-                            'exponential'=1
-                            )
-
-draw_time_to_death.flexsurvreg <- function(object, newdata) {
+predict_survival_probability.flexsurvreg <- function(object, newdata, times) {
     # Obtain location parameter (i.e. one that covariates act on)
     loc_param <- object$dlist$location
 
@@ -474,18 +458,40 @@ draw_time_to_death.flexsurvreg <- function(object, newdata) {
     # therefore also the time-to-death
     loc_vals <- object$dlist$inv.transforms[[loc_index]](lps)
 
-    if (!is.null(scale_index)) {
+    event_prob <- if (!is.null(scale_index)) {
         scale_val <- object$dlist$inv.transforms[[scale_index]](object$coefficients[scale_index])
         if (scale_index < loc_index) {
-            object$dfns$r(nrow(newdata), scale_val, loc_vals)
+            object$dfns$p(times, scale_val, loc_vals)
         } else {
-            object$dfns$r(nrow(newdata), loc_vals, scale_val)
+            object$dfns$p(times, loc_vals, scale_val)
         }
     } else {
-        object$dfns$r(nrow(newdata), loc_vals)
+        object$dfns$p(times, loc_vals)
     }
 
+    1 - event_prob
 }
+
+
+# TODO Combine these
+distribution_drawing <- list('weibull' = function(times, lps, scale=NULL) {
+                                pweibull(times, 1 / exp(scale), exp(lps))
+                             },
+                             'lognormal' = function(times, lps, scale=NULL) {
+                                 plnorm(times, lps, exp(scale))
+                             },
+                             'loglogistic' = function(times, lps, scale=NULL) {
+                                 pllogis(times, 1 / exp(scale), exp(lps))
+                             },
+                             'exponential' = function(times, lps, scale=NULL) {
+                                 pexp(times, 1/exp(lps))
+                             }
+                             )
+distribution_params <- list('weibull'=2,
+                            'lognormal'=2,
+                            'loglogistic'=2,
+                            'exponential'=1
+                            )
 
 # TODO Put these in an incidence script somewhere
 fit_exponential_incidence <- function(inc_form, data) {
