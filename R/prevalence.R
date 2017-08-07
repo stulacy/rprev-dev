@@ -405,8 +405,9 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(df$sex), function(x) {
         sub_data <- df[df$sex==x, ]
+        sex_int <- match(x, levels(df$sex)) - 1
         .prevalence_subgroup(sub_data$age, as.character(sub_data$entry), start, wb_boot, num_reg_years,
-                             surv_functions[[x]], cure_days, as.numeric(x), num_years_to_estimate,
+                             surv_functions[[x]], cure_days, sex_int, num_years_to_estimate,
                              include_sex=length(levels(df$sex)) == 2)
     })
 
@@ -438,6 +439,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 .prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
                                  cure_days, sex, nprevyears, include_sex) {
+
     fix_rate_rev <- rev(yearly_incidence(entry, start_date=start, num_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 
