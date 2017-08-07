@@ -61,7 +61,8 @@ prevalence_counted(prevsim$entrydate,
 
 }
 \seealso{
-Other prevalence functions: \code{\link{prevalence_simulated}},
+Other prevalence functions: \code{\link{new_test_prevalence_fit}},
+  \code{\link{prevalence_simulated}},
   \code{\link{prevalence}},
   \code{\link{test_prevalence_fit}}
 }
