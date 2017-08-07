@@ -1,51 +1,32 @@
-library(flexsurvcure)
-library(rprev)
-library(ggplot2)
-library(tidyr)
-data(prevsim)
+#' Builds a cure model with an associated population mortality table
+#'
+#' @importFrom magrittr "%>%"
+#' @export
+cure_model_wrapper <- function(formula, data, dist='weibull', pop_data=NULL, link='logistic', mixture=T, ...) {
+    obj <- flexsurvcure::flexsurvcure(formula=formula, data=data,
+                                      dist=dist,
+                                      link=link, mixture=mixture,
+                                      ...)
 
-cure_model <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, link="logistic",
-                           dist='weibull', mixture=T)
+    if (is.null(pop_data)) {
+        utils::data('UKmortalitydays', envir=environment())
+        pop_data <- get('UKmortalitydays', envir=environment())
+    }
 
-# I assume theta is the baseline probability of being susceptible?
-cure_model
+    # Save individual attributes (NOT AGE) that are in mortality data
 
-# Does this mean that covariates aren't being placed on the distribution location or scale parameters then?
-# The docs say can use anc to specify effects on ancilliary covariates but does this just mean the scale parameters rather than the location?
-# Ideally want to know exactly what is being modelled here
+    model_covs <- attr(obj$concat.formula, "covnames")
+    mortality_covars <- setdiff(intersect(model_covs, colnames(pop_data)), 'age')
+    obj$pop_covars <- mortality_covars
 
+    num_rates <- pop_data %>%
+                    dplyr::count_(mortality_covars)
+    if (any(num_rates$n != 36525))
+        stop("Error: 'pop_data' must have 36525 rows for daily mortality over 100 years for each covariate combination")
 
-### CALCULATING CDF
+    # Save pop_data to obj
+    obj$pop_mortality <- pop_data
+    obj$call <- match.call()
 
-# See my paper notes for efforts to determine inverse of CDF for drawing event times
-# Let's plot the S(t) and thereby CDF for an individual with known attributes.
-# Since the flexsurvcure package produces relative survival estimates we'll simulate population mortality
-
-# Simulate 11 years of population mortality
-pop_mort_raw <- cumsum(runif(11))
-pop_mort_norm <- 1 - (pop_mort_raw / max(pop_mort_raw)) * 0.3
-pop_mort_norm
-
-# Expand into daily values
-daily_pop_mort <- rep(pop_mort_norm, each=365)
-length(daily_pop_mort)
-
-# Now predict relative survival for 4016 days for a 50 year old man
-pred <- summary(cure_model, newdata=data.frame(age=50, sex=factor(1)), t=1:4015)
-pred_surv <- pred$`age=50, sex=1`$est
-pred_surv_overall <- pred_surv * daily_pop_mort
-
-data.frame(time=1:length(pred_surv),
-           rel = pred_surv,
-           overall = pred_surv_overall) %>%
-    gather(method, prob, -time) %>%
-    ggplot(aes(x=time, y=prob, colour=method)) +
-        geom_line() +
-        ylim(0, 1) +
-        theme_bw()
-
-# Yep that is 100% a discrete survival curve...
-
-# So how do we draw from it?!
-
-
+    obj
+}

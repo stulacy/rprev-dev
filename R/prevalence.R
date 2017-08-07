@@ -363,10 +363,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
         utils::data('UKmortality', envir=environment())
-        #assign('population_data', UKmortality)
         population_data <- get('UKmortality', envir=environment())
-
-        #population_data <- UKmortality
     } else {
         # Obtain population data, and ensure it has the correct columns
         req_pop_names <- c('rate', 'age', 'sex')

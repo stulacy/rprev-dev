@@ -55,6 +55,32 @@ test_prevalence_fit <- function(object) {
     1 - pchisq(chi, object$nregyears - 1)
 }
 
+
+#' Test simulated prevalence fit.
+#'
+#' Calculates a Chi squared test between predicted yearly contributions to
+#' prevalence, and the observed values obtained from the registry, indicating
+#' whether the simulated prevalence values are accurate.
+#'
+#' @param object A \code{prevalence} object.
+#' @return P-value from a chi-squared test of difference between prevalence
+#'   prediction and counted prevalence at the index date.
+#' @examples
+#' data(prevsim)
+#'
+#' \dontrun{
+#'
+#' obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#'                   data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
+#'                   start = "2005-09-01",
+#'                   num_reg_years = 8, cure = 5)
+#'
+#' test_prevalence_fit(obj)
+#' }
+#' @importFrom data.table `:=`
+#'
+#' @export
+#' @family prevalence functions
 new_test_prevalence_fit <- function(object) {
     object$simulated[, prev_registry := as.numeric(incident_date >= object$registry_start & alive_at_index)]
     predicted <- round(mean(object$simulated[, sum(prev_registry), by=sim][[2]]))

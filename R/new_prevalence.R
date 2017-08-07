@@ -1,14 +1,13 @@
-library(flexsurv)
-library(lubridate)
-library(dplyr)
-library(data.table)
+#library(flexsurv)
+#library(lubridate)
+#library(dplyr)
+#library(data.table)
 
 INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
-# TODO Current hardcoded values:
-#   - Status column for the counted prevalence function. Should be determined from the survival object
-
+#' @importFrom data.table :=
+#' @export
 new_prevalence <- function(index, num_years_to_estimate,
                            data,
                            inc_formula=NULL,
@@ -185,7 +184,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
                                level=0.95, precision=2) {
 
     # See if need simulation if have less registry data than required
-    initial_date <- index - years(year)
+    initial_date <- index - lubridate::years(year)
     need_simulation <- initial_date < registry_start_date
 
     # Only count prevalence if formula isn't null
@@ -312,7 +311,7 @@ new_sim_prevalence <- function(data, index, starting_date,
 
         # Draw the incident population using the fitted model and predict their death times
         incident_population <- draw_incident_population(bs_inc, full_data, number_incident_days, extract_covars(bs_surv))
-        setDT(incident_population)
+        data.table::setDT(incident_population)
 
         # For each individual determine the time between incidence and the index
         incident_date <- as.Date(starting_date + incident_population$time_to_entry)
@@ -328,7 +327,7 @@ new_sim_prevalence <- function(data, index, starting_date,
     }, simplify=FALSE)
 
     # Combine into single table
-    results <- rbindlist(all_results, idcol='sim')
+    results <- data.table::rbindlist(all_results, idcol='sim')
 
     # Force death at 100 if possible
     if (!is.null(age_col) & age_col %in% colnames(results)) {
@@ -503,15 +502,15 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
         initial_num_inds <- INCIDENCE_MARGIN * object$rate * timeframe
         time_to_entry <- cumsum(rexp(initial_num_inds, object$rate))
         time_to_entry <- time_to_entry[time_to_entry < timeframe]
-        new_data <- data.table(time_to_entry)
+        new_data <- data.table::data.table(time_to_entry)
     } else {
-        new_data <- rbindlist(apply(object$rate, 1, function(row) {
+        new_data <- data.table::rbindlist(apply(object$rate, 1, function(row) {
             rate <- as.numeric(row['Freq'])
             initial_num_inds <- INCIDENCE_MARGIN * rate * timeframe
             time_to_entry <- cumsum(rexp(initial_num_inds, rate))
             time_to_entry <- time_to_entry[time_to_entry < timeframe]
             # Form data frame with these factor levels too
-            new_data <- data.table(time_to_entry)
+            new_data <- data.table::data.table(time_to_entry)
             new_data[, names(row[-length(row)]) := row[-length(row)]]
             new_data
         }))
@@ -523,7 +522,7 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
     covars_to_sample <- setdiff(missing_covars, higher_order)
 
     new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
-    setDT(new_covars)
+    data.table::setDT(new_covars)
 
     # Add in higher order terms
     # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
@@ -537,6 +536,34 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
     cbind(new_data, new_covars)
 }
 
+predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
+                                                      t=NULL,
+                                                      ...)
+{
+    # Get estimates from flexsurvreg method
+    estimates <- predict_survival_probability.flexsurvreg(object, newdata, t, ...)
+
+    if (!is.null(object$pop_mortality)) {
+        # Obtain age at index in days
+        # TODO Possible to not have hardcoded?
+        newdata$age <- floor((newdata$age * 365.25) + t)
+
+        # Obtain mortality rates from these values
+        comb <- left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars))
+
+        # For people that don't have a mortality set to 0 as assumedly because they
+        # are > 100
+        comb[is.na(comb$surv), 'surv'] <- 0
+
+        # scale estimates
+        estimates <- estimates * comb$surv
+    }
+
+    estimates
+
+}
+
+# This also works for flexsurvcure models
 predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
                                                      t=NULL,
                                                      ...)
