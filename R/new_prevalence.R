@@ -6,7 +6,7 @@
 INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
-#' @importFrom data.table :=
+#' @import data.table
 #' @export
 new_prevalence <- function(index, num_years_to_estimate,
                            data,

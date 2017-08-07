@@ -77,7 +77,7 @@ test_prevalence_fit <- function(object) {
 #'
 #' test_prevalence_fit(obj)
 #' }
-#' @importFrom data.table `:=`
+#' @import data.table
 #'
 #' @export
 #' @family prevalence functions
