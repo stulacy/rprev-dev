@@ -12,6 +12,7 @@ Description: Estimates disease prevalence for a given index date, using existing
     registry data extended with Monte Carlo simulations.
 License: GPL-2
 Depends:
+    R (>= 2.10),
     survival
 Imports:
     data.table,

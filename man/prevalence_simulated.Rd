@@ -103,7 +103,8 @@ prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
 
 }
 \seealso{
-Other prevalence functions: \code{\link{new_test_prevalence_fit}},
+Other prevalence functions: \code{\link{new_prevalence}},
+  \code{\link{new_test_prevalence_fit}},
   \code{\link{prevalence_counted}},
   \code{\link{prevalence}},
   \code{\link{test_prevalence_fit}}

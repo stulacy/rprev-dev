@@ -1,5 +1,10 @@
 #' Builds a cure model with an associated population mortality table
 #'
+#' @param pop_data A data frame comprising population survival as a daily rate for 36525 days (100 years).
+#'   It can also be stratified by other variables that are found in the survival \code{formula} for this model,
+#'   such as sex.
+#' @inheritParams flexsurvcure::flexsurvcure
+#'
 #' @importFrom magrittr "%>%"
 #' @export
 cure_model_wrapper <- function(formula, data, dist='weibull', pop_data=NULL, link='logistic', mixture=T, ...) {
