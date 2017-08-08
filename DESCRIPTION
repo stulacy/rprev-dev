@@ -18,8 +18,11 @@ Imports:
     doParallel,
     dplyr,
     foreach,
+    flexsurv,
+    flexsurvcure,
     ggplot2,
     lazyeval,
+    lubridate,
     magrittr,
     rms,
     tidyr

@@ -1,0 +1,56 @@
+---
+title: "Cure Models"
+output: html_notebook
+---
+
+## Background
+
+I've been working on implementing cure models into the new version of `rprev`, and following a chat with Therese Andersson at the Junior Survival Analysis Researchers Conference I've been looking into using mixture and non-mixture models. Her [workshop slides here](https://www2.le.ac.uk/Members/pl4/workshop2011-1/Presentation%20Workshop%20FlexParMod-KI-Nov2011-Therese-b.pdf) provide a concise overview into this area. I've also found a neat R package called [`flexsurvcure`](https://cran.r-project.org/web/packages/flexsurvcure/index.html), which provides implementations of these models in R, using the consistent and sane parameterisation from one of my favourite packages: `flexsurv`. I've reverse-engineered how the program calculates its overall $S(t)$ estimates and can implement a means of drawing from this cure model distribution using the inverse-transform.
+
+However, as ever, I have a few niggling issues with the underlying maths that I would appreciate your expert opinion on if you have time.
+
+## Including population mortality
+
+The main issue relates to the implementation difference between how Therese Andersson presents the cure model in her slides and how `flexsurvcure` implements it. 
+
+Therese includes the underlying population mortality as follows:
+
+$S(t) = S_{c}(t)(\pi(z) S_{u}(t|x) + 1 - \pi(z))$  (1)
+
+Where:
+
+  - $S_{u}(t)$ is the survival function of **un**cured patients
+  - $S_{c}(t)$ is the survival function of cured patients, i.e. the population mortality
+  - $z$ and $x$ are individual level covariates, that may or may not be independent
+  - $\pi(z)$ is a function predicting the probability of a person with attributes $z$ being **un**cured, typically using a logit link
+  
+However, the parameterisation used in `flexsurvcure` assumes that cured patients have survival probability = 1, i.e.:
+
+$S(t) = \pi(z) S_{u}(t|x) + 1 - \pi(z)$ (2)
+
+According to a [tutorial by Peng and Taylor](http://post.queensu.ca/~pengp/papers/Peng2014_4.pdf), this is because:
+
+  *Following the discussion in Section 6.1, $S_{c}(t) = 1$, i.e. it is a degenerate survival function*
+  
+This makes sense where the event of interest is something like cancer remission, but when the outcome is death we definitely want to take it into account as it will be experienced by cured individuals. I therefore will need to adjust the output from `flexsurvcure` to account for this fact.
+
+## Questions
+
+### 1
+
+In Eq 1, why is $S_{c}(t)$ multiplied by the entire equation, rather than just the $1-\pi(z)$ term? 
+
+Intuitively a weighted sum of the two survival curves makes sense to me, $S(t) = \pi(z) S_{u}(t|x) + (1 - \pi(z))S_{c}(t)$
+
+### 2
+
+Why don't we scale $\hat{S}(t)$ by population survival for any occassion where we are interested in estimating overall survival probability, even in situations where we don't have a cure model? For example, in the discrete event simulation, to me it seems sensible to scale estimates in this manner. On a similar note, relative survival seems a very useful measure, do we use it often in our analyses?
+
+### 3
+
+To incorporate population mortality into the estimate from `flexsurvcure` (Eq 2), I could simply multiply $S(t)$ by $S_{c}(t)$ taken from the population mortality tables. However, by not taking $S_{c}(t)$ into account when fitting the parameters for $\pi(.)$ and $S_{u}(.)$, will I be biasing the model at all?
+
+### 4
+
+I've only focused on mixture models so far, do you have any preference or opinions on them vs non-mixture models?
+

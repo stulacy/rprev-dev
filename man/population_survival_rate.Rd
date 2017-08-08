@@ -29,6 +29,6 @@ by age, based on their yearly mortality rates.
 data(UKmortality)
 
 population_survival_rate(rate ~ age, UKmortality)
-population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
+population_survival_rate(rate ~ age, subset(UKmortality, sex=='M'))
 
 }

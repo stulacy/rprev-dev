@@ -82,6 +82,12 @@ test_prevalence_fit <- function(object) {
 #' @export
 #' @family prevalence functions
 new_test_prevalence_fit <- function(object) {
+    # Needed for CRAN
+    prev_registry <- NULL
+    alive_at_index <- NULL
+    incident_date <- NULL
+    sim <- NULL
+
     object$simulated[, prev_registry := as.numeric(incident_date >= object$registry_start & alive_at_index)]
     predicted <- round(mean(object$simulated[, sum(prev_registry), by=sim][[2]]))
     poisson.test(c(object$counted, predicted))$p.value

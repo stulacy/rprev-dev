@@ -25,6 +25,10 @@ new_prevalence <- function(index, num_years_to_estimate,
                            dist='weibull',
                            precision=2, n_cores=1) {
 
+    # Needed for CRAN check
+    alive_at_index <- NULL
+    incident_date <- NULL
+
     if (is.null(incident_column)) {
         if (!is.null(inc_formula)) {
             incident_column <- all.vars(update(inc_formula, .~0))
@@ -183,6 +187,10 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
                                population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
 
+    # CRAN check
+    incident_date <- NULL
+    sim <- NULL
+
     # See if need simulation if have less registry data than required
     initial_date <- index - lubridate::years(year)
     need_simulation <- initial_date < registry_start_date
@@ -295,6 +303,9 @@ new_sim_prevalence <- function(data, index, starting_date,
                                inc_model, surv_model,
                                age_col='age',
                                nsims=1000) {
+
+    # Needed for CRAN check
+    alive_at_index <- NULL
 
     data <- data[complete.cases(data), ]
     full_data <- data
@@ -549,7 +560,7 @@ predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
         newdata$age <- floor((newdata$age * 365.25) + t)
 
         # Obtain mortality rates from these values
-        comb <- left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars))
+        comb <- dplyr::left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars))
 
         # For people that don't have a mortality set to 0 as assumedly because they
         # are > 100

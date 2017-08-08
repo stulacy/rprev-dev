@@ -16,7 +16,7 @@
 #' data(UKmortality)
 #'
 #' population_survival_rate(rate ~ age, UKmortality)
-#' population_survival_rate(rate ~ age, subset(UKmortality, sex==0))
+#' population_survival_rate(rate ~ age, subset(UKmortality, sex=='M'))
 #'
 #' @export
 population_survival_rate <- function(form, data, max_age=100){
