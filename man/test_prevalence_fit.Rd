@@ -30,12 +30,11 @@ obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + 
 
 test_prevalence_fit(obj)
 }
-
 }
 \seealso{
-Other prevalence functions: \code{\link{new_prevalence}},
-  \code{\link{new_test_prevalence_fit}},
-  \code{\link{prevalence_counted}},
-  \code{\link{prevalence_simulated}},
-  \code{\link{prevalence}}
+Other prevalence functions: \code{\link{counted_prevalence}},
+  \code{\link{prevalence_counted_legacy}},
+  \code{\link{prevalence_simulated_legacy}},
+  \code{\link{prevalence}}, \code{\link{sim_prevalence}},
+  \code{\link{test_prevalence_fit_legacy}}
 }

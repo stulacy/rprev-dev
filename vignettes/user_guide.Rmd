@@ -207,11 +207,11 @@ In the first instance, prevalence can be estimated by counting from the registry
 `prevalence_counted` calculates prevalence contributions for each year of the provided registry data to the index date - specified using the `index_date` argument. The `num_reg_years` parameter allows the user to specify the number of years of data to use in the estimation, in the example below incident cases from the first year of the registry in 2003 are discarded due to concerns about their accuracy. In `prevalence_counted()`, all cases alive after the index date are censored. 
 
 ```{r survival, error = TRUE}
-prevalence_counted(prevsim$entrydate, 
-                   prevsim$eventdate, 
-                   prevsim$status, 
-                   index_date="2013-01-30",
-                   num_reg_years=9) 
+prevalence_counted_legacy(prevsim$entrydate, 
+                          prevsim$eventdate, 
+                          prevsim$status, 
+                          index_date="2013-01-30",
+                          num_reg_years=9) 
 ```
 
 The function returns the prevalence contributions by year, in ascending order (i.e there are 44 contributions from the year between 2004-01-30 and 2005-01-30).
@@ -223,7 +223,7 @@ Prevalence is estimated using simulation by calling `prevalence()`. `index_date`
 NB: all follow-up data for the available incident cases is still used in survival modelling.
 
 ```{r prevalencetotal, error = TRUE}
-prevalence_total <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + 
+prevalence_total <- prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + 
                                    entry(entrydate) + event(eventdate),
                                prevsim, num_years_to_estimate=c(3, 5, 10), 
                                index_date='2013-01-30',

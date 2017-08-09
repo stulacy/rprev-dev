@@ -46,7 +46,7 @@ test_incidence_fit <- function(inc, N_sim = 1e5) {
 #'
 #' @export
 #' @family prevalence functions
-test_prevalence_fit <- function(object) {
+test_prevalence_fit_legacy <- function(object) {
     if (all(is.na(object$simulated))) {
         return(NA)
     }
@@ -81,7 +81,7 @@ test_prevalence_fit <- function(object) {
 #'
 #' @export
 #' @family prevalence functions
-new_test_prevalence_fit <- function(object) {
+test_prevalence_fit <- function(object) {
     # Needed for CRAN
     prev_registry <- NULL
     alive_at_index <- NULL

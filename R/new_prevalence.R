@@ -112,22 +112,22 @@ MIN_INCIDENCE <- 10
 #' @family prevalence functions
 #' @import data.table
 #' @export
-new_prevalence <- function(index, num_years_to_estimate,
-                           data,
-                           inc_formula=NULL,
-                           inc_model=NULL,
-                           surv_formula=NULL,
-                           surv_model=NULL,
-                           registry_start_date=NULL,
-                           death_column=NULL,
-                           incident_column=NULL,
-                           age_column='age',
-                           status_column='status',
-                           N_boot=1000,
-                           population_size=NULL, proportion=100e3,
-                           level=0.95,
-                           dist='weibull',
-                           precision=2, n_cores=1) {
+prevalence <- function(index, num_years_to_estimate,
+                       data,
+                       inc_formula=NULL,
+                       inc_model=NULL,
+                       surv_formula=NULL,
+                       surv_model=NULL,
+                       registry_start_date=NULL,
+                       death_column=NULL,
+                       incident_column=NULL,
+                       age_column='age',
+                       status_column='status',
+                       N_boot=1000,
+                       population_size=NULL, proportion=100e3,
+                       level=0.95,
+                       dist='weibull',
+                       precision=2, n_cores=1) {
 
     # Needed for CRAN check
     alive_at_index <- NULL
@@ -220,10 +220,10 @@ new_prevalence <- function(index, num_years_to_estimate,
         }
 
         sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
-        prev_sim <- new_sim_prevalence(data, index, sim_start_date,
+        prev_sim <- sim_prevalence(data, index, sim_start_date,
                                        sim_time, inc_model, surv_model,
-                                       age_col=age_column,
-                                       nsims=N_boot)
+                                       age_column=age_column,
+                                       N_boot=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -258,7 +258,7 @@ new_prevalence <- function(index, num_years_to_estimate,
         if (!status_column %in% colnames(data)) {
             stop("Error: cannot find status column ", status_column, " in data frame.")
         }
-        counted_prev <- new_counted_prevalence(counted_formula, index, data, registry_start_date, status_column)
+        counted_prev <- counted_prevalence(counted_formula, index, data, registry_start_date, status_column)
     } else {
         counted_prev <- NULL
     }
@@ -279,7 +279,7 @@ new_prevalence <- function(index, num_years_to_estimate,
     #object$y <- survobj
 
     if (!is.null(prev_sim)) {
-        object$pval <- new_test_prevalence_fit(object)
+        object$pval <- test_prevalence_fit(object)
     }
 
     attr(object, 'class') <- 'prevalence'
@@ -301,7 +301,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
 
     # Only count prevalence if formula isn't null
     if (!is.null(prev_formula)) {
-        count_prev <- new_counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date), status_col)
+        count_prev <- counted_prevalence(prev_formula, index, registry_data, max(initial_date, registry_start_date), status_col)
 
         # See if appending prevalence to simulation data or it's entirely counted
         if (initial_date < registry_start_date) {
@@ -388,9 +388,39 @@ calculate_se_counted <- function(population_size, counted_contribs) {
     sqrt((raw_proportion * (1 - raw_proportion)) / population_size)
 }
 
-# Start date allows users to specify how long estimating prevalence for, as otherwise including
-# all contributions in data set
-new_counted_prevalence <- function(formula, index, data, start_date, status_col) {
+#' Count prevalence from registry data.
+#'
+#' Counts contribution to prevalence at a specific index from each year of a
+#' registry. A person is included as contributing to disease prevalence if they
+#' are incident within the specified time-span, and are either alive or censored
+#' at the index date. The rationale for including censored cases in prevalence
+#' estimation is that such cases have typically been lost to follow-up, and are
+#' often more likely to have been alive at the index date than not.
+#'
+#' @inheritParams prevalence
+#' @param formula A formula of the form <event date column> ~ <entry date column>.
+#' @param start_date The initial date to start counting prevalence from as a \code{Date} object.
+#'     Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.
+#' @param status_col The name of the column holding a binary indicator variable
+#'     of whether the individual experienced an event at their event time or was
+#'     censored.
+#'
+#' @return The number of prevalent cases at the specified
+#' index date as a single integer.
+#'
+#' @examples
+#' data(prevsim)
+#'
+#' counted_prevalence(eventdate ~ entrydate,
+#'                    "2013-01-01",
+#'                    prevsim,
+#'                    start_date=min(prevsim$entrydate),
+#'                    status_col='status')
+#'
+#'
+#' @export
+#' @family prevalence functions
+counted_prevalence <- function(formula, index, data, start_date, status_col) {
     death_col <- all.vars(update(formula, .~0))
     entry_col <- all.vars(update(formula, 0~.))
 
@@ -402,11 +432,57 @@ new_counted_prevalence <- function(formula, index, data, start_date, status_col)
     sum(incident & !dead_at_index)
 }
 
-new_sim_prevalence <- function(data, index, starting_date,
-                               number_incident_days,
-                               inc_model, surv_model,
-                               age_col='age',
-                               nsims=1000) {
+#' Estimate prevalence using Monte Carlo simulation.
+#'
+#' Estimates prevalent cases at a specific index date by use of Monte Carlo
+#' simulation. Simulated cases are marked with age and sex to enable agreement
+#' with population survival data where a cure model is used, and calculation of
+#' the posterior distributions of each.
+#' @inheritParams prevalence
+#' @param starting_date The initial date to start simulating prevalence from as a \code{Date} object.
+#'     Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.
+#' @param number_incident_days The number of days which people can be incident for.
+#'
+#' @return A list with the following attributes:
+#'   \item{mean_yearly_contributions}{A vector of length
+#'   \code{num_years_to_estimate}, representing the average number of prevalent
+#'   cases subdivided by year of diagnosis across each bootstrap iteration.}
+#'   \item{posterior_age}{Posterior distributions of age, sampled at every
+#'   bootstrap iteration.} \item{yearly_contributions}{Total simulated prevalent
+#'   cases from every bootstrapped sample.} \item{pop_mortality}{Population
+#'   survival rates in the format of a list, stratified by sex.}
+#'   \item{nbootstraps}{Number of bootstrapped samples used in the prevalence
+#'   estimation.} \item{coefs}{The bootstrapped Weibull coefficients used by the
+#'   survival models.} \item{full_coefs}{The Weibull coefficients from a model
+#'   fitted to the full dataset.}
+#' @examples
+#' data(prevsim)
+#'
+#' \dontrun{
+#' # TODO Generate incidence and survival object
+#' # TODO Do I actually want to keep this and the counted function
+#' # as exports?
+#' simulated_prevalence(prevsim, "2013-01-01",
+#'                      starting_date="2003-01-01",
+#'                      number_incident_days=36525,
+#'                      inc_model, surv_model)
+#' }
+#'
+#' @importFrom utils data
+#' @import stats
+#' @importFrom doParallel registerDoParallel
+#' @importFrom foreach foreach
+#' @importFrom foreach %dopar%
+#' @export
+#' @family prevalence functions
+#'
+# TODO Why is the number_incident_days specified? Shouldn't this
+# just be index - starting date?
+sim_prevalence <- function(data, index, starting_date,
+                           number_incident_days,
+                           inc_model, surv_model,
+                           age_column='age',
+                           N_boot=1000) {
 
     # Needed for CRAN check
     alive_at_index <- NULL
@@ -416,7 +492,7 @@ new_sim_prevalence <- function(data, index, starting_date,
 
     covars <- extract_covars(surv_model)
 
-    all_results <- replicate(nsims, {
+    all_results <- replicate(N_boot, {
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
@@ -445,10 +521,10 @@ new_sim_prevalence <- function(data, index, starting_date,
     results <- data.table::rbindlist(all_results, idcol='sim')
 
     # Force death at 100 if possible
-    if (!is.null(age_col) & age_col %in% colnames(results)) {
-        results[(get(age_col)*365.25 + time_to_index) > 36525, alive_at_index := 0]
+    if (!is.null(age_column) & age_column %in% colnames(results)) {
+        results[(get(age_column)*365.25 + time_to_index) > 36525, alive_at_index := 0]
     } else {
-        message("No column found for age in ", age_col, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
+        message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
     # This intermediary column isn't useful for the user and would just clutter up the output
