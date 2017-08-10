@@ -219,11 +219,10 @@ prevalence <- function(index, num_years_to_estimate,
             stop("Error: Please provide one of surv_model or surv_formula.")
         }
 
-        sim_time <- as.numeric(difftime(index, sim_start_date, units='days'))
         prev_sim <- sim_prevalence(data, index, sim_start_date,
-                                       sim_time, inc_model, surv_model,
-                                       age_column=age_column,
-                                       N_boot=N_boot)
+                                   inc_model, surv_model,
+                                   age_column=age_column,
+                                   N_boot=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -441,7 +440,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' @inheritParams prevalence
 #' @param starting_date The initial date to start simulating prevalence from as a \code{Date} object.
 #'     Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.
-#' @param number_incident_days The number of days which people can be incident for.
 #'
 #' @return A list with the following attributes:
 #'   \item{mean_yearly_contributions}{A vector of length
@@ -464,7 +462,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' # as exports?
 #' simulated_prevalence(prevsim, "2013-01-01",
 #'                      starting_date="2003-01-01",
-#'                      number_incident_days=36525,
 #'                      inc_model, surv_model)
 #' }
 #'
@@ -475,11 +472,7 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' @importFrom foreach %dopar%
 #' @export
 #' @family prevalence functions
-#'
-# TODO Why is the number_incident_days specified? Shouldn't this
-# just be index - starting date?
 sim_prevalence <- function(data, index, starting_date,
-                           number_incident_days,
                            inc_model, surv_model,
                            age_column='age',
                            N_boot=1000) {
@@ -491,6 +484,7 @@ sim_prevalence <- function(data, index, starting_date,
     full_data <- data
 
     covars <- extract_covars(surv_model)
+    number_incident_days <- as.numeric(difftime(index, starting_date, units='days'))
 
     all_results <- replicate(N_boot, {
         # bootstrap dataset
