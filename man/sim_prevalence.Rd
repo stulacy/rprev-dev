@@ -4,8 +4,8 @@
 \alias{sim_prevalence}
 \title{Estimate prevalence using Monte Carlo simulation.}
 \usage{
-sim_prevalence(data, index, starting_date, number_incident_days, inc_model,
-  surv_model, age_column = "age", N_boot = 1000)
+sim_prevalence(data, index, starting_date, inc_model, surv_model,
+  age_column = "age", N_boot = 1000)
 }
 \arguments{
 \item{data}{A data frame with the corresponding column names provided in
@@ -16,8 +16,6 @@ YYYY-MM-DD.}
 
 \item{starting_date}{The initial date to start simulating prevalence from as a \code{Date} object.
 Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.}
-
-\item{number_incident_days}{The number of days which people can be incident for.}
 
 \item{inc_model}{An object that has a \code{draw_incident_population}
 method. See the vignette for further guidance.}
@@ -59,7 +57,6 @@ data(prevsim)
 # as exports?
 simulated_prevalence(prevsim, "2013-01-01",
                      starting_date="2003-01-01",
-                     number_incident_days=36525,
                      inc_model, surv_model)
 }
 
