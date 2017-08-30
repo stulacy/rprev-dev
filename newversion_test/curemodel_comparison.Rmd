@@ -11,6 +11,7 @@ output:
 library(flexsurvcure)
 library(dplyr)
 library(ggplot2)
+library(RODBC)
 data(prevsim)
 ```
 
@@ -86,28 +87,35 @@ cure_mod_anc <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist=
                              anc=list(scale=~ age + sex), link='logistic', mixture=TRUE)
 ```
 
-# Comparison of prevalence estimates
+# Comparison of prevalence estimates on simulated data
 
-This section provides a quick summary of the new prevalence function, comparing it to the old version using both cure models and not, as well as brief look at using different distributions for the survival function.
+This section provides a quick summary of the new prevalence function, comparing it to the old version using both cure models and not, as well as brief look at using different distributions for the survival function. The comparison is carried out on the `prevsim` simulated data set that is supplied with `rprev`.
 
 ## No cure model
 
-The function calls below show that, in my opinion, the new version is cleaner and better separates the prevalence into its 2 constituent stochastic processes.
+The function calls below show that, in my opinion, the new version is cleaner and better separates the prevalence into its 2 constituent stochastic processes. Here is the old version:
 
 ```{r}
 wei_legacy_nocure <- prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-                                       data=prevsim, num_years_to_estimate = c(5, 10, 20, 50), num_reg_years = 10,
-                                       population_size = 1e6, cure = 9999,
+                                       data=prevsim, 
+                                       num_years_to_estimate = c(5, 10, 20, 50), 
+                                       num_reg_years = 10,
+                                       population_size = 1e6, 
+                                       cure = 9999,
                                        index_date = '2013-01-01')
 ```
 
-The call below also highlights the specification of the default Incidence model (a homogeneous Poisson process) as a formula `inc_formula`. The LHS gives the incident date column name, while the RHS provides any categorical variables to stratify by. In this case we are stratifying incidence by sex, although it is not obligatory to provide a stratification variable, instead passing `entrydate ~ 1`.
+The new parameterisation shown below highlights the incidence and survival models as separate processes. The default Incidence model (a homogeneous Poisson process) is controlled by a formula `inc_formula`, with the LHS providing the incident date column name; the RHS specifies any categorical variables to stratify by. In this case we are stratifying incidence by sex, although it is not obligatory to provide a stratification variable, instead passing `entrydate ~ 1`.
 
 ```{r}
-wei_new_nocure <- prevalence(index='2013-01-01', num_years_to_estimate=c(5, 10, 20, 50), data=prevsim, 
+wei_new_nocure <- prevalence(index='2013-01-01', 
+                             num_years_to_estimate=c(5, 10, 20, 50), 
+                             data=prevsim, 
                              inc_formula = entrydate ~ sex,
-                             surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
-                             dist='weibull', death_column = 'eventdate')
+                             surv_formula = Surv(time, status) ~ age + sex, 
+                             population_size = 1e6,
+                             dist='weibull', 
+                             death_column = 'eventdate')
 ```
 
 Prevalence has been estimated over a number of years, using the same Weibull survival model for both with just age and sex as covariates, and a homogeneous Poisson process for incidence stratified by sex. The prevalence estimates are extremely similar, even when simulating 50 years back, suggesting that the new version is well calibrated.
@@ -128,25 +136,32 @@ However, a more interesting comparison is in the prevalence estimates when using
 
 ```{r}
 wei_legacy_cure <- prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-                                     data=prevsim, num_years_to_estimate = c(5, 10, 20, 50), num_reg_years = 10,
-                                     population_size = 1e6, cure = 10,
+                                     data=prevsim, 
+                                     num_years_to_estimate = c(5, 10, 20, 50), 
+                                     num_reg_years = 10,
+                                     population_size = 1e6, 
+                                     cure = 10,
                                      index_date = '2013-01-01')
 ```
 
 **Note that I had to reduce the number of simulations here to 100, and even then it still took a few minutes.** I'll also explain the `surv_model` argument later.
 
 ```{r}
-wei_new_cure <- prevalence(index='2013-01-01', num_years_to_estimate=c(5, 10, 20, 50), data=prevsim, 
-                             inc_formula = entrydate ~ sex,
-                             surv_model = cure_mod, population_size = 1e6,
-                             death_column = 'eventdate', N_boot = 100)
+wei_new_cure <- prevalence(index='2013-01-01', 
+                           num_years_to_estimate=c(5, 10, 20, 50), 
+                           data=prevsim, 
+                           inc_formula = entrydate ~ sex,
+                           surv_model = cure_mod, 
+                           population_size = 1e6,
+                           death_column = 'eventdate', 
+                           N_boot = 100)
 ```
 
 ```{r}
 wei_legacy_cure
 ```
 
-The mixture cure model is more optimistic about the overall survival of cured patients, or predicts a very high proportion will be cured, since the prevalence is significantly higher. Is this difference too large, or can it be justified? I need to read up more on mixture cure models. The prevalence estimate for 50 years for the non-cure model was 1,040 from both the new and legacy functions, so the old cure model method actually gives counter-intuitive results while the new one makes more sense.
+The mixture cure model is more optimistic about the overall survival of cured patients, or predicts a very high proportion will be cured, since the prevalence is significantly higher than the non-cure model 50-year estimate of 1,040. Is this difference too large, or can it be justified? I need to read up more on mixture cure models. The old cure model method actually gives counter-intuitive results since the cure model results in a **decrease** in prevalence, while the mixture model **increases** prevalence, as would be expected since population survival is (assumedly) higher than that from the disease.
 
 ```{r}
 wei_new_cure
@@ -154,7 +169,7 @@ wei_new_cure
 
 ## Different distributions
 
-It is now easy to provide different distributions to use for the survival model, below we can see that the Weibull, Log-normal, and Exponential distributions offer a range of prevalence estimates so care must be taken to provide a sensible model.
+With the new implementation it is now easy to provide different distributions for the survival model, below we can see that the Weibull, Log-normal, and Exponential distributions offer a range of prevalence estimates so care must be taken to provide a sensible model.
 
 ```{r}
 prevalence(index='2013-01-01', num_years_to_estimate=c(10, 20, 50), data=prevsim, 
@@ -202,6 +217,25 @@ prevalence(index='2013-01-01', num_years_to_estimate=c(10, 20, 50), data=prevsim
            death_column = "eventdate",
            N_boot=100)
 ```
+
+# Cure model comparison on AML
+
+The comparison of the old cure model and the mixture model on the simulated data highlighted a significant difference in how the cure models affect prevalence. The old implementation actually reduced prevalence, indicating that population survival is worse than survival from the diesease (50-year prevalence decrease from 1,040 to 936), which is rather counter-intuitive. The mixture cure model had the opposite affect, with prevalence increasing (50-year prevalence increased from 1,040 to 1,267).
+
+However, comparing these models on a simulated dataset isn't a fair way of assessing the validity of the cure model, since this data set has not been generated with a group of cured patients in mind. This section instead compares these two models on a real-world data set in which a cure model has empirical justification. Survival in AML has been observed to follow a bi-modal distribution, with many people experiencing rapid fatility, but with a second group of individuals experiencing long-term survival, as if they have been entirely cured of the disease with their survival being instead modelled by a different process. A mixture model is therefore an appropriate analysis tool for this data set.
+
+## Data
+
+```{r, echo=F}
+cx <- odbcConnect("HMRN")
+subjects <- sqlQuery(cx, query="SELECT * FROM Source.data.Subjects WHERE DiagnosticGroupWHO = 'Acute myeloid leukaemia")
+odbcClose(cx)  
+```
+
+
+# Speed comparison
+
+Before the holiday I 
 
 # Further Work
 
