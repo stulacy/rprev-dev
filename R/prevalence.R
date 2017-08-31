@@ -77,9 +77,9 @@
 #'   attributes: \item{estimates}{Estimated prevalence at the index date for
 #'   each of the years in \code{num_years_to_estimate}.} \item{simulated}{A list
 #'   containing items related to the simulation of prevalence contributions, see
-#'   \code{\link{prevalence_simulated}}}. \item{counted}{Contributions to
+#'   \code{\link{prevalence_simulated_legacy}}}. \item{counted}{Contributions to
 #'   prevalence from each of the supplied registry years, see
-#'   \code{\link{prevalence_counted}}.} \item{start_date}{The starting date of
+#'   \code{\link{prevalence_counted_legacy}}.} \item{start_date}{The starting date of
 #'   the registry data included in the estimation.} \item{index_date}{The index
 #'   date at which the point prevalence was calculated for.}
 #'   \item{known_inc_rate}{The known incidence rate for years included in the
@@ -98,28 +98,28 @@
 #' data(prevsim)
 #'
 #' \dontrun{
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#' prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
 #'            index_date = '2013-09-01', num_reg_years = 8,
 #'            cure = 5)
 #'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#' prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = 5, population_size=1e6)
 #'
 #' # Run on multiple cores
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+#' prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
 #'            data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
 #' }
 #'
 #' @export
-#' @family prevalence functions
-prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
-                       num_reg_years=NULL, cure=10,
-                       N_boot=1000,
-                       population_size=NULL, proportion=100e3,
-                       level=0.95, population_data=NULL,
-                       precision=2, n_cores=1,
-                       start=NULL) {
+#' @family prevalence_legacy functions
+prevalence_legacy <- function(form, data, num_years_to_estimate, index_date=NULL,
+                              num_reg_years=NULL, cure=10,
+                              N_boot=1000,
+                              population_size=NULL, proportion=100e3,
+                              level=0.95, population_data=NULL,
+                              precision=2, n_cores=1,
+                              start=NULL) {
 
     # Extract required column names from formula
     spec <- c('age', 'sex', 'entry', 'event')
@@ -167,11 +167,11 @@ prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
 
     # Calculate observed prevalence for 1:num_registry_years
     # Remove calls to num_registry_years and start when update
-    prev_count <- prevalence_counted(data[, entry_var],
-                                     data[, event_var],
-                                     survobj[, 2],
-                                     index_date=index_date,
-                                     num_reg_years=num_reg_years_new)
+    prev_count <- prevalence_counted_legacy(data[, entry_var],
+                                            data[, event_var],
+                                            survobj[, 2],
+                                            index_date=index_date,
+                                            num_reg_years=num_reg_years_new)
 
 
     if (num_reg_years_new > max(num_years_to_estimate)) {
@@ -182,7 +182,7 @@ prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
         inc_rate <- rev(yearly_incidence(data[, entry_var], start_date=start_date, num_years=num_reg_years_new))
     } else {
         # Calculate simulated prevalence for 1:max(num_years_to_estimate)
-        prev_sim <- prevalence_simulated(survobj, data[, age_var], data[, sex_var], data[, entry_var],
+        prev_sim <- prevalence_simulated_legacy(survobj, data[, age_var], data[, sex_var], data[, entry_var],
                                          max(num_years_to_estimate), index_date,
                                          num_reg_years_new, cure=cure, N_boot=N_boot,
                                          population_data=population_data, n_cores=n_cores)
@@ -208,7 +208,7 @@ prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
     object$means <- colMeans(mean_df)
     object$y <- survobj
 
-    object$pval <- test_prevalence_fit(object)
+    object$pval <- test_prevalence_fit_legacy(object)
 
     attr(object, 'class') <- 'prevalence'
     object
@@ -223,7 +223,7 @@ prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
 #' estimation is that such cases have typically been lost to follow-up, and are
 #' often more likely to have been alive at the index date than not.
 #'
-#' @inheritParams prevalence
+#' @inheritParams prevalence_legacy
 #' @param entry Vector of diagnosis dates for each patient in the registry in
 #'   the format YYYY-MM-DD.
 #' @param eventdate Vector of dates corresponding to the indicator variable in
@@ -238,18 +238,18 @@ prevalence <- function(form, data, num_years_to_estimate, index_date=NULL,
 #' @examples
 #' data(prevsim)
 #'
-#' prevalence_counted(prevsim$entrydate,
+#' prevalence_counted_legacy(prevsim$entrydate,
 #'                    prevsim$eventdate,
 #'                    prevsim$status)
 #'
-#' prevalence_counted(prevsim$entrydate,
+#' prevalence_counted_legacy(prevsim$entrydate,
 #'                    prevsim$eventdate,
 #'                    prevsim$status,
 #'                    index_date="2012-01-30")
 #'
 #' @export
 #' @family prevalence functions
-prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_reg_years=NULL, start=NULL ) {
+prevalence_counted_legacy <- function(entry, eventdate, status, index_date=NULL, num_reg_years=NULL, start=NULL ) {
 
     entry <- as.Date(entry)
 
@@ -262,7 +262,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
         start_date <- if (is.null(start)) min(entry) else start
         num_reg_years_new <- if (is.null(num_reg_years)) floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR)) else num_reg_years
         foo <- determine_yearly_endpoints(start_date, num_reg_years_new)
-        index_date = foo[length(foo)]
+        index_date <- foo[length(foo)]
     } else {
 
         if (is.null(index_date)) {
@@ -298,7 +298,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #' with population survival data where a cure model is used, and calculation of
 #' the posterior distributions of each.
 #'
-#' @inheritParams prevalence
+#' @inheritParams prevalence_legacy
 #' @param survobj \code{Surv} object from \code{survival} package. Currently
 #'   only right censoring is supported.
 #' @param age A vector of ages from the registry.
@@ -322,20 +322,20 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #' data(prevsim)
 #'
 #' \dontrun{
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#' prevalence_simulated_legacy(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
 #'                      num_years_to_estimate = 10,
 #'                      index_date = "2013-09-01",
 #'                      num_reg_years = 8, cure = 5)
 #'
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#' prevalence_simulated_legacy(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
 #'                      num_years_to_estimate = 5,
 #'                      index_date="2009-01-01",
 #'                      num_reg_years=5)
 #'
 #' # The program can be run using parallel processing.
-#' prevalence_simulated(Surv(prevsim$time, prevsim$status), prevsim$age,
+#' prevalence_simulated_legacy(Surv(prevsim$time, prevsim$status), prevsim$age,
 #'                      prevsim$sex, prevsim$entrydate,
 #'                      num_years_to_estimate = 10,
 #'                      index_date="2013-01-01",
@@ -349,7 +349,7 @@ prevalence_counted <- function(entry, eventdate, status, index_date=NULL, num_re
 #' @importFrom foreach %dopar%
 #' @export
 #' @family prevalence functions
-prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate,
+prevalence_simulated_legacy <- function(survobj, age, sex, entry, num_years_to_estimate,
                                  index_date, num_reg_years, cure=10, start=NULL,
                                  N_boot=1000,
                                  population_data=NULL, n_cores=1) {
@@ -363,10 +363,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Calculate population survival rates for each sex in dataset
     if (is.null(population_data)) {
         utils::data('UKmortality', envir=environment())
-        #assign('population_data', UKmortality)
         population_data <- get('UKmortality', envir=environment())
-
-        #population_data <- UKmortality
     } else {
         # Obtain population data, and ensure it has the correct columns
         req_pop_names <- c('rate', 'age', 'sex')
@@ -408,8 +405,9 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
     # Run the prevalence estimator for each subgroup
     results <- lapply(levels(df$sex), function(x) {
         sub_data <- df[df$sex==x, ]
+        sex_int <- match(x, levels(df$sex)) - 1
         .prevalence_subgroup(sub_data$age, as.character(sub_data$entry), start, wb_boot, num_reg_years,
-                             surv_functions[[x]], cure_days, as.numeric(x), num_years_to_estimate,
+                             surv_functions[[x]], cure_days, sex_int, num_years_to_estimate,
                              include_sex=length(levels(df$sex)) == 2)
     })
 
@@ -441,6 +439,7 @@ prevalence_simulated <- function(survobj, age, sex, entry, num_years_to_estimate
 
 .prevalence_subgroup <- function(prior_age_d, entry, start, wboot, nregyears, survfunc,
                                  cure_days, sex, nprevyears, include_sex) {
+
     fix_rate_rev <- rev(yearly_incidence(entry, start_date=start, num_years=nregyears))
     mean_rate <- mean(fix_rate_rev)
 

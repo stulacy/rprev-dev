@@ -9,7 +9,7 @@ data(prevsim)
 ############################
 prev_oldimpl <- function(data, num_years_to_estimate, start, years, cure, boot) {
     set.seed(17)
-    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+    prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                data, num_years_to_estimate, population_size=1e6,
                start=start, num_reg_years=years,
                cure=cure, N_boot=boot)
@@ -17,7 +17,7 @@ prev_oldimpl <- function(data, num_years_to_estimate, start, years, cure, boot) 
 
 prev_newimpl <- function(data, num_years_to_estimate, index, years, cure, boot) {
     set.seed(17)
-    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+    prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                data, num_years_to_estimate, population_size=1e6,
                index_date=index, num_reg_years=years,
                cure=cure, N_boot=boot)
@@ -25,7 +25,7 @@ prev_newimpl <- function(data, num_years_to_estimate, index, years, cure, boot) 
 
 prev_thousandoldimpl <- function(data, num_years_to_estimate, start, years, cure, boot) {
     set.seed(17)
-    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+    prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                data, num_years_to_estimate, population_size=1e6,
                start=start, num_reg_years=years,
                cure=cure, N_boot=boot)
@@ -33,7 +33,7 @@ prev_thousandoldimpl <- function(data, num_years_to_estimate, start, years, cure
 
 prev_thousandnewimpl <- function(data, num_years_to_estimate, index, years, cure, boot) {
     set.seed(17)
-    prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+    prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                data, num_years_to_estimate, population_size=1e6,
                index_date=index, num_reg_years=years,
                cure=cure, N_boot=boot)
@@ -170,7 +170,7 @@ test_that("prevalence with a thousand bootstraps returns same values as before w
 
 test_that("Error is raised when passing a population data frame not set up correctly", {
     expect_poperror <- function(popdata, msg) {
-        expect_error(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+        expect_error(prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                              prevsim, num_years_to_estimate=10, population_size=1e6, population_data=popdata,
                                              start='2004-01-01', num_reg_years=9,
                                 cure=5, N_boot=10), msg)
@@ -181,14 +181,14 @@ test_that("Error is raised when passing a population data frame not set up corre
     expect_poperror(data.frame(age=rnorm(10, 60, 10), gender=rbinom(10, 1, 0.5)), missing_cols)  # Lacks rate and sex is named as gender
     expect_poperror(data.frame(age=rnorm(10, 60, 10), gender=rbinom(10, 1, 0.5), rate=runif(10)), missing_cols)  # sex is named as gender
     expect_poperror(data.frame(gender=rbinom(10, 1, 0.5), rate=runif(10)), missing_cols)  # Lacking age and sex is misnamed
-    expect_poperror(data.frame(sex=rbinom(10, 1, 0.5), rate=runif(10)), missing_cols)  # Lacking age
-    expect_poperror(data.frame(sex=rbinom(10, 1, 0.5)), missing_cols)  # Lacking age and rate
-    expect_poperror(data.frame(age=rnorm(10, 60, 10), sex=sample(c('M', 'F'), 10, replace=T), rate=runif(10)), missing_levels)  # sex has different levels to that in prevsim
+    expect_poperror(data.frame(sex=sample(c('M', 'F'), 10, replace=T), rate=runif(10)), missing_cols)  # Lacking age
+    expect_poperror(data.frame(sex=sample(c('M', 'F'), 10, replace=T), rbinom(10, 1, 0.5)), missing_cols)  # Lacking age and rate
+    expect_poperror(data.frame(age=rnorm(10, 60, 10), sex=sample(c(0, 1), 10, replace=T), rate=runif(10)), missing_levels)  # sex has different levels to that in prevsim
 })
 
 test_that("Formula for prevalence must have age, sex, and entry functions.", {
     expect_formerror <- function(form, msg) {
-        expect_error(prevalence(form,
+        expect_error(prevalence_legacy(form,
                                 prevsim, num_years_to_estimate=10, population_size = 1e6,
                                 start='2004-01-01', num_reg_years=9,
                                 cure=5, N_boot=10), msg)
@@ -212,7 +212,7 @@ test_that("Formula for prevalence must have age, sex, and entry functions.", {
 
 test_that("Error is raised when levels for sex aren't the same in registry and population data", {
     expect_sexerror <- function(regdata, popdata, msg) {
-        expect_error(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+        expect_error(prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                 regdata, num_years_to_estimate=10, population_size=1e6,
                                 population_data=popdata,
                                 start='2004-01-01', num_reg_years=9,
@@ -229,12 +229,12 @@ test_that("Error is raised when levels for sex aren't the same in registry and p
     status <- rbinom(regN, 1, 0.8)
     entry <- as.character(sapply(sample(seq(8), regN, replace=T), function(x) sprintf("200%d-03-17", x)))
 
-    pop_01 <- data.frame(age=agepop, sex=rbinom(10, 1, 0.5), rate=rate)
-    pop_mf <- data.frame(age=agepop, sex=sample(c('M', 'F'), 10, replace=T), rate=rate)
+    pop_01 <- data.frame(age=agepop, sex=sample(c('M', 'F'), 10, replace=T), rate=rate)
+    pop_mf <- data.frame(age=agepop, sex=sample(c(0, 1), 10, replace=T), rate=rate)
 
-    reg_01 <- data.frame(time=time, status=status, age=agereg, sex=rbinom(10, 1, 0.5),
+    reg_01 <- data.frame(time=time, status=status, age=agereg, sex=sample(c('M', 'F'), 10, replace=T),
                          entrydate=entry, eventdate=as.Date(entry) + time)
-    reg_mf <- data.frame(time=time, status=status, age=agereg, sex=sample(c('M', 'F'), 10, replace=T),
+    reg_mf <- data.frame(time=time, status=status, age=agereg, sex=sample(c(0, 1), 10, replace=T),
                          entrydate=entry, eventdate=as.Date(entry) + time)
 
     expect_sexerror(reg_01, pop_mf, missing_levels)
@@ -243,7 +243,7 @@ test_that("Error is raised when levels for sex aren't the same in registry and p
 
 test_that("Prevalence messages the user when the number of registry years are greater than the number of years asked to predict prevalence for", {
     expect_msg <- function(Nyears, start, regyears=NULL) {
-        expect_message(prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
+        expect_message(prevalence_legacy(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
                                   prevsim, num_years_to_estimate=Nyears, population_size=1e6,
                                   start=start, num_reg_years=regyears,
                                   cure=5, N_boot=10))
@@ -258,7 +258,7 @@ test_that("prevalence_counted results in the same values as before", {
     i <- 1
     expect_ref <- function(entry, event, status, start, years=NULL) {
         fn <- paste('cache/prevalence/countedprevalence_', i, '.rds', sep='')
-        expect_equal_to_reference(prevalence_counted(entry, event, status, start=start,
+        expect_equal_to_reference(prevalence_counted_legacy(entry, event, status, start=start,
                                                      num_reg_years=years), file=fn)
         i <<- i + 1
     }

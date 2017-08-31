@@ -12,11 +12,11 @@ test_that("population_survival_rate returns same values as before", {
     }
 
     expect_ref(UKmortality)
-    expect_ref(subset(UKmortality, sex==0))
-    expect_ref(subset(UKmortality, sex==1))
+    expect_ref(subset(UKmortality, sex=='M'))
+    expect_ref(subset(UKmortality, sex=='F'))
     expect_ref(UKmortality, age=50)
-    expect_ref(subset(UKmortality, sex==0), age=50)
-    expect_ref(subset(UKmortality, sex==1), age=50)
+    expect_ref(subset(UKmortality, sex=='M'), age=50)
+    expect_ref(subset(UKmortality, sex=='F'), age=50)
 })
 
 test_that("population_survival_rate returns doubles", {
@@ -25,11 +25,11 @@ test_that("population_survival_rate returns doubles", {
     }
 
     expect_double(UKmortality)
-    expect_double(subset(UKmortality, sex==0))
-    expect_double(subset(UKmortality, sex==1))
+    expect_double(subset(UKmortality, sex=='M'))
+    expect_double(subset(UKmortality, sex=='F'))
     expect_double(UKmortality, age=50)
-    expect_double(subset(UKmortality, sex==0), age=50)
-    expect_double(subset(UKmortality, sex==1), age=50)
+    expect_double(subset(UKmortality, sex=='M'), age=50)
+    expect_double(subset(UKmortality, sex=='F'), age=50)
 })
 
 test_that("population_survival_rate returns the correct number of values", {
@@ -38,11 +38,11 @@ test_that("population_survival_rate returns the correct number of values", {
     }
 
     expect_length(UKmortality)
-    expect_length(subset(UKmortality, sex==0))
-    expect_length(subset(UKmortality, sex==1))
+    expect_length(subset(UKmortality, sex=='M'))
+    expect_length(subset(UKmortality, sex=='F'))
     expect_length(UKmortality, age=50)
-    expect_length(subset(UKmortality, sex==0), age=50)
-    expect_length(subset(UKmortality, sex==1), age=50)
+    expect_length(subset(UKmortality, sex=='M'), age=50)
+    expect_length(subset(UKmortality, sex=='F'), age=50)
 })
 
 test_that(".registry_survival_bootstrapped returns the same value as before", {
@@ -59,13 +59,13 @@ test_that(".registry_survival_bootstrapped returns the same value as before", {
     expect_ref(prevsim, 50)
     expect_ref(prevsim, 100)
 
-    expect_ref(subset(prevsim, sex==0), 10)
-    expect_ref(subset(prevsim, sex==0), 50)
-    expect_ref(subset(prevsim, sex==0), 100)
+    expect_ref(subset(prevsim, sex=='M'), 10)
+    expect_ref(subset(prevsim, sex=='M'), 50)
+    expect_ref(subset(prevsim, sex=='M'), 100)
 
-    expect_ref(subset(prevsim, sex==1), 10)
-    expect_ref(subset(prevsim, sex==1), 50)
-    expect_ref(subset(prevsim, sex==1), 100)
+    expect_ref(subset(prevsim, sex=='F'), 10)
+    expect_ref(subset(prevsim, sex=='F'), 50)
+    expect_ref(subset(prevsim, sex=='F'), 100)
 })
 
 test_that(".registry_survival_bootstrapped with a thousand bootstraps returns the same value as before", {
@@ -82,8 +82,8 @@ test_that(".registry_survival_bootstrapped with a thousand bootstraps returns th
     }
 
     expect_ref(prevsim, 1000)
-    expect_ref(subset(prevsim, sex==0), 1000)
-    expect_ref(subset(prevsim, sex==1), 1000)
+    expect_ref(subset(prevsim, sex=='M'), 1000)
+    expect_ref(subset(prevsim, sex=='F'), 1000)
 })
 
 test_that(".transform_registry_data returns same values as before", {
@@ -96,8 +96,8 @@ test_that(".transform_registry_data returns same values as before", {
 
     expect_ref(Surv(time, status) ~ age, prevsim)
     expect_ref(Surv(time, status) ~ age + sex, prevsim)
-    expect_ref(Surv(time, status) ~ age + sex, subset(prevsim, sex==0))
-    expect_ref(Surv(time, status) ~ sex, subset(prevsim, sex==1))
+    expect_ref(Surv(time, status) ~ age + sex, subset(prevsim, sex=='M'))
+    expect_ref(Surv(time, status) ~ sex, subset(prevsim, sex=='F'))
 })
 
 test_that(".transform_registry_data returns double", {
@@ -107,8 +107,8 @@ test_that(".transform_registry_data returns double", {
 
     expect_double(Surv(time, status) ~ age, prevsim)
     expect_double(Surv(time, status) ~ age + sex, prevsim)
-    expect_double(Surv(time, status) ~ age + sex, subset(prevsim, sex==0))
-    expect_double(Surv(time, status) ~ sex, subset(prevsim, sex==1))
+    expect_double(Surv(time, status) ~ age + sex, subset(prevsim, sex=='M'))
+    expect_double(Surv(time, status) ~ sex, subset(prevsim, sex=='F'))
 })
 
 test_that(".transform_registry_data returns correct dimensions", {
@@ -119,8 +119,8 @@ test_that(".transform_registry_data returns correct dimensions", {
     expect_dim(Surv(time, status) ~ 1, prevsim, c(nrow(prevsim), 3))
     expect_dim(Surv(time, status) ~ age, prevsim, c(nrow(prevsim), 4))
     expect_dim(Surv(time, status) ~ age + sex, prevsim, c(nrow(prevsim), 5))
-    expect_dim(Surv(time, status) ~ age + sex, subset(prevsim, sex==0), c(nrow(prevsim[prevsim$sex==0, ]), 5))
-    expect_dim(Surv(time, status) ~ sex, subset(prevsim, sex==1), c(nrow(prevsim[prevsim$sex==1, ]), 4))
+    expect_dim(Surv(time, status) ~ age + sex, subset(prevsim, sex=='M'), c(nrow(prevsim[prevsim$sex=='M', ]), 5))
+    expect_dim(Surv(time, status) ~ sex, subset(prevsim, sex=='F'), c(nrow(prevsim[prevsim$sex=='F', ]), 4))
 })
 
 test_that(".calculate_coefficients returns the same values as before", {
@@ -269,16 +269,16 @@ test_that(".prob_alive provides the correct probability of death", {
     trans_data <- .transform_registry_data(Surv(time, status) ~ age + sex, data)
     boot_coefs = .calculate_bootstrapped_coefficients(trans_data, 5)
 
-    male_data <- prevsim[prevsim$sex==0, ]
+    male_data <- prevsim[prevsim$sex=='M', ]
     mat_data <- matrix(c(rep(1, nrow(male_data)), male_data$age, male_data$sex), nrow=nrow(male_data))
-    pop_surv_rate = population_survival_rate(rate ~ age, UKmortality[UKmortality$sex==0, ], max_age=max_age)
+    pop_surv_rate = population_survival_rate(rate ~ age, UKmortality[UKmortality$sex=='M', ], max_age=max_age)
 
     # With only females
     trans_data <- .transform_registry_data(Surv(time, status) ~ age + sex, data)
     boot_coefs = .calculate_bootstrapped_coefficients(trans_data, 5)
 
-    female_data <- prevsim[prevsim$sex==1, ]
+    female_data <- prevsim[prevsim$sex=='F', ]
     mat_data <- matrix(c(rep(1, nrow(female_data)), female_data$age, female_data$sex), nrow=nrow(female_data))
-    pop_surv_rate = population_survival_rate(rate ~ age, UKmortality[UKmortality$sex==1, ], max_age=max_age)
+    pop_surv_rate = population_survival_rate(rate ~ age, UKmortality[UKmortality$sex=='F', ], max_age=max_age)
 
 })
