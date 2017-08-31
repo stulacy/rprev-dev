@@ -222,7 +222,8 @@ prevalence <- function(index, num_years_to_estimate,
         prev_sim <- sim_prevalence(data, index, sim_start_date,
                                    inc_model, surv_model,
                                    age_column=age_column,
-                                   N_boot=N_boot)
+                                   N_boot=N_boot,
+                                   n_cores=n_cores)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -475,7 +476,8 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
-                           N_boot=1000) {
+                           N_boot=1000,
+                           n_cores=1) {
 
     # Needed for CRAN check
     alive_at_index <- NULL
@@ -486,7 +488,7 @@ sim_prevalence <- function(data, index, starting_date,
     covars <- extract_covars(surv_model)
     number_incident_days <- as.numeric(difftime(index, starting_date, units='days'))
 
-    all_results <- replicate(N_boot, {
+    run_sample <- function() {
         # bootstrap dataset
         data <- full_data[sample(seq(nrow(full_data)), replace=T), ]
 
@@ -508,8 +510,21 @@ sim_prevalence <- function(data, index, starting_date,
         incident_population[, 'time_to_index' := time_to_index]
         incident_population[, 'alive_at_index' := rbinom(length(surv_prob), size=1, prob=surv_prob)]
         incident_population
+    }
 
-    }, simplify=FALSE)
+    ################## TODO ADD IN MULTI-CORE ####################
+    if (n_cores > 1) {
+        browser()
+        doParallel::registerDoParallel(n_cores)
+        parobj <- foreach::foreach(i=1:N_boot, .options.snow=list(preschedule=T), .packages=c('survival'), #.combine='rbind',
+                .inorder=F, .export=c('fit_exponential_incidence', 'predict_survival_probability'))
+        all_results <- foreach::"%dopar%"(parobj, run_sample())
+    } else {
+        all_results <- replicate(N_boot, run_sample(), simplify=FALSE)
+    }
+    ##############################################################
+
+
 
     # Combine into single table
     results <- data.table::rbindlist(all_results, idcol='sim')
