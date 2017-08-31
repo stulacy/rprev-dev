@@ -1,5 +1,5 @@
 ---
-title: "rprev User Guide"
+title: "Diagnostics for rprev"
 author: "S J Lax and S E Lacy"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
