@@ -1,4 +1,3 @@
-
 INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
@@ -64,6 +63,7 @@ MIN_INCIDENCE <- 10
 #' LHS a Surv object, as used by \code{flexsurvreg}.
 #' @param dist The distribution used by the default parametric survival model.
 #'     Possible values are: 'weibull', 'lognormal', 'exponential'
+#' TODO Specify possible values in vector format as often see
 #' @param surv_model An object that has a \code{predict_survival_probability}
 #'     method. See the vignette for further guidance.
 #' @param registry_start_date The starting date of the registry. If not supplied
@@ -267,9 +267,14 @@ prevalence <- function(index, num_years_to_estimate,
                    surv_model=surv_model,
                    inc_model=inc_model,
                    index_date=index,
-                   proportion=proportion,
+                   est_years=num_years_to_estimate,
+                   counted_incidence_rate = nrow(data) / as.numeric(difftime(index,
+                                                                             registry_start_date,
+                                                                             units='days')),
                    registry_start=registry_start_date,
-                   status_col=status_column)
+                   proportion=proportion,
+                   status_col=status_column,
+                   N_boot=N_boot)
 
     # Calculate covariate means and save
     # TODO What's this needed for?
@@ -416,10 +421,6 @@ calculate_se_counted <- function(population_size, counted_contribs) {
 #'                    prevsim,
 #'                    start_date=min(prevsim$entrydate),
 #'                    status_col='status')
-#'
-#'
-#' @export
-#' @family prevalence functions
 counted_prevalence <- function(formula, index, data, start_date, status_col) {
     death_col <- all.vars(update(formula, .~0))
     entry_col <- all.vars(update(formula, 0~.))
@@ -458,9 +459,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' data(prevsim)
 #'
 #' \dontrun{
-#' # TODO Generate incidence and survival object
-#' # TODO Do I actually want to keep this and the counted function
-#' # as exports?
 #' simulated_prevalence(prevsim, "2013-01-01",
 #'                      starting_date="2003-01-01",
 #'                      inc_model, surv_model)
@@ -471,8 +469,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
-#' @export
-#' @family prevalence functions
 sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
