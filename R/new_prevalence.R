@@ -481,6 +481,7 @@ sim_prevalence <- function(data, index, starting_date,
 
     # Needed for CRAN check
     alive_at_index <- NULL
+    time_to_index <- NULL
 
     data <- data[complete.cases(data), ]
     full_data <- data
