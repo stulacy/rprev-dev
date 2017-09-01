@@ -2,12 +2,8 @@
 title: "Diagnostics for rprev"
 author: "S J Lax and S E Lacy"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 bibliography: bibliography.bib
-vignette: >
-  %\VignetteIndexEntry{rprev User Guide}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
 ---
 
 # Introduction
@@ -211,18 +207,6 @@ As a reminder, prevalence is estimated using incidence and survival data from *n
 
 In the first instance, prevalence can be estimated by counting from the registry data. It is imperative that the number of incident cases is complete for estimating prevalence, and that follow-up data for all cases is complete at least until after the index date. In the case of the provided *prevsim* data set the last recorded incident case date and the last date of follow-up are different, as is typically the case in registry data sets where incidence and follow-up data are provided by different sources.
 
-`prevalence_counted` calculates prevalence contributions for each year of the provided registry data to the index date - specified using the `index_date` argument. The `num_reg_years` parameter allows the user to specify the number of years of data to use in the estimation, in the example below incident cases from the first year of the registry in 2003 are discarded due to concerns about their accuracy. In `prevalence_counted()`, all cases alive after the index date are censored. 
-
-```{r survival, error = TRUE}
-prevalence_counted_legacy(prevsim$entrydate, 
-                          prevsim$eventdate, 
-                          prevsim$status, 
-                          index_date="2013-01-30",
-                          num_reg_years=9) 
-```
-
-The function returns the prevalence contributions by year, in ascending order (i.e there are 44 contributions from the year between 2004-01-30 and 2005-01-30).
-
 ## Simulation
 
 Prevalence is estimated using simulation by calling `prevalence()`. `index_date` and `num_reg_years` perform the same role as in `prevalence_counted`: specifying the date at which to estimate point prevalence, and allowing for the specification of the number of years of registry data to use. `num_years_to_estimate` corresponds to the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of complete years of registry data available before `index_date`, then the remainder of years have their incidence and survival characteristics simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `population_size` argument is used to provide relative rates estimates (per one hundred thousand in this case although this can be specified by the `proportion` argument). If this argument is not provided then just the absolute prevalence estimates are returned.
@@ -244,10 +228,6 @@ prevalence_total
 ```
 
 More detail from the `prevalence` object can be extracted using `summary`, including the p-value from a chi squared test of the difference between the predicted and counted prevalence for the available years of registry data:
-
-```{r}
-summary(prevalence_total)
-``` 
 
 The prevalence object's `estimates` attribute holds the point prevalence estimate along with rates per one hundred thousand and confidence intervals. As *n* increases, the prevalence estimate increases:
 
