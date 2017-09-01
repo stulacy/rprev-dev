@@ -1,6 +1,10 @@
 ---
 title: "Comparison of v0.3"
 output:
+    html_document:
+        toc: true
+        toc_float: 
+            collapsed: false
     html_notebook:
         toc: true
         toc_float: 
@@ -90,6 +94,10 @@ cure_mod_anc <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist=
                              anc=list(scale=~ age + sex), link='logistic', mixture=TRUE)
 ```
 
+```{r}
+cure_mod_anc
+```
+
 # Comparison of prevalence estimates on simulated data
 
 This section provides a quick summary of the new prevalence function, comparing it to the old version using both cure models and not, as well as brief look at using different distributions for the survival function. The comparison is carried out on the `prevsim` simulated data set that is supplied with `rprev`.
@@ -135,7 +143,7 @@ wei_new_nocure
 
 However, a more interesting comparison is in the prevalence estimates when using a cure model for estimating the survival function. This is no longer just testing a different software implementation of the same mathematical model, but also a different underlying model. The *legacy* cure model adds on the population survival function after a set threshold of years when the patient is deemed to be cured of the disease. This necessitates a priori knowledge of an appropriate cure time. The new method uses the established mixture model, which assumes that the patient population consists of a subset of individuals who are cured and have population mortality. We wouldn't therefore expect these two approaches to provide the same prevalence estimates, although it will be interesting to see how they compare.
 
-**NB: one practical drawback of the mixture cure model is its extremely long fitting time, as I assume it is using EM to fit the latent $\pi(x)$ model. This means the overall prevalence estimation using 1000 simulations is an order of magnitude slower and so for a start could not be used for our website prevalence estimation.**
+**NB: one practical drawback of the mixture cure model is its extremely long fitting time, as I assume it is using EM to fit the latent $\pi(x)$ model. This means the overall prevalence estimation using 1000 simulations is an order of magnitude slower (speed comparison below) and so for a start could not be used for our website prevalence estimation.**
 
 ```{r}
 wei_legacy_cure <- prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
@@ -149,15 +157,15 @@ wei_legacy_cure <- prevalence_legacy(Surv(time, status) ~ age(age) + sex(sex) + 
 
 **Note that I had to reduce the number of simulations here to 100, and even then it still took a few minutes.** I'll also explain the `surv_model` argument later.
 
-```{r}
+```{r, cache=T}
 wei_new_cure <- prevalence(index='2013-01-01', 
                            num_years_to_estimate=c(5, 10, 20, 50), 
                            data=prevsim, 
                            inc_formula = entrydate ~ sex,
                            surv_model = cure_mod, 
                            population_size = 1e6,
-                           death_column = 'eventdate', 
-                           N_boot = 100)
+                           death_column = 'eventdate'
+                           )
 ```
 
 ```{r}
@@ -166,7 +174,7 @@ wei_legacy_cure
 
 The mixture cure model is more optimistic about the overall survival of cured patients, or predicts a very high proportion will be cured, since the prevalence is significantly higher than the non-cure model 50-year estimate of 1,040. Is this difference too large, or can it be justified? I need to read up more on mixture cure models. The old cure model method actually gives counter-intuitive results since the cure model results in a **decrease** in prevalence, while the mixture model **increases** prevalence, as would be expected since population survival is (assumedly) higher than that from the disease.
 
-```{r}
+```{r, cache=T}
 wei_new_cure
 ```
 
@@ -211,14 +219,13 @@ llogis_mod
 
 This creates the survival object in a familiar way, then it can be directly passed into the `prevalence` call. This allows for the user to do the model selection and diagnostics in their familiar environment and pass the final model directly into `rprev`. This is far slower than the default method, but if the `rprev` step is only run once at the end of the model building stage then this shouldn't be a big drawback given the increased flexibility this option provides. 
 
-Note that I've had to reduce it to 100 simulations to get it to run so I can finish up quickly and go on holiday and this took several minutes. I'll do a formal speed comparison when I get back.
+**Note that this has taken a significantly longer time to run than the default implementation, see the speed comparison below**
 
-```{r}
+```{r, cache=T}
 prevalence(index='2013-01-01', num_years_to_estimate=c(10, 20, 50), data=prevsim, 
            inc_formula=entrydate ~ sex,
            surv_model=llogis_mod, population_size = 1e6,
-           death_column = "eventdate",
-           N_boot=100)
+           death_column = "eventdate")
 ```
 
 # Cure model comparison on AML
@@ -339,15 +346,15 @@ aml_cure_mod
 
 As before, we simply pass this object into the `prevalence` call. Again, I'll use 100 bootstraps so that the runtime isn't too long. However, note that due to repeating the above `flexsurvcure` call 100 times, there are a lot of `NaN` warnings. It would be useful to understand whether these hinder the prevalence estimations. If we were interesting in understanding AML and wanted an accurate model then we'd unfortunately most likely have to conclude that we don't have sufficient data to use `flexsurvcure`, either on its own or in `rprev`.
 
-```{r}
+```{r, cache=T}
 new_aml_cure <- prevalence(index='2015-09-01', 
                            num_years_to_estimate=c(5, 10, 20, 50), 
                            data=aml, 
                            inc_formula = DateOfDiag ~ sex,
                            surv_model = aml_cure_mod,
                            population_size = 1e6,
-                           death_column = 'EventDate',
-                           N_boot = 100)
+                           death_column = 'EventDate'
+                           )
 ```
 
 Remembering that the non-cure model had a 50-year prevalence of ~543 from both implementations and we can see that the same pattern as seen on the simulated data set has arisen: the mixture cure model drastically increases long-term survival while there is less of an effect from the legacy cure model, but it seems to reduce survivability.
@@ -356,7 +363,7 @@ Remembering that the non-cure model had a 50-year prevalence of ~543 from both i
 old_aml_cure
 ```
 
-```{r}
+```{r, cache=T}
 new_aml_cure
 ```
 
@@ -364,7 +371,7 @@ This is quite a significant increase in prevalence, from 540 to 840 in a populat
 
 The figure below highlights that the cure model is better able to predict survival in long-term survivors than the non-cure model, but although it is has a worse fit up to around 5 years.
 
-```{r, echo=F}
+```{r, echo=F, cache=T}
 pred_surv_cure <- predict_survival_probability(new_aml_cure$surv_model, 
                                                newdata=data.frame(age=rep(mean(aml$age), 4611), 
                                                                   sex=factor(rep('M', 4611), levels=levels(aml$sex))),
@@ -381,7 +388,7 @@ ecsgR::ggkm(survfit(Surv(stime, status) ~ 1, aml)) +
 
 Before I went on holiday I'd noticed that the full cure model was significantly slower, although due to the large runtime of it I was unable to run a full comparison with the legacy cure model. I'll now do this, to highlight that using a full simulation of the cure model would pose problematic for regular use, for example in our website estimations, although one off calculations such as for publications should be fine.
 
-```{r, echo=F}
+```{r, echo=F, cache=T, warning=F}
 legacy_speed <- system.time(prevalence_legacy(Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag) + event(EventDate),
                                               data=aml, 
                                               num_years_to_estimate = c(5, 10, 20, 50), 
@@ -391,7 +398,7 @@ legacy_speed <- system.time(prevalence_legacy(Surv(stime, status) ~ age(age) + s
                                               index_date = '2015-09-01'))
 ```
 
-```{r, echo=F}
+```{r, echo=F, cache=T, warning=F}
 legacy_cure_speed <- system.time(prevalence_legacy(Surv(stime, status) ~ age(age) + sex(sex) + entry(DateOfDiag) + event(EventDate),
                                               data=aml, 
                                               num_years_to_estimate = c(5, 10, 20, 50), 
@@ -401,7 +408,7 @@ legacy_cure_speed <- system.time(prevalence_legacy(Surv(stime, status) ~ age(age
                                               index_date = '2015-09-01'))
 ```
 
-```{r, echo=F}
+```{r, echo=F, cache=T, warning=F}
 new_speed <- system.time(prevalence(index='2015-09-01', 
                              num_years_to_estimate=c(5, 10, 20, 50), 
                              data=aml, 
@@ -412,7 +419,7 @@ new_speed <- system.time(prevalence(index='2015-09-01',
                              death_column = 'EventDate'))
 ```
 
-```{r, echo=F}
+```{r, echo=F, cache=T, warning=F}
 new_flex_speed <- system.time(prevalence(index='2015-09-01', 
                              num_years_to_estimate=c(5, 10, 20, 50), 
                              data=aml, 
@@ -422,7 +429,7 @@ new_flex_speed <- system.time(prevalence(index='2015-09-01',
                              death_column = 'EventDate'))
 ```
 
-```{r, echo=F}
+```{r, echo=F, cache=T, warning=F}
 new_cure_speed <- system.time(prevalence(index='2015-09-01', 
                              num_years_to_estimate=c(5, 10, 20, 50), 
                              data=aml, 
@@ -435,7 +442,7 @@ new_cure_speed <- system.time(prevalence(index='2015-09-01',
 
 The table below shows the runtimes for each of these prevalence estimation implementations on the AML dataset with 1,000 bootstrap samples. Note that these are all run **on a single core**, although the legacy code has support for multi-core execution while the new method doesn't as of yet. As expected the legacy code is the quickest, with the cure model not adding any additional computational demands. The default new implementation is only slightly slower however, and so wouldn't be a problem running in a large loop, for example when calculating the website estimations. Frustratingly, `flexsurv` and `flexsurvcure` survival models are extremely slower and so would be unable to be used for this purpose, however, they would be fine for a single run, such as is needed for a publication.
 
-```{r, echo=F}
+```{r, echo=F, cache=T}
 data.frame(methods=c('legacy_default', 'legacy_cure', 'new_default', 'new_flex', 'new_cure'),
            times=c(legacy_speed[3], legacy_cure_speed[3], new_speed[3], new_flex_speed[3], new_cure_speed[3])
 ) %>% arrange(times)
@@ -444,29 +451,6 @@ data.frame(methods=c('legacy_default', 'legacy_cure', 'new_default', 'new_flex',
 ## Parallelising code
 
 The option to parallelise the bootstrapping was provided with the original rprev implementation, but hasn't yet been implemented in the latest version. This is something that I'd like to introduce, although it's worth bearing in mind that the runtimes of the implementation using cure models will still be extremely slow. I'm not sure if it's a priority to get this working straight away, however, so I should probably focus on getting the current implementation uploaded to CRAN.  
-
-```{r, echo=F}
-system.time(prevalence(index='2015-09-01', 
-                             num_years_to_estimate=c(5, 10, 20, 50), 
-                             data=aml, 
-                             inc_formula = DateOfDiag ~ sex,
-                             surv_model=flexsurvreg(Surv(stime, status) ~ sex + age, data=aml, dist='weibull'),
-                             population_size = 1e6,
-                             death_column = 'EventDate',
-                       N_boot = 100))
-```
-
-```{r, echo=F}
-prevalence(index='2015-09-01', 
-                             num_years_to_estimate=c(5, 10, 20, 50), 
-                             data=aml, 
-                             inc_formula = DateOfDiag ~ sex,
-                             surv_model=flexsurvreg(Surv(stime, status) ~ sex + age, data=aml, dist='weibull'),
-                             population_size = 1e6,
-                             death_column = 'EventDate',
-                       N_boot = 100,
-           n_cores = 2)
-```
 
 
 # Further Work
