@@ -251,8 +251,10 @@ prevalence <- function(index, num_years_to_estimate,
                         status_column,
                         population_size, proportion, level, precision)
 
-    surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
-    inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
+    full_surv_model <- if (!is.null(prev_sim)) prev_sim$full_surv_model else NULL
+    full_inc_model <- if (!is.null(prev_sim)) prev_sim$full_inc_model else NULL
+    surv_models <- if (!is.null(prev_sim)) prev_sim$surv_models else NULL
+    inc_models <- if (!is.null(prev_sim)) prev_sim$inc_models else NULL
 
     if (!is.null(counted_formula)) {
         if (!status_column %in% colnames(data)) {
@@ -264,8 +266,10 @@ prevalence <- function(index, num_years_to_estimate,
     }
     object <- list(estimates=estimates, simulated=prev_sim$results,
                    counted=counted_prev,
-                   surv_model=surv_model,
-                   inc_model=inc_model,
+                   full_surv_model=surv_model,
+                   full_inc_model=full_inc_model,
+                   surv_models=surv_models,
+                   inc_models=inc_models,
                    index_date=index,
                    est_years=num_years_to_estimate,
                    counted_incidence_rate = nrow(data) / as.numeric(difftime(index,
@@ -506,7 +510,9 @@ sim_prevalence <- function(data, index, starting_date,
         incident_population[, 'incident_date' := incident_date]
         incident_population[, 'time_to_index' := time_to_index]
         incident_population[, 'alive_at_index' := rbinom(length(surv_prob), size=1, prob=surv_prob)]
-        incident_population
+        list(pop=incident_population,
+             surv=bs_surv,
+             inc=bs_inc)
     }
 
     ################## TODO ADD IN MULTI-CORE ####################
@@ -522,9 +528,8 @@ sim_prevalence <- function(data, index, starting_date,
     ##############################################################
 
 
-
-    # Combine into single table
-    results <- data.table::rbindlist(all_results, idcol='sim')
+    # Combine incident population into single table
+    results <- data.table::rbindlist(lapply(all_results, function(x) x$pop), idcol='sim')
 
     # Force death at 100 if possible
     if (!is.null(age_column) & age_column %in% colnames(results)) {
@@ -537,8 +542,10 @@ sim_prevalence <- function(data, index, starting_date,
     results[, time_to_index := NULL]
 
     list(results=results,
-         surv_model=surv_model,
-         inc_model=inc_model)
+         full_surv_model=surv_model,
+         full_inc_model=inc_model,
+         surv_models=lapply(all_results, function(x) x$surv),
+         inc_models=lapply(all_results, function(x) x$inc))
 }
 
 build_curemodel <- function(formula, data, ...) {
