@@ -203,6 +203,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
             ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
                                ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
             ggplot2::theme_bw() +
+            ggplot2::ylim(0, 1) +
             ggplot2::labs(x="Days", y="Survival probability")
     p
 }
