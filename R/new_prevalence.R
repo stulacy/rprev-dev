@@ -280,12 +280,35 @@ prevalence <- function(index, num_years_to_estimate,
                    status_col=status_column,
                    N_boot=N_boot)
 
-    # Calculate covariate means and save
-    # TODO What's this needed for?
-    #mean_df <- data[, c(age_var, sex_var)]
-    #mean_df <- apply(mean_df, 2, as.numeric)
-    #object$means <- colMeans(mean_df)
-    #object$y <- survobj
+
+    # Calculate covariate averages for survfit later on
+    covars <- extract_covars(surv_model)
+    # Obtain if continuous or categorical
+    is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
+    fact_cols <- covars[is_factor]
+    cont_cols <- covars[!is_factor]
+
+    cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
+    cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
+
+    # Save into data frame
+    means <- data.frame()
+    for (var in cont_cols) {
+        means[1, var] <- cont_means[var]
+    }
+    for (var in fact_cols) {
+        means[1, var] <- cat_modes[var]
+        means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
+    }
+    object$means <- means
+
+    # Add max time if possible
+    if (!is.null(incident_column) & !is.null(death_column)) {
+        object$max_event_time <- max(as.numeric(difftime(data[[death_column]],
+                                              data[[incident_column]],
+                                              units='days')))
+    }
+
 
     if (!is.null(prev_sim)) {
         object$pval <- test_prevalence_fit(object)
