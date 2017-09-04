@@ -14,7 +14,7 @@ vignette: >
 
 In this vignette we demonstrate how to use `rprev` to generate predictions of disease prevalence from a registry data set. Prevalence is defined as the number of people living with a disease at a specified *index date* who were incident in the preceeding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. Frequently, disease registries do not contain sufficient longitudinal information to accurately measure disease prevalence, and the desired *n* is greater than the number of registry years for which we have real patient data
 
-Following the methodology of [@crouch2014determining], which has been employed in published work [@roman2016myeloid, @smith2015lymphoma], prevalence contributions from patients incident prior to the registry beginning are estimated using Monte Carlo Simulation. This is illustrated in the diagram below:
+Following the methodology of @crouch2014determining, which has been employed in published work [@roman2016myeloid, @smith2015lymphoma], prevalence contributions from patients incident prior to the registry beginning are estimated using Monte Carlo Simulation. This is illustrated in the diagram below:
 
 <div style="text-align:center" markdown="1">
 
@@ -22,7 +22,7 @@ Following the methodology of [@crouch2014determining], which has been employed i
 
 </div>
 
-Modelling prevalence therefore involves two stochastic processes: incidence, and death. `rprev` provides an object-oriented way of specifying each of these two processes, along with appropriate user-friendly defaults that work well in general situations. In the following sections we aim to provide a reference manual for using `rprev` to generate accurate estimates of disease prevalence. Using the default models is covered, followed by a guide on providing custom incidence and survival objects for fine-grained control. It is important that both of these processes are accurately modelled to generate reliable prevalence estimates; the [Diagnostics vignette](diagnostics.html) goes into depth on evaluating the assumptions behind the default models, while this document serves as more of a implementation reference.
+Modelling prevalence therefore involves two stochastic processes: incidence, and survival. `rprev` provides an object-oriented way of specifying each of these two processes, along with appropriate user-friendly defaults that work well in general situations. In the following sections we aim to provide a reference manual for using `rprev` to generate accurate estimates of disease prevalence. Using the default models is covered, followed by a guide on providing custom incidence and survival objects for fine-grained control. It is important that both of these processes are accurately modelled to generate reliable prevalence estimates; the [Diagnostics vignette](diagnostics.html) goes into depth on evaluating the assumptions behind the default models.
 
 
 # Simulated data
@@ -33,7 +33,7 @@ library(survival)
 data(prevsim)
 ```
 
-`rprev` provides a simulated data set for testing purposes, called *prevsim*. It has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry data sets. Patient data includes the date of both entry into the registry and last known event (be it death or a censored event time), survival time (*time*) and an event indicator (*status*) along with both age and sex. 
+`rprev` provides a simulated data set for testing purposes, called *prevsim*. It has been synthesised to resemble disease registry data. Incident cases are recorded from 2003-01-01 to 2013-01-30, and events occur between `r min(prevsim$eventdate)` and `r max(prevsim$eventdate)`. It has 6 columns and is organised in a fashion typical to that found in real registry data sets. Patient data includes the date of both entry into the registry and last follow-up, survival time (*time*) and a death indicator (*status*) along with both age and sex. 
 
 ```{r}
 summary(prevsim)
@@ -50,26 +50,26 @@ The following Kaplan-Meier plot shows that survival in *prevsim* is typical of m
 ```{r basicsurvival, fig.height=4, fig.width=7, echo=F}
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
 survf_df <- data.frame(t=survf$time, s=survf$surv, sex=rep(c('M', 'F'), survf$strata))
-ggplot2::ggplot(survf_df, aes(x=t, y=s, colour=sex)) +
+ggplot2::ggplot(survf_df, ggplot2::aes(x=t, y=s, colour=sex)) +
     ggplot2::geom_line() +
-    theme_bw() +
-    labs(x='Time (days)', y='Survival probability') +
-    ylim(0, 1)
+    ggplot2::theme_bw() +
+    ggplot2::labs(x='Time (days)', y='Survival probability') +
+    ggplot2::ylim(0, 1)
 ```
 
-# Standard prevalence estimation
+# Prevalence estimation
 
-The primary function is `prevalence`, which performs all the data pre-processing and simulation required for estimating prevalence at an index date given registry data and the specification of the incidence and survival processes. The function is designed to be flexible and modular, it does not make any assumptions on the nature of the two processes but only requires that they are implemented in a certain manner (described later). To aid the user we have provided a default incidence and survival model with the package that are flexible enough to cover the majority of data sets. This section details how to get up-and-running using these default models to get prevalence estimations.
+The primary function in `rprev` is `prevalence`, which performs all the data pre-processing and simulation required for estimating prevalence at an index date, given registry data and the specification of the incidence and survival processes. The function is designed to be flexible and modular, it does not make any assumptions on the nature of the two processes but only requires that they have specified behaviours (described later). We have provided default incidence and survival models with the package that are flexible enough to cover the majority of data sets. This section details how to get up-and-running using these default models to obtain prevalence estimations.
 
 ## Incidence specification
 
-The default incidence model assumes a Poisson homogeneous process, i.e. that the incidence rate is constant. This may not necessarily be the case for some diseases, but the assumption generally holds. Of course, it is important to check whether your data meets this assumption; diagnostics are covered in [a separate vignette](diagnostics.html). A Poisson homogeneous process relies on a single parameter, the incidence rate. In `rprev` this is calculated by the `prevalence` function from incidence dates into the registry. An additional functionality that `rprev` provides is allowing for stratification of incidence by a categorical variable, for example, sex.
+The default incidence model assumes a Poisson homogeneous process, i.e. that the incidence rate is constant. This may not necessarily be the case for some diseases, but the assumption generally holds. Of course, it is important to check whether your data meets this assumption; diagnostics are covered in [a separate vignette](diagnostics.html). A Poisson homogeneous process relies on a single parameter, the incidence rate. In `rprev` this is calculated within the `prevalence` function from incidence dates into the registry. An additional functionality that `rprev` provides is allowing for stratification of incidence by a categorical variable, for example, sex.
 
-The homogeneous Poisson process model is specified by an argument to `prevalence` called `inc_formula` which accepts a formula where the LHS takes the name of the column that holds the incident dates, and the RHS names the variables to stratify by (or 1 if none).. For example, in the `prevsim` data set, the *entrydate* column describes the date the patient was entered into the registry, and so the formula for a non-stratified incidence model is `inc_formula = entrydate ~ 1`. If we have reason to believe that males and females have significantly different incidence rates then we can stratify by sex: `inc_formula = entrydate ~ sex`.
+The homogeneous Poisson process model is specified by an argument to `prevalence` called `inc_formula`, which accepts a formula with the LHS as name of the column that holds the incident dates, and the RHS naming the variables to stratify by (or 1 if none). For example, in the `prevsim` data set, the *entrydate* column describes the date the patient was entered into the registry, and so the formula for a non-stratified incidence model is `inc_formula = entrydate ~ 1`. If we have reason to believe that males and females have significantly different incidence rates then we can stratify by sex: `inc_formula = entrydate ~ sex`.
 
 ## Survival specification
 
-The default survival model assumes that event times follow a standard parametric distribution. The default implementation in `rprev` is an optimised interface to the well-known `survival::survreg`, allowing for the use of a familiar formula interface. There are two arguments to `prevalence` that control the default survival model, `surv_formula` and `dist`. `surv_formula` is a formula of the same form that would be passed directly to `survival::survreg`, i.e. where the LHS is a `Surv` object specifying survival time and event indicators, and the RHS details any covariates to include. For example, using the `prevsim` data set, `surv_formula = Surv(time, status) ~ age + sex`. The `dist` argument accepts a string specifying the distribution to use. Currently, it accepts the following values: *weibull*, *lognormal*, and *exponential* for the optimised implementation. If other distributions are required then a `flexsurv` object can be used, see below for details.
+The default survival model assumes that event times follow a standard parametric distribution. The default implementation in `rprev` is an optimised interface to the well-known `survival::survreg` function. There are two arguments to `prevalence` that control the default survival model, `surv_formula` and `dist`. `surv_formula` is a formula formatted in the same way as the argument to `survival::survreg`, i.e. where the LHS is a `Surv` object specifying survival time and event indicators, and the RHS details any covariates to include. For example, using the `prevsim` data set, `surv_formula = Surv(time, status) ~ age + sex`. The `dist` argument accepts a string specifying the distribution to use. Currently, it accepts the following values: *weibull*, *lognormal*, and *exponential* for the optimised implementation. If other distributions are required then a `flexsurv` object can be used, see below for details.
 
 ## Estimating prevalence
 
@@ -106,16 +106,16 @@ prevalence_total$estimates
 
 ## Using `flexsurv` objects
 
-The default survival models are based on the `survival::survreg` function and are optimised to improve runtime. A more flexible alternative to providing parametric survival models is to pass in `flexsurv` objects from the `flexsurv` package. This is an easily extensible framework that comes with implementations of a large number of standard parametric families in addition to other models such as Royston and Parmar's Flexible Parametric Models. 
+The default survival models are based on the `survival::survreg` function and are optimised to improve runtime. A more flexible alternative is to provide `flexsurv` objects from the `flexsurv` package. This is an easily extensible framework that comes with implementations of a large number of standard parametric families in addition to other models such as Royston and Parmar's Flexible Parametric Models. 
 
-Using `flexsurv` objects requires the creation of one in advance of any prevalence estimation and simply passing this object in to the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation.
+To use a `flexsurv` object with `prevalence`, simply fit one first and then pass it in through the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation. Firstly the survival model is fitted, allowing for appropriate diagnostics to be performed first.
 
 ```{r}
-llog <- flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
+llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
 llog
 ```
 
-It must be emphasized that the runtime significantly increases when using a `flexsurv` object as they have not been optimised for use in `rprev`, however, they provide greater flexibility in the survival modelling. For example, the user can model different survival models in the familiar `flexsurv` framework before using the final object in estimating prevalence.
+Now, the `surv_model` argument is used to pass in the survival model directly, rather than specifying `surv_formula` and `dist` as before. It must be emphasized that the runtime significantly increases when using a `flexsurv` object as they have not been optimised for use in `rprev`, however, they provide greater flexibility in the survival modelling. For example, the user can compare different survival models in the familiar `flexsurv` framework before using the final object in estimating prevalence.
 
 ```{r, cache=T}
 prev_llog <- prevalence(index='2013-01-30', 
@@ -135,11 +135,11 @@ prev_llog
 
 # Custom incidence and survival models
 
-The object-oriented manner in which the `prevalence` function is designed allows for custom survival and incidence objects to be passed in rather than relying on the default models. The previous section described both how to use the default models, but also how to pass in `flexsurv` survival objects. The latter works because the appropriate interface has been supplied with `rprev`, but the same mechanism can be used to provide custom objects. This section describes the requirements of the incidence and survival models.
+The object-oriented manner in which the `prevalence` function is designed allows for custom survival and incidence objects to be used rather than relying on the default implementations. The previous section described both how to use the default models and also how to provide `flexsurv` survival objects. The latter works because the appropriate interface for `flexsurv` has been supplied with `rprev`, but the same mechanism can be used to provide custom objects. This section describes how to specify custom objects for both the incidence and survival models.
 
-Both of these objects have similar requirements and are used in two ways during the simulation. During each iteration, a new incidence and survival model is fit to the bootstrapped registry data, generating new parameters. Based on these parameters, each model is then used for its primary purpose, either generating an incident population or predicting the survival of this population.
+Both of these objects have similar requirements and are used in two ways during the simulation. During each iteration, new incidence and survival models are fitted to the bootstrapped registry data, generating new parameters. Based on these parameters, each model is then used for its primary purpose, either generating an incident population or predicting the survival of this population.
 
-The way in which the models are fit to the bootstrapped data is the same, the objects must contain a `call` object that holds the initial function call used to build the model. This call must contain an argument (name not important) which is passed the value `data`, as it is this argument which is changed to provide the bootstrapped data during simulation.
+The way in which the models are fitted to the bootstrapped data is the same, the objects must contain a `call` object that holds the initial function call used to build the model. This call must contain an argument (name not important) which is passed the value `data`, as it is this argument which is changed to provide the bootstrapped data during simulation.
 
 For example:
 
@@ -178,7 +178,11 @@ The second application of the models is to run their primary function, which is 
 
 ## Incidence
 
-It is likely that a homogeneous Poisson process is sufficient for the vast majority of diseases, although if greater control is required then a custom incidence model can be provided. Incidence models are characterised by how they predict new cases of the disease will appear in the population. To this end, an incidence object needs to have an appropriate S3 class method called `draw_incident_population` that will generate the incident population, in terms of their incident times (measured by time since the origin) and any covariates that are required for the survival modelling. The method must have the following signature **NB: in this and the following section, `myobj` is used as an example class name. This can be whatever you want provided it does not clash with the existing namespace**:
+It is likely that a homogeneous Poisson process is sufficient for the vast majority of diseases, although if greater control is required then a custom incidence model can be provided. Incidence models are characterised by the time-points at which new incident cases arise in the population. 
+
+To this end, an incidence object needs to have an appropriate S3 class method called `draw_incident_population` that will generate the incident population in terms of their incident times and any covariates that are required for the survival modelling. The incident times are relative to the origin, which in the simulation is the index minus N years, where N is `max(num_years_to_estimate)`. The code snippet below describes the required parameterisation of `draw_incident_population`. 
+
+**NB: in this and the following section, `myobj` is used as an example class name. This can be whatever you want provided it does not clash with the existing namespace**:
 
 ```{r, eval=F}
 draw_incident_population.myobj <- function(object, data, timeframe, covars, ...) {
@@ -203,8 +207,8 @@ The first, `extract_covars` simply returns a character string detailing which of
 extract_covars.myobj <- function(object) {
     # object: The survival model
     
-    # Returns a character vector detailing the covariates required to fit this model. All of these values should be columns
-    # in the data that is passed in the main 'prevalence' function.
+    # Returns a character vector detailing the covariates required to fit this model. All of 
+    # these values should be columns in the data that is passed in the main 'prevalence' function.
 }
 ```
 
@@ -213,14 +217,19 @@ The second method of a survival object deals with predicting survival probabilit
 ```{r, eval=F}
 predict_survival_probability.myobj <- function(object, newdata, times) {
     # object: The survival object
-    # newdata: A data frame (or data.table) with the incident population stored with their required covariates for the model.
-    # times: A vector of times to estimate survival probability at for individuals in corresponding rows of 'newdata'. 
-    #  This should be the same length as there are rows in 'newdata' since each individual has their survival probability estimated once.
+    # newdata: A data frame (or data.table) with the incident population stored with their 
+    #   required covariates for the model.
+    # times: A vector of times to estimate survival probability at for individuals in 
+    #   corresponding rows of 'newdata'. This should be the same length as there are 
+    #   rows in 'newdata' since each individual has their survival probability estimated once.
     
     # Returns:
-    #  A vector of survival probabilities of length equal to the length of 'times' and the number of rows in 'newdata'.
+    #  A vector of survival probabilities of length equal to the length of 'times' and the 
+    #  number of rows in 'newdata'.
 }
 ```
+
+TODO Mention that object$simulated is entire incident population!
 
 ## Example
 
