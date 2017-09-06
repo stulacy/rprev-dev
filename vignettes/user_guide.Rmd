@@ -18,7 +18,7 @@ Following the methodology of @crouch2014determining, which has been employed in 
 
 <div style="text-align:center" markdown="1">
 
-![Estimating prevalence from registry data using rprev.](diagram.png)
+<center>![Estimating prevalence from registry data using rprev.](diagram.png)</center>
 
 </div>
 
@@ -104,6 +104,12 @@ The prevalence object's `estimates` attribute holds the point prevalence estimat
 prevalence_total$estimates
 ```
 
+Additional information about the simulation can be found in the `simulated` object, which contains a `data.table` of the simulated incident population. This can be used to quickly assess the accuracy of the model fits for both the incidence and survival processes.
+
+```{r}
+prevalence_total$simulated
+```
+
 ## Using `flexsurv` objects
 
 The default survival models are based on the `survival::survreg` function and are optimised to improve runtime. A more flexible alternative is to provide `flexsurv` objects from the `flexsurv` package. This is an easily extensible framework that comes with implementations of a large number of standard parametric families in addition to other models such as Royston and Parmar's Flexible Parametric Models. 
@@ -176,6 +182,8 @@ prevalence(...
 
 The second application of the models is to run their primary function, which is achieved by specifying an appropriate S3 class method. The following sections describes these methods and their parameterisation. See [Hadley Wickham's guide to S3 objects](http://adv-r.had.co.nz/S3.html) for further support on object-oriented programming in R.
 
+An additional source of support is the source code for the exisiting objects that have been provided with the package which is freely available on CRAN and the development code is hosted on Github. For example, *homogeneous_poisson.R* contains the necessary methods for the default incidence model, and *survregmin.R* and *flexsurv.R* provide survival objects for the default implementation and for `flexsurv` objects respectively.
+
 ## Incidence
 
 It is likely that a homogeneous Poisson process is sufficient for the vast majority of diseases, although if greater control is required then a custom incidence model can be provided. Incidence models are characterised by the time-points at which new incident cases arise in the population. 
@@ -228,11 +236,5 @@ predict_survival_probability.myobj <- function(object, newdata, times) {
     #  number of rows in 'newdata'.
 }
 ```
-
-TODO Mention that object$simulated is entire incident population!
-
-## Example
-
-A concrete example highlighting the process of building a model with an appropriate `call` attribute and the required methods will be coming in a future release.
 
 # References
