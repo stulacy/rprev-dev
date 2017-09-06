@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(rprev)
+data(prevsim)
+```
+
+## Data
+
+```{r}
+source("../R/new_prevalence.R")
+```
+
+First need to setup data in the right format as a matrix:
+
+```{r}
+prev_wide <- new_transform_registry_data(Surv(time, status) ~ age + sex, prevsim)
+head(prev_wide)
+```
+
+## Weibull
+
+The current rprev implementation uses an 'extreme' distribution, let's see what this is
+
+```{r}
+ext_mod <- fit_model(prev_wide, 'extreme')
+coef(ext_mod)
+```
+
+This looks like a normal Weibull, but why wouldn't I use a `weibull` string, this is an option.
+
+```{r}
+names(survival::survreg.distributions)
+```
+
+Ah it's because Weibull doesn't work.
+
+```{r}
+wei_mod <- fit_model(prev_wide, 'weibull')
+coef(wei_mod)
+```
+
+We can compare this to a model using the full `survreg` front-end:
+
+```{r}
+wei_actual_mod <- survreg(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull')
+coef(wei_actual_mod)
+```
+
+Yep for the coefficients displayed they are the same as those obtained directly from `survreg.fit`, but where has *log(scale)* disappeared to?
+
+```{r}
+summary(wei_actual_mod)
+```
+
+Here we can see it is the same as that output directly from `survreg.fit`.
+
+**Why is this using extreme and not weibull?**
+
+## Log-normal
+
+Let's try with a different distribution and see if we get the same result.
+
+```{r}
+lnorm_mod <- fit_model(prev_wide, 'lognormal')
+```
+
+Nope doesn't work, this is because if you look at the entry in `survreg.distributions` for the required family, it gives the underlying distribution it uses in `dist`, i.e.:
+
+```{r}
+survreg.distributions[['weibull']]
+```
+
+```{r}
+survreg.distributions[['lognormal']]
+```
+
+So let's try fitting lognormal with Gaussian and seeing if it gives the same output as the `survreg` implementation. I think that I may have to be careful as it looks like the `trans` function displays the transformation of `y` that is required, likewise with ``dtrans` on the density function, so worth bearing in mind that I might have to use these:
+
+```{r}
+lnorm_mod <- fit_model(prev_wide, 'gaussian')
+coef(lnorm_mod)
+```
+
+Now let's compare this to the model built using `survreg`:
+
+```{r}
+lnorm_actual <- survreg(Surv(time, status) ~ age + sex, data=prevsim, dist='lognormal')
+summary(lnorm_actual)
+```
+
+Yep that works, what about now if I try to use something different?
+
+## Log-logistic
+
+```{r}
+survreg.distributions[['loglogistic']]
+```
+
+So here I need to specify the distribution as logistic, again it looks like I should be ok with a log-transform of y.
+
+```{r}
+loglog_mod <- fit_model(prev_wide, 'logistic')
+coef(loglog_mod)
+```
+
+```{r}
+summary(survreg(Surv(time, status) ~ age + sex, data=prevsim, dist='loglogistic'))
+```
+
+Yep that works.
+
+## Conclusions
+
+I have a method of obtaining coefficient values for 3 different distributions, the weibull, loglogistic, and lognormal. Let's try implementing at least the weibull one and see if it's any quicker.
