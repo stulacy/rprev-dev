@@ -1,0 +1,1 @@
+draw_incident_population <- function(object, data, timeframe, covars, ...) UseMethod("draw_incident_population")

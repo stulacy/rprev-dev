@@ -67,27 +67,6 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
     object
 }
 
-#' DEPRECATED: Please use \code{\link{yearly_incidence}} instead.
-#'
-#' Disease incidence.
-#'
-#' Calculates yearly incidence for the available registry data.
-#'
-#' @inheritParams incidence
-#' @return Vector of length num_reg_years of integers, representing the number
-#'   of absolute incidence values for each included year of the registry.
-#' @examples
-#' data(prevsim)
-#'
-#' @export
-#' @family incidence functions
-#' @seealso \link{yearly_incidence}
-raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
-    .Deprecated("yearly_incidence")
-    yearly_incidence(entry, start_date=start, num_years=num_reg_years)
-
-}
-
 #' Disease incidence.
 #'
 #' Calculates yearly incidence for the available registry data.
@@ -252,80 +231,6 @@ plot.incidence <- function(x, level=0.95, ...){
                                          values=c('r'='red', 'g'='green', 'b'='#0080ff'),
                                          breaks=c('r', 'g', 'b'),
                                          labels=c('Actual incidence', 'Smoothed incidence', 'Mean actual incidence'))
-    p
-}
-
-#' Visualise incidence Poisson assumption.
-#'
-#' Plots a figure detailing the deviation of incidence rate from an homogeneous
-#' Poisson process using simulation.
-#'
-#' This function generates a plot where the red line is the deviation of
-#' cumulative diagnoses from the fitted smooth taken from the incidence object.
-#' In order to ascertain if the deviation is within reasonable bounds,
-#' simulation is used. The grey lines represent N draws from a uniform
-#' distribution between 0 and the last day of diagnosis, where N is the number
-#' of incident cases, plotted as deviations from a smooth fitted to them. The
-#' blue lines are 95\% confidence intervals drawn from the simulated data.
-#'
-#' @param object An \code{incidence} object.
-#' @param N_sim Number of draws from a homogeneous Poisson process.
-#' @param level The desired confidence interval width.
-#' @param samples_per_bin Number of samples per bin.
-#' @param max_bins Maximum number of bins.
-#' @return An object of class \code{ggplot}.
-#' @examples
-#' data(prevsim)
-#'
-#' \dontrun{
-#' inc <- incidence(prevsim$entrydate, 1e6, start = "2004-01-30",
-#'                  num_reg_years = 9)
-#'
-#' plot_incidence_fit(inc)
-#' }
-#'
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 geom_vline
-#' @importFrom ggplot2 geom_ribbon
-#' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 aes_string
-.plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
-    diags <- object$ordered_diagnoses
-    N <- length(diags)
-
-    boot_out <- lapply(seq(N_sim), function(i) {
-        x <- sort(runif(N, 0, max(diags)))
-        smo <- smooth.spline(x, 1:N, df=object$dof)
-        data.frame(y=seq(N) - predict(smo, x)$y, x=x)
-    })
-
-    bootstraps = do.call(rbind, boot_out)
-
-    num_bins_init <- floor(N / samples_per_bin)
-    num_bins <- if (num_bins_init > max_bins) max_bins else num_bins_init
-    bin_segments <- seq(0, max(diags), by=max(diags) / num_bins)
-    bin_segments[length(bin_segments)] <- bin_segments[length(bin_segments)] + 1  # Expand last bin to allow for max data point
-
-    bin_cis = lapply(seq(num_bins-1), function(i) {
-        vals <- lapply(boot_out, function(bootstrap) {
-            bootstrap[bootstrap$x >= bin_segments[i] & bootstrap$x < bin_segments[i+1], 'y']
-        })
-        avgs <- sapply(vals, mean)
-        data.frame(x=(sum(bin_segments[c(i, i+1)])) / 2, upper=quantile(avgs, (1+level)/2, na.rm=T),
-                   lower=quantile(avgs, 1-(1+level)/2, na.rm=T))
-    })
-    bin_cis_df <- do.call(rbind, bin_cis)
-
-    p <- ggplot2::ggplot() +
-        ggplot2::geom_vline(data=bin_cis_df, ggplot2::aes_string(xintercept='x'), alpha=0.2, linetype='dotted') +
-        ggplot2::geom_ribbon(data=bin_cis_df, ggplot2::aes_string(x='x', ymin='lower', ymax='upper'), alpha=0.1) +
-        ggplot2::theme_bw() +
-        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y),
-                           ggplot2::aes_string(x='x', y='y'),
-                           colour='orange', size=1) +
-        ggplot2::labs(x="Days", y="Deviation from smooth")
     p
 }
 
