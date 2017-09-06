@@ -5,3 +5,4 @@
 *.Rproj
 *.html
 tests/*.html
+newversion_test/*
