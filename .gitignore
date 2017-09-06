@@ -5,7 +5,7 @@
 *.Rproj
 *.html
 tests/*.html
-inst/*
+inst/doc/*
 vignettes/*_cache/*
 vignettes/*_files/*
 vignettes/*.R
