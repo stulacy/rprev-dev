@@ -528,22 +528,18 @@ summary.prevalence <- function(object, ...) {
     cat("\n")
 
     cat("Registry Data\n~~~~~~~~~~~~~\n")
-    cat("Index date:", object$index_date, "\n")
-    cat("Start date:", object$start_date, "\n")
-    cat("Number of years:", length(object$known_inc_rate), "\n")
-    cat("Known incidence rate:\n")
-    cat(object$known_inc_rate, "\n")
-    cat("Counted prevalent cases:\n")
-    cat(object$counted)
+    cat("Index date:", as.character(object$index_date), "\n")
+    cat("Start date:", as.character(object$registry_start), "\n")
+    cat("Overall incidence rate:", round(object$counted_incidence_rate, 3), "\n")
+    cat("Counted prevalent cases:", object$counted, "\n")
 
     if (!all(is.na(object$simulated))) {
-        cat("\n\nBootstrapping\n~~~~~~~~~~~~~\n")
-        cat("Iterations:", object$simulated$nbootstraps, "\n")
-        cat("Posterior age distribution summary:\n")
-        print(summary(unlist(object$simulated$posterior_age)))
-        cat("Average simulated prevalent cases per year:\n")
-        cat(round(rev(object$simulated$mean_yearly_contributions)), "\n")
-        cat("P-value from chi-square test:", object$pval)
+        cat("\nSimulation\n~~~~~~~~~~~~~\n")
+        cat("Iterations:", object$N_boot, "\n")
+        cat("Average incidence rate:",
+              round(object$simulated[, length(incident_date), by=sim][, mean(V1)] / (max(object$est_years)*365.25), 3),
+              "\n")
+        cat("P-value:", object$pval)
     }
 }
 

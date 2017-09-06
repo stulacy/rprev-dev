@@ -33,25 +33,26 @@
 #' @export
 survfit.prevalence <- function(formula, newdata=NULL, ...) {
     if (is.null(newdata)) {
-        use_df <- formula$means
+        newdata <- formula$means
     } else {
         # Check names have same names as those in original data
         if (!all(sort(names(newdata)) == sort(names(formula$means))))
             stop("Error: Please provide a list with the same column names as in the original dataset.")
-
-        # Reorder new data to be in same order as original data
-        use_df <- unlist(newdata)[names(formula$means)]
+    }
+    if (is.null(formula$max_event_time)) {
+        stop("Error: Cannot fit survfit model as event times have not been saved in the prevalence ",
+             "object. Please provide incident and event dates in the prevalence call.")
     }
 
-    # Add intercept
-    use_df <- c(1, use_df)
+    times <- seq(formula$max_event_time)
+    ndata <- newdata[rep(seq(nrow(newdata)), length(times)), ]
 
-    times <- seq(max(formula$y[, 1]))
-    survprobs <- apply(formula$simulated$coefs, 1, .calculate_survival_probability, use_df, times)
+    survprobs <- lapply(formula$surv_models, predict_survival_probability, ndata, times)
+    survprobs_mat <- t(simplify2array(survprobs))
 
-    full_survprobs <- .calculate_survival_probability(formula$simulated$full_coefs, use_df, times)
+    full_survprobs <- predict_survival_probability(formula$full_surv_model, ndata, times)
 
-    result <- list(time=times, surv=t(survprobs), fullsurv=full_survprobs)
+    result <- list(time=times, surv=survprobs_mat, fullsurv=full_survprobs)
     attr(result, 'class') <- 'survfit.prev'
     result
 }
@@ -166,6 +167,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' @importFrom ggplot2 aes_string
 #' @importFrom tidyr gather_
 plot.survfit.prev <- function(x, pct_show=0.9, ...) {
+
     num_boot <- dim(x$surv)[1]
     num_days <- dim(x$surv)[2]
     if (num_days != length(x$time))
@@ -175,8 +177,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
     colnames(df) <- seq(num_days)
     df[, 'bootstrap'] <- seq(num_boot)
 
-    gathered <- df %>% tidyr::gather_('time', 'survprob',
-                                      dplyr::select_vars_(names(df), '-bootstrap'))
+    gathered <- tidyr::gather(df, 'time', 'survprob', -'bootstrap')
 
     smooth <- gathered %>%
         dplyr::group_by_('time') %>%
@@ -189,8 +190,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
                       function(row) mean(row > smooth$mx | row < smooth$mn) > pct_show)
 
     outliers <- df[row_inds, ] %>%
-                    tidyr::gather_('time', 'survprob',
-                                   dplyr::select_vars_(names(df), '-bootstrap')) %>%
+                    tidyr::gather('time', 'survprob', -'bootstrap') %>%
                     dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
                                    bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
 
@@ -203,6 +203,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
             ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
                                ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
             ggplot2::theme_bw() +
+            ggplot2::ylim(0, 1) +
             ggplot2::labs(x="Days", y="Survival probability")
     p
 }

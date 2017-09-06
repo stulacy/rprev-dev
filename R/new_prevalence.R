@@ -1,4 +1,3 @@
-
 INCIDENCE_MARGIN <- 1.5
 MIN_INCIDENCE <- 10
 
@@ -64,6 +63,7 @@ MIN_INCIDENCE <- 10
 #' LHS a Surv object, as used by \code{flexsurvreg}.
 #' @param dist The distribution used by the default parametric survival model.
 #'     Possible values are: 'weibull', 'lognormal', 'exponential'
+#' TODO Specify possible values in vector format as often see
 #' @param surv_model An object that has a \code{predict_survival_probability}
 #'     method. See the vignette for further guidance.
 #' @param registry_start_date The starting date of the registry. If not supplied
@@ -251,8 +251,10 @@ prevalence <- function(index, num_years_to_estimate,
                         status_column,
                         population_size, proportion, level, precision)
 
-    surv_model <- if (!is.null(prev_sim)) prev_sim$surv_model else NULL
-    inc_model <- if (!is.null(prev_sim)) prev_sim$inc_model else NULL
+    full_surv_model <- if (!is.null(prev_sim)) prev_sim$full_surv_model else NULL
+    full_inc_model <- if (!is.null(prev_sim)) prev_sim$full_inc_model else NULL
+    surv_models <- if (!is.null(prev_sim)) prev_sim$surv_models else NULL
+    inc_models <- if (!is.null(prev_sim)) prev_sim$inc_models else NULL
 
     if (!is.null(counted_formula)) {
         if (!status_column %in% colnames(data)) {
@@ -264,19 +266,49 @@ prevalence <- function(index, num_years_to_estimate,
     }
     object <- list(estimates=estimates, simulated=prev_sim$results,
                    counted=counted_prev,
-                   surv_model=surv_model,
-                   inc_model=inc_model,
+                   full_surv_model=surv_model,
+                   full_inc_model=full_inc_model,
+                   surv_models=surv_models,
+                   inc_models=inc_models,
                    index_date=index,
-                   proportion=proportion,
+                   est_years=num_years_to_estimate,
+                   counted_incidence_rate = nrow(data) / as.numeric(difftime(index,
+                                                                             registry_start_date,
+                                                                             units='days')),
                    registry_start=registry_start_date,
-                   status_col=status_column)
+                   proportion=proportion,
+                   status_col=status_column,
+                   N_boot=N_boot)
 
-    # Calculate covariate means and save
-    # TODO What's this needed for?
-    #mean_df <- data[, c(age_var, sex_var)]
-    #mean_df <- apply(mean_df, 2, as.numeric)
-    #object$means <- colMeans(mean_df)
-    #object$y <- survobj
+
+    # Calculate covariate averages for survfit later on
+    covars <- extract_covars(surv_model)
+    # Obtain if continuous or categorical
+    is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
+    fact_cols <- covars[is_factor]
+    cont_cols <- covars[!is_factor]
+
+    cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
+    cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
+
+    # Save into data frame
+    means <- data.frame()
+    for (var in cont_cols) {
+        means[1, var] <- cont_means[var]
+    }
+    for (var in fact_cols) {
+        means[1, var] <- cat_modes[var]
+        means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
+    }
+    object$means <- means
+
+    # Add max time if possible
+    if (!is.null(incident_column) & !is.null(death_column)) {
+        object$max_event_time <- max(as.numeric(difftime(data[[death_column]],
+                                              data[[incident_column]],
+                                              units='days')))
+    }
+
 
     if (!is.null(prev_sim)) {
         object$pval <- test_prevalence_fit(object)
@@ -416,10 +448,6 @@ calculate_se_counted <- function(population_size, counted_contribs) {
 #'                    prevsim,
 #'                    start_date=min(prevsim$entrydate),
 #'                    status_col='status')
-#'
-#'
-#' @export
-#' @family prevalence functions
 counted_prevalence <- function(formula, index, data, start_date, status_col) {
     death_col <- all.vars(update(formula, .~0))
     entry_col <- all.vars(update(formula, 0~.))
@@ -458,9 +486,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' data(prevsim)
 #'
 #' \dontrun{
-#' # TODO Generate incidence and survival object
-#' # TODO Do I actually want to keep this and the counted function
-#' # as exports?
 #' simulated_prevalence(prevsim, "2013-01-01",
 #'                      starting_date="2003-01-01",
 #'                      inc_model, surv_model)
@@ -471,8 +496,6 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
-#' @export
-#' @family prevalence functions
 sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
@@ -510,7 +533,9 @@ sim_prevalence <- function(data, index, starting_date,
         incident_population[, 'incident_date' := incident_date]
         incident_population[, 'time_to_index' := time_to_index]
         incident_population[, 'alive_at_index' := rbinom(length(surv_prob), size=1, prob=surv_prob)]
-        incident_population
+        list(pop=incident_population,
+             surv=bs_surv,
+             inc=bs_inc)
     }
 
     ################## TODO ADD IN MULTI-CORE ####################
@@ -526,9 +551,8 @@ sim_prevalence <- function(data, index, starting_date,
     ##############################################################
 
 
-
-    # Combine into single table
-    results <- data.table::rbindlist(all_results, idcol='sim')
+    # Combine incident population into single table
+    results <- data.table::rbindlist(lapply(all_results, function(x) x$pop), idcol='sim')
 
     # Force death at 100 if possible
     if (!is.null(age_column) & age_column %in% colnames(results)) {
@@ -541,8 +565,10 @@ sim_prevalence <- function(data, index, starting_date,
     results[, time_to_index := NULL]
 
     list(results=results,
-         surv_model=surv_model,
-         inc_model=inc_model)
+         full_surv_model=surv_model,
+         full_inc_model=inc_model,
+         surv_models=lapply(all_results, function(x) x$surv),
+         inc_models=lapply(all_results, function(x) x$inc))
 }
 
 build_curemodel <- function(formula, data, ...) {
