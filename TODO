@@ -1,3 +1,4 @@
+  - More distributions supported by survregmin
+  - Parallelise main simulation loop
   - More rigorous stress testing
   - Centre image in user guide
-  - How to handle when survival model building doesn't converge? Ignore and resample, raise warning? Or just throw error?
