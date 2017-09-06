@@ -5,33 +5,6 @@ extract_covars.flexsurvreg <- function(object) {
 }
 
 #' @export
-predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
-                                                      t=NULL,
-                                                      ...)
-{
-    # Get estimates from flexsurvreg method
-    estimates <- predict_survival_probability.flexsurvreg(object, newdata, t, ...)
-
-    if (!is.null(object$pop_mortality)) {
-        # Obtain age at index in days
-        # TODO Possible to not have hardcoded?
-        newdata$age <- floor((newdata$age * 365.25) + t)
-
-        # Obtain mortality rates from these values
-        comb <- dplyr::left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars))
-
-        # For people that don't have a mortality set to 0 as assumedly because they
-        # are > 100
-        comb[is.na(comb$surv), 'surv'] <- 0
-
-        # scale estimates
-        estimates <- estimates * comb$surv
-    }
-
-    estimates
-}
-
-#' @export
 predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
                                                      t=NULL,
                                                      ...)

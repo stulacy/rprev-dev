@@ -7,7 +7,7 @@
 #'
 #' @importFrom magrittr "%>%"
 #' @export
-cure_model_wrapper <- function(formula, data, dist='weibull', pop_data=NULL, link='logistic', mixture=T, ...) {
+flexsurvcure_population <- function(formula, data, dist='weibull', pop_data=NULL, link='logistic', mixture=T, ...) {
     obj <- flexsurvcure::flexsurvcure(formula=formula, data=data,
                                       dist=dist,
                                       link=link, mixture=mixture,
