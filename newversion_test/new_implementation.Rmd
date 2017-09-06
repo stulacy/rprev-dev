@@ -1,0 +1,281 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(rprev)
+data(prevsim)
+```
+
+# Introduction
+
+The aim of this document is to verify whether the new implementation (saved in `new_prevalence.R`) that uses a time-scale in days obtains similar estimates of prevalence as the old implementation that discretises into years.
+
+```{r}
+source("../R/new_prevalence.R")
+```
+
+# Validation on same data
+
+The first test is to see whether the models from the new implementation are consistent with the data itself. I'll calculate this over the whole `prevsim` data set.
+
+## Manually counted
+
+First then the counted prevalence in this imaginary registry is calculated as the number of people incident before the index date who are still alive. I'll use the index date as the start of the new year in 2013.
+
+```{r}
+max(prevsim$entrydate)
+```
+
+```{r}
+index <- '2013-01-01'
+start_date <- '2003-01-01'
+```
+
+And note that we have nearly 10 full years of data, so I can start recording from the start of January 2003.
+
+```{r}
+min(prevsim$entrydate)
+```
+
+Then prevalence is the number of people whose event date is **after** the index date plus those who are **censored beforehand**. Ask Alex why these cases contribute towards prevalence as this came up during the original development of `rprev`.
+
+```{r}
+prevsim %>%
+    filter(start_date >= start_date, entrydate < index) %>%  # Calculating ten year prevalence so only want those incident in this period
+    mutate(dead_at_index = ifelse(eventdate > index, 0, status)) %>% 
+    filter(dead_at_index == 0) %>%                           # Prevalence is number of those still alive or censored at index
+    summarise(nrow(.))
+```
+
+Yep this agrees with the `rprev` estimation.
+
+```{r}
+sum(prevalence_counted(prevsim$entrydate, prevsim$eventdate, prevsim$status, index_date='2013-01-01', num_reg_years=10))
+```
+
+## Simulated prevalence
+
+Let's see what the new function would estimate for this time-period. I'll allow it to see the full data set to allow for a more accurate incidence and survival model.
+
+```{r}
+simulated <- new_sim_prevalance(prevsim, index='2013-01-01', number_incident_days =10*365.25)$results
+simulated[, prevalent := as.numeric((time_to_entry + time_to_death) > 10*365.25)]
+hist(simulated[, sum(prevalent), by='sim'][[2]])
+```
+
+That's not too bad, it's slightly underestimating prevalence, either by overestimating mortality or underestimating incidence.
+
+# Validation with previous simulation
+
+The next step is to see how the prevalence estimates from simulation agree with the estimates produced from the old rprev implementation. I'll run a few different N-years to get a bigger picture.
+
+Remember we have ten full years of registry data, so we'll measure prevalence for $N > 10$. I'll start with $N = 12$.
+
+## 12 year
+
+```{r}
+old_12 <- rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                     data=prevsim, num_years_to_estimate = 12, population_size=1e6,
+                     index_date = '2013-01-01', num_reg_years = 10,
+                     cure = 99)  # Don't want cure model as new implementation doesn't have it
+old_12
+```
+
+That value of 577.61 is a combination of counted prevalence and simulated for the 2 years that it has simulated data for. I'd like to compare it instead to the number of prevalent cases from the simulation across all 12 years.
+
+```{r}
+sum(old_12$simulated$mean_yearly_contributions)
+```
+
+As an aside, the old version is around ten times quicker than the new. This is dependent on $N$, since it iterates at a yearly basis, while the new one only samples inter-arrival times that is dependent upon N.
+
+```{r}
+new_12 <- new_sim_prevalance(prevsim, index='2013-01-01', number_incident_days=12*365.25)$results
+new_12[, prevalent := as.numeric((time_to_entry + time_to_death) > 10*365.25)]
+mean(new_12[, sum(prevalent), by='sim'][[2]])
+```
+
+Not too bad!
+
+## 20 year
+
+```{r}
+old_20 <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                     data=prevsim, num_years_to_estimate = 20, population_size=1e6,
+                     index_date = '2013-01-01', num_reg_years = 10,
+                     cure = 99)  # Don't want cure model as new implementation doesn't have it
+sum(old_20$simulated$mean_yearly_contributions)
+```
+
+As an aside, the old version is around ten times quicker than the new. This is dependent on $N$, since it iterates at a yearly basis, while the new one only samples inter-arrival times that is dependent upon N.
+
+```{r}
+new_20 <- new_sim_prevalance(prevsim, index='2013-01-01', number_incident_days=20*365.25)$results
+new_20[, prevalent := as.numeric((time_to_entry + time_to_death) > 10*365.25)]
+mean(new_20[, sum(prevalent), by='sim'][[2]])
+```
+
+## 50 year
+
+```{r}
+old_50 <- prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                     data=prevsim, num_years_to_estimate = 50, population_size=1e6,
+                     index_date = '2013-01-01', num_reg_years = 10,
+                     cure = 99)  # Don't want cure model as new implementation doesn't have it
+sum(old_50$simulated$mean_yearly_contributions)
+```
+
+As an aside, the old version is around ten times quicker than the new. This is dependent on $N$, since it iterates at a yearly basis, while the new one only samples inter-arrival times that is dependent upon N.
+
+```{r}
+new_50 <- new_sim_prevalance(prevsim, index='2013-01-01', Nyears=50)$results
+mean(new_50$num_prev)
+```
+
+# Summary
+
+The new version is always slightly more pessimistic than the old one, not by a large amount, and maybe this is just due to chance, but still it's a little odd. Could be worth investigating this, but on the whole the prevalence estimates seem reasonable and in line with the old version of `rprev`.
+
+One concern with the new implementation is that it's rather slow, around a factor of 10 slower than the old version. This is largely due to the fact that the old version used a hardcoded survival and incidence model, allowing it to make optimisations, whereas the new version is modular and extensible and allows any survival object with a specific method implemented. Also note that the old version only estimated the incidence rate once at the start of the program, while the new version calculates it every bootstrap. 
+
+I can probably spend some time speeding it up, by hardcoding specific sampling functions for each distribution, but for the time being I will focus on integrating it into the prevalence framework, including counted prevalence. Furthermore, by outputting a data table, the results of the simulation are much easier to interpret, allowing for quick summarys of which people were at more risk, the split amongst the sexes and so on.
+
+I'll also need to think about adding a cure model survival model at some point but that's further work.
+
+# Overall model 
+
+```{r}
+old_full_12 <- rprev::prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
+                                 data=prevsim, num_years_to_estimate = 12, population_size=1e6,
+                                 index_date = '2013-01-01', num_reg_years = 10,
+                                 cure = 99)  # Don't want cure model as new implementation doesn't have it
+old_full_12
+```
+
+```{r}
+new_full_12 <- new_prevalence(index='2013-01-01', num_years_to_estimate=12, data=prevsim, population_size = 1e6)
+new_full_12
+```
+
+As can be seen, both methods display their text summary in the same manner, and as seen before the estimates themselves are very close.
+
+Let's compare p-values since the method of calculating these has changed:
+
+```{r}
+old_full_12$pval
+```
+
+```{r}
+new_full_12$pval
+```
+
+They're relatively similar and both agree that there is no evidence to say the model isn't fitting the data well.
+
+Let's test the calculation when simulation isn't required when there is sufficient data in the registry.
+
+```{r}
+new_full_5 <- new_prevalence(index='2013-01-01', num_years_to_estimate=5, data=prevsim, population_size = 1e6)
+new_full_5
+```
+
+```{r}
+new_full_8 <- new_prevalence(index='2013-01-01', num_years_to_estimate=8, data=prevsim, population_size = 1e6)
+new_full_8
+```
+
+What about when it requires a combination of both simulation and counted prevalence?
+
+```{r}
+combined <- new_prevalence(index='2013-01-01', num_years_to_estimate=c(5, 8, 12, 20), data=prevsim, population_size = 1e6)
+combined
+```
+
+Yep that works. What about when we have an edge case, i.e. we want to estimate 10-year prevalence at the 1st of 2013 given that our registry starts on the 1st 2003, which is strictly ten years exactly? Firstly, we have to inform the function that our registry starts on the 1st January, rather than on the first event date, which is the 7th January.
+
+```{r}
+min(prevsim$entrydate)
+```
+
+```{r}
+ten_year <- new_prevalence(index='2013-01-01', num_years_to_estimate=10, data=prevsim, 
+                           population_size = 1e6, registry_start_date = "2003-01-01")
+ten_year
+```
+
+Good, the code has correctly realised that it has exactly ten years of data and doesn't need to simulate anything. We can tell this is the case since the prevalence is an integer value rather than a float.
+
+However, if we'd forgotten to set the registry start date then it would have run simulation to identify any cases in these first 7 days.
+
+```{r}
+ten_year <- new_prevalence(index='2013-01-01', num_years_to_estimate=10, data=prevsim, 
+                           population_size = 1e6)
+ten_year
+```
+
+As ever, the simulation had to run for the entire timeframe to allow for the calculation of the p-value, so the column `prev_10yr` refers to any patient who was incident before ten years and had the event after the index.
+
+```{r}
+ten_year$simulated
+```
+
+Since this bolting on of the simulation code only uses 7 days of data, we can determine the mean simulated prevalence contribution for these 7 days:
+
+```{r}
+mean(ten_year$simulated[incident_date < ymd("2003-01-07")][, sum(prev_10yr), by=sim][[2]])
+```
+
+## Different survival distributions
+
+Let's try using survival distributions that aren't just the Weibull and see if the code works to correctly build the model and evaluate it:
+
+```{r}
+lnorm_20 <- new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, population_size = 1e6,
+                           dist='lnorm')
+lnorm_20
+```
+
+And compare that to the Weibull:
+
+```{r}
+wei_20 <- new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, 
+                         surv_formula = Surv(time, status) ~ age + sex, population_size = 1e6,
+                         dist='weibull')
+wei_20
+```
+
+And we can see that a) the code seems to work as it's producing sensible values, and b) the log-normal model seems to have slightly more optimistic survival forecast.
+
+```{r}
+lnorm_20$surv_model
+```
+
+```{r}
+wei_20$surv_model
+```
+
+The Weibull model actually has a better AIC here so we'd be more inclined to use it, interesting to note that neither of the two covariates are statistically significant here.
+
+Useful to see that the code works though.
+
+## Speeding up software
+
+The next step is to speed up the code as it's currently rather slow. This is particularly due to the fact that I've made a generic `draw_time_to_death.flexsurv` method, rather than a `draw_time_to_death.lnorm` method. I could maybe just change the current method and have it so that it calculates the LP and then does a massive if statement conditioned on the distribution.
+
+```{r}
+set.seed(3)
+system.time({
+    new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, population_size = 1e6,
+                             dist='weibull')
+})
+```
+
+```{r}
+set.seed(3)
+system.time({
+    new_prevalence(index='2013-01-01', num_years_to_estimate=20, data=prevsim, population_size = 1e6,
+                             dist='lnorm')
+})
+```
