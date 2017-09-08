@@ -11,8 +11,7 @@ vignette: >
 ---
 
 # Introduction
-
-In this vignette we demonstrate how to use `rprev` to generate predictions of disease prevalence from a registry data set. Prevalence is defined as the number of people living with a disease at a specified *index date* who were incident in the preceeding *n* years. Therefore, the higher the value of *n*, the more incident cases are included. If *n* is less than or equal to the number of registry years, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. Frequently, disease registries do not contain sufficient longitudinal information to accurately measure disease prevalence, and the desired *n* is greater than the number of registry years for which we have real patient data
+In this vignette we demonstrate how to use rprev to generate predictions of disease prevalence from a registry data set. Prevalence is defined as the number of people affected with a disease at a specified index date, while this package is concerned with n-year prevalence: the number of affected individuals who were diagnosed in the preceeding n years. The package is designed to work with disease registry data sets containing individual level information, rather than averaged population tables. If n is less than or equal to the number of years of registry data, then the prevalence estimate is made by simply counting those remaining in the prevalent pool at the index date. Frequently, disease registries do not contain sufficient longitudinal information to accurately measure disease prevalence, and the desired n is greater than the number of registry years for which we have real patient data.
 
 Following the methodology of @crouch2014determining, which has been employed in published work [@roman2016myeloid, @smith2015lymphoma], prevalence contributions from patients incident prior to the registry beginning are estimated using Monte Carlo Simulation. This is illustrated in the diagram below:
 
@@ -63,7 +62,7 @@ The primary function in `rprev` is `prevalence`, which performs all the data pre
 
 ## Incidence specification
 
-The default incidence model assumes a Poisson homogeneous process, i.e. that the incidence rate is constant. This may not necessarily be the case for some diseases, but the assumption generally holds. Of course, it is important to check whether your data meets this assumption; diagnostics are covered in [a separate vignette](diagnostics.html). A Poisson homogeneous process relies on a single parameter, the incidence rate. In `rprev` this is calculated within the `prevalence` function from incidence dates into the registry. An additional functionality that `rprev` provides is allowing for stratification of incidence by a categorical variable, for example, sex.
+The default incidence model assumes a Poisson homogeneous process, i.e. that the incidence rate is constant. This assumption can be rather tenuous, particularly for infectious diseases and those with a seasonal component, but is still appropriate for a large number of diseases. Of course, it is important to check whether your data meets this assumption; diagnostics are covered in [a separate vignette](diagnostics.html). A Poisson homogeneous process relies on a single parameter, the incidence rate. In `rprev` this is calculated within the `prevalence` function from incidence dates into the registry. An additional functionality that `rprev` provides is allowing for stratification of incidence by a categorical variable, for example, sex.
 
 The homogeneous Poisson process model is specified by an argument to `prevalence` called `inc_formula`, which accepts a formula with the LHS as name of the column that holds the incident dates, and the RHS naming the variables to stratify by (or 1 if none). For example, in the `prevsim` data set, the *entrydate* column describes the date the patient was entered into the registry, and so the formula for a non-stratified incidence model is `inc_formula = entrydate ~ 1`. If we have reason to believe that males and females have significantly different incidence rates then we can stratify by sex: `inc_formula = entrydate ~ sex`.
 
@@ -73,7 +72,7 @@ The default survival model assumes that event times follow a standard parametric
 
 ## Estimating prevalence
 
-The function call for estimating prevalence in the `prevsim` data set using the default incidence and survival models is shown below. Aside from the arguments specifying these two processes, there are a number of prevalence-specific parameters. `index_date` specifies the date at which to estimate point prevalence with `num_years_to_estimate` detailing the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of available complete years of registry data then incident cases over the remaining time are simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. `death_column` is required to count prevalence over the years of the registry, if it isn't provided then the entire prevalence estimate is calculated by simulation. The optional `population_size` argument is used to provide relative rates estimates. 
+The function call for estimating prevalence in the `prevsim` data set using the default incidence and survival models is shown below. Aside from the arguments specifying these two processes, there are a number of prevalence-specific parameters. `index_date` specifies the date at which to estimate point prevalence with `num_years_to_estimate` detailing the required number of years preceding the index date that contribute incident cases. If any values are larger than the number of available complete years of registry data then incident cases over the remaining time are simulated. By passing a vector to `num_years_to_estimate`, multiple estimates of prevalence at the index date can be calculated with their own confidence intervals. The `death_column` parameter accepts the name of the column in the registry data set that holds date of death information. It is required to count prevalence over the registry duration, if it isn’t provided then the entire prevalence estimate is calculated by simulation. The optional `population_size` argument is used to provide relative rates estimates. 
 
 ```{r}
 prevalence_total <- prevalence(index='2013-01-30', 
@@ -104,7 +103,7 @@ The prevalence object's `estimates` attribute holds the point prevalence estimat
 prevalence_total$estimates
 ```
 
-Additional information about the simulation can be found in the `simulated` object, which contains a `data.table` of the simulated incident population. This can be used to quickly assess the accuracy of the model fits for both the incidence and survival processes.
+Additional information about the simulation can be found in the `simulated` object, which contains a `data.table` containing information about the simulated incident population. This can be used to quickly assess the accuracy of the model fits for both the incidence and survival processes. Each row corresponds to a simulated individual drawn using the specified incidence model, with the *sim* column specifying the simulation number. *time_to_entry* measures the time from the origin (index date minus n-year prevalence), with *incident_date* providing this same information expressed as an absolute date. The *sex* and *age* columns are the simulated covariate values that have also been determined in the *draw_incident_population* method of an incidence model object. *alive_at_index* is a binary value of whether this individual was still alive at the index date, with the following columns indicating if they contributed to any n-year prevalence. *prev_registry* measures whether the person was contributing to prevalence after being incident at the same time the registry was collecting data, allowing for a direct comparison between the known prevalence for that timeframe and the simulated prevalence.
 
 ```{r}
 prevalence_total$simulated
@@ -137,6 +136,42 @@ As can be seen, the prevalence estimates from different survival distributions c
 
 ```{r, cache=T}
 prev_llog
+```
+
+## Cure models
+
+An important consideration of predicting disease survivability is the issue of whether a patient has been cured. For some diseases, a subset of patients can be identified who have been cured of the disease, and thereby have different survival characteristics compared to the non-cured subset. *Cure* models are extensions of standard survival models to model this behaviour. We refer to @lambert2006estimating for an overview of cure models in the literature.
+
+Since cure models can provide more accurate models of survival for certain diseases, we have included a software implementation with `rprev`. The `flexsurvcure` package provides implementations of mixture and non-mixture cure models for use with time-to-event data, however, it assumes that $S_{cured}(t)=1$, which is not appropriate when the event being modelled is death. For this reason, `rprev` provides a wrapper to `flexsurvcure` that embeds the object with the population mortality data held in the `UKmortalitydays` data set provided with the package. Survival probability estimates at the index date are then multiplied by the population survival function to produce accurate estimates.
+
+To use a cure model for prevalence estimations, firstly fit a model using the `flexsurvcure_population` function. This accepts all the arguments to `flexsurvcure`, so refer to the documentation of that function for further support. There is an additional argument, `pop_data`, which specifies the population survival curve, although a default data set is provided (see the help file for `UKmortalitydays` for further detail).
+
+```{r}
+cure_mod <- flexsurvcure_population(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+```
+
+The parameter values for this mixture cure model are displayed below.
+
+```{r}
+cure_mod
+```
+
+To use this as the survival model in a prevalence estimation, simply pass it in to the surv_model argument as before:
+
+```{r}
+prev_cure <- prevalence(index='2013-01-30', 
+                        num_years_to_estimate=c(3, 5, 10, 20), 
+                        data=prevsim, 
+                        inc_formula = entrydate ~ sex,
+                        surv_model=cure_mod,
+                        population_size = 1e6,
+                        death_column = 'eventdate',
+                        N_boot = 100)
+```
+                        
+As can be seen, using a cure model decreases the prevalence estimates since survival probabilities are now reduced by taking population mortality into account.
+```{r}
+prev_cure 
 ```
 
 # Custom incidence and survival models

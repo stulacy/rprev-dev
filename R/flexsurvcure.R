@@ -50,7 +50,7 @@ predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
         newdata$age <- floor((newdata$age * 365.25) + t)
 
         # Obtain mortality rates from these values
-        comb <- dplyr::left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars))
+        comb <- suppressWarnings(dplyr::left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars)))
 
         # For people that don't have a mortality set to 0 as assumedly because they
         # are > 100
