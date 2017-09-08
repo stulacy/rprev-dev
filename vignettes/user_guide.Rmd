@@ -135,7 +135,7 @@ prev_llog <- prevalence(index='2013-01-30',
 
 As can be seen, the prevalence estimates from different survival distributions can vary largely so it is important to use as accurate a model as possible. The [diagnostics vignette](diagnostics.html) discusses strategies on how to identify well-fitting models.
 
-```{r}
+```{r, cache=T}
 prev_llog
 ```
 
