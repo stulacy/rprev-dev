@@ -94,3 +94,66 @@ test_that("Incorrect argument specification is correctly handled", {
     test_args("2014-01-01", c(0.5, 0.3), entry ~ sex)  # Wrong column name for strata (it is group1)
     test_args("2014-01-01", c(0.5, 0.3), entrydate ~ sex)  # Both wrong names
 })
+
+test_that("draw_incident_population has correct error handling on inputs", {
+    mod <- fit_exponential_incidence(entrydate ~ 1, prevsim)
+    bs_df <- prevsim[sample(1:nrow(prevsim), replace=T), ]
+
+    expect_error(draw_incident_population(mod_nostrata, bs_df, -1, NULL))  #  negative time
+    expect_error(draw_incident_population(mod_nostrata, bs_df, 500, c("ageDiag")))  #  covar that isn't in data frame
+    expect_error(draw_incident_population(mod_nostrata, bs_df, 500, c("sex", "ageDiag")))  #  covar that isn't in data frame
+})
+
+test_that("draw_incident_population has correct output dimensions and form", {
+    mod_nostrata <- fit_exponential_incidence(entrydate ~ 1, prevsim)
+    mod_strata <- fit_exponential_incidence(entrydate ~ sex, prevsim)
+    bs_df <- prevsim[sample(1:nrow(prevsim), replace=T), ]
+
+    pop1 <- draw_incident_population(mod_nostrata, bs_df, 1000, NULL)
+    pop2 <- draw_incident_population(mod_strata, bs_df, 1000, NULL)
+    pop3 <- draw_incident_population(mod_nostrata, bs_df, 1000, 'age')
+    pop4 <- draw_incident_population(mod_strata, bs_df, 1000, 'age')
+
+    # Correct column vals
+    expect_identical(colnames(pop1), c('time_to_entry'))
+    expect_identical(colnames(pop2), c('time_to_entry', 'sex'))
+    expect_identical(colnames(pop3), c('time_to_entry', 'age'))
+    expect_identical(colnames(pop4), c('time_to_entry', 'sex', 'age'))
+
+    # Correct classes
+    expect_true("data.frame" %in% class(pop1))
+    expect_true("data.frame" %in% class(pop2))
+    expect_true("data.frame" %in% class(pop3))
+    expect_true("data.frame" %in% class(pop4))
+})
+
+test_that("draw_incident_population has correct incidence rate", {
+    mod_nostrata <- fit_exponential_incidence(entrydate ~ 1, prevsim)
+    mod_strata <- fit_exponential_incidence(entrydate ~ sex, prevsim)
+    bs_df <- prevsim[sample(1:nrow(prevsim), replace=T), ]
+
+    pop1 <- draw_incident_population(mod_nostrata, bs_df, 1e5, NULL)
+    pop2 <- draw_incident_population(mod_strata, bs_df, 1e5, NULL)
+    pop3 <- draw_incident_population(mod_nostrata, bs_df, 1e5, 'age')
+    pop4 <- draw_incident_population(mod_strata, bs_df, 1e5, 'age')
+
+    # Non-stratified models have simple rate calculation
+    emp_rate1 <- nrow(pop1) / (max(pop1$time_to_entry) - min(pop1$time_to_entry))
+    emp_rate3 <- nrow(pop3) / (max(pop3$time_to_entry) - min(pop3$time_to_entry))
+    expect_lte(abs((emp_rate1 - mod_nostrata$rate) / mod_nostrata$rate), 0.10)
+    expect_lte(abs((emp_rate3 - mod_nostrata$rate) / mod_nostrata$rate), 0.10)
+
+    # Stratified models have a more involved calculation
+    emp_rate2 <- c()
+    emp_rate4 <- c()
+    for (s in levels(prevsim$sex)) {
+        pop2_sub <- pop2[pop2$sex == s, ]
+        pop4_sub <- pop4[pop4$sex == s, ]
+        emp_rate2 <- c(emp_rate2, nrow(pop2_sub) / (max(pop2_sub$time_to_entry) - min(pop2_sub$time_to_entry)))
+        emp_rate4 <- c(emp_rate4, nrow(pop4_sub) / (max(pop4_sub$time_to_entry) - min(pop4_sub$time_to_entry)))
+    }
+    error2 <- abs((emp_rate2 - mod_strata$rate$Freq) / mod_strata$rate$Freq)
+    error4 <- abs((emp_rate4 - mod_strata$rate$Freq) / mod_strata$rate$Freq)
+    expect_false(any(error2 > 0.10))
+    expect_false(any(error4 > 0.10))
+})

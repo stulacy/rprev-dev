@@ -53,6 +53,16 @@ fit_exponential_incidence <- function(inc_form, data) {
 
 draw_incident_population.expinc <- function(object, data, timeframe, covars) {
 
+    if (timeframe < 0) {
+        stop("Error: timeframe is negative with a value of ", timeframe, ".")
+    }
+
+    for (c in covars) {
+        if (!c %in% colnames(data)) {
+            stop("Error: Column '", c, "' not found in '", quote(data), "'.")
+        }
+    }
+
     if (is.null(object$strata)) {
         initial_num_inds <- INCIDENCE_MARGIN * object$rate * timeframe
         time_to_entry <- cumsum(rexp(initial_num_inds, object$rate))
@@ -71,22 +81,37 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
         }))
     }
 
-    # draw covariate values from model that are in survival formula and not in data frame
-    missing_covars <- setdiff(covars, colnames(new_data))
-    higher_order <- missing_covars[grep("^I\\(.+\\)$", missing_covars)]
-    covars_to_sample <- setdiff(missing_covars, higher_order)
+    if (length(covars) > 0) {
+        # draw covariate values from model that are in survival formula and not in data frame
+        missing_covars <- setdiff(covars, colnames(new_data))
+        higher_order <- missing_covars[grep("^I\\(.+\\)$", missing_covars)]
+        covars_to_sample <- setdiff(missing_covars, higher_order)
 
-    new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
-    data.table::setDT(new_covars)
+        # Draw new covariates from prior with appropriate stratification
+        if (is.null(object$strata)) {
+            new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
+            data.table::setDT(new_covars)
+        } else {
+            strata_vals <- object$rate[[object$strata]]
+            freqs <- table(new_data[[object$strata]])
+            covars_list <- setNames(lapply(strata_vals, function(sx) {
+                priors <- data[data[[object$strata]] == sx, ]
+                num <- freqs[as.character(sx)]
+                setNames(lapply(covars_to_sample, function(x) sample(priors[[x]], num, replace=T)), covars_to_sample)
+            }), strata_vals)
+            new_covars <- data.table::rbindlist(covars_list)
+        }
 
-    # Add in higher order terms
-    # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
-    # this is acceptable as the covariates missing from this data set will be those used in the incidence modelling and
-    # so will be categorical and thus not not have higher order terms
-    for (term in higher_order) {
-        new_covars[, (term) := eval(parse(text=term))]
+        # Add in higher order terms
+        # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
+        # this is acceptable as the covariates missing from this data set will be those used in the incidence modelling and
+        # so will be categorical and thus not not have higher order terms
+        for (term in higher_order) {
+            new_covars[, (term) := eval(parse(text=term))]
+        }
+
+        # Combine together to form a population that has an entry time and the required covariates for modelling survival
+        new_data <- cbind(new_data, new_covars)
     }
-
-    # Combine together to form a population that has an entry time and the required covariates for modelling survival
-    cbind(new_data, new_covars)
+    new_data
 }
