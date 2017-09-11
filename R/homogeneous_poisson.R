@@ -4,11 +4,10 @@ fit_exponential_incidence <- function(inc_form, data) {
         stop("Error: Please provide only a single LHS term in the inc_formula, representing the column holding incident date.")
     }
 
-    registry_duration <- as.numeric(difftime(max(data[[entry_col]]), min(data[[entry_col]]), units='days'))
 
     strata <- all.vars(update(inc_form, 0~.))
     # Obtain rate for combination of each of these factors and throw error if any instances < required
-    if (length(strata) > 0) {
+    if (length(strata) == 1) {
 
         if (!all(sapply(strata, function(x) is.factor(data[[x]])))) {
             stop("Error: Please format any incidence strata as factors.")
@@ -19,11 +18,19 @@ fit_exponential_incidence <- function(inc_form, data) {
             stop("Error: Less than ", MIN_INCIDENCE, " incident cases. Please ensure data has sufficient incident cases.")
         }
 
-        rate <- data.frame(strata_counts / registry_duration)
+        # Calculate time between first and last patient for each strata
+        durations <- vapply(names(strata_counts), function(s) {
+            sub <- data[[strata]] == s
+            as.numeric(difftime(max(data[sub, entry_col]), min(data[sub, entry_col]), units='days'))
+        }, numeric(1))
+
+        rate <- data.frame(strata_counts / durations)
         names(rate)[1:(ncol(rate)-1)] <- strata
         strata_names <- strata
+    } else if (length(strata) > 1) {
+        stop("Default incidence model can currently only handle one stratification.")
     } else {
-        rate <- nrow(data) / registry_duration
+        rate <- nrow(data) / as.numeric(difftime(max(data[[entry_col]]), min(data[[entry_col]]), units='days'))
         strata_names <- NULL
     }
 
