@@ -59,6 +59,20 @@ extract_covars.survregmin <- function(object) {
 #' @export
 predict_survival_probability.survregmin <- function(object, newdata, times) {
 
+    if (nrow(newdata) != length(times)) {
+        stop("Error: newdata has dimensions ", dim(newdata), " and times has length ", length(times), ". There should be one value of times for every row in newdata")
+    }
+
+    if (any(times < 0)) {
+        warning("Survival probability asked for at negative times in predict_survival_probability.")
+    }
+
+    for (c in object$covars) {
+        if (!c %in% colnames(newdata)) {
+            stop("Error: column '", c, "' not found in newdata.")
+        }
+    }
+
     # Expand data into dummy categorical and include intercept
     formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
     wide_df <- model.matrix(formula, newdata)
