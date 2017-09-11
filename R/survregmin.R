@@ -5,19 +5,27 @@ build_survreg <- function(formula, data, user_dist) {
     X <- model.matrix(formula, complete)
     survobj <- with(complete, eval(formula[[2]]))
     Y <- cbind(survobj[, 1], survobj[, 2])
-    data_mat <- cbind(Y, X)
+
+    # Obtain covariate names
+    factors <- attr(terms(formula), "factors")
+    covars <- if (length(factors) == 0) {
+                    c()
+               } else {
+                   row.names(factors)[2:nrow(factors)]
+               }
 
     # Transform of y
     dist_obj <- survival::survreg.distributions[[user_dist]]
-    data_mat[, 1] <- dist_obj$trans(data_mat[, 1])
+    Y[, 1] <- dist_obj$trans(Y[, 1])
 
     # Obtain actual dist
     surv_dist <- dist_obj$dist
     scale <- if (is.null(dist_obj$scale)) 0 else dist_obj$scale
 
+
     mod <- survival::survreg.fit(
-                         data_mat[, 3:ncol(data_mat)],
-                         data_mat[, 1:2],
+                         X,
+                         Y,
                          NULL, # weights
                          numeric(nrow(data)), # offset
                          NULL, # init
@@ -34,7 +42,7 @@ build_survreg <- function(formula, data, user_dist) {
     func_call$user_dist <- eval(user_dist)
 
     object <- list(coefs=coef(mod),
-                   covars = rownames(attr(terms(formula), "factors"))[2:nrow(attr(terms(formula), "factors"))],
+                   covars = covars,
                    call = func_call,
                    dist = user_dist,
                    terms= labels(terms(formula))
