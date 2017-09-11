@@ -46,3 +46,23 @@ test_that("Models are build with correctly specified arguments", {
     test_mod(Surv(time, status) ~ sex + age, 'lognormal')
     test_mod(Surv(time, status) ~ sex + age, 'exponential')
 })
+
+test_that("predict_survival_probability handles incorrectly specified arguments", {
+    mod <- build_survreg(Surv(time, status) ~ sex + age, prevsim, 'weibull')
+    newdata_clean <- prevsim[sample(1:nrow(prevsim), replace=T), ]
+
+    expect_error(predict_survival_probability(mod, newdata_clean[1:100, ], times=c(5, 3, 2)))  # newdata_clean and times have different lengths
+    expect_warning(predict_survival_probability(mod, newdata_clean[1:5, ], times=c(-1, 3, -10, 3, 2))) # Negative times should give warning
+
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('age'))],
+                                 times=c(100, 502, 250, 32, 520))) # Should get error if pass data frame without required covariates
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('sex'))],
+                                 times=c(100, 502, 250, 32, 520))) # Should get error if pass data frame without required covariates
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('sex', 'age'))],
+                                 times=c(100, 502, 250, 32, 520))) # Should get error if pass data frame without required covariates
+
+
+})
