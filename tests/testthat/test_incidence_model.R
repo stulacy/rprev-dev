@@ -2,7 +2,7 @@ library(rprev)
 context('Incidence model')
 data(prevsim)
 
-generate_df <- function(startdate, rates, n_inds=100) {
+generate_df <- function(startdate, rates, n_inds=10000) {
     # Generate stratified entry date
     df <- data.frame()
     if (is.null(dim(rates))) {
@@ -32,7 +32,7 @@ generate_df <- function(startdate, rates, n_inds=100) {
 
 
 test_that("rate is correctly estimated within 10%", {
-    expect_rate <- function(startdate, rate, n_inds=1000) {
+    expect_rate <- function(startdate, rate, n_inds=10000) {
         df <- generate_df(startdate, rate, n_inds)
         mod <- fit_exponential_incidence(entry ~ 1, df)
         error <- abs((mod$rate - rate) / rate)
@@ -45,7 +45,7 @@ test_that("rate is correctly estimated within 10%", {
 })
 
 test_that("rate for stratified covariates is correctly estimated within 10%", {
-    expect_rate <- function(startdate, rates, n_inds=1000) {
+    expect_rate <- function(startdate, rates, n_inds=10000) {
         df <- generate_df(startdate, rates, n_inds)
         # Fit model
         mod <- fit_exponential_incidence(entry ~ group1, df)
