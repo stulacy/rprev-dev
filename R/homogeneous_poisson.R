@@ -4,10 +4,17 @@ fit_exponential_incidence <- function(inc_form, data) {
         stop("Error: Please provide only a single LHS term in the inc_formula, representing the column holding incident date.")
     }
 
+    if (! entry_col %in% colnames(data)) {
+        stop("Error: Column '", entry_col, "' not found in '", quote(data), "'.")
+    }
 
     strata <- all.vars(update(inc_form, 0~.))
     # Obtain rate for combination of each of these factors and throw error if any instances < required
     if (length(strata) == 1) {
+
+        if (! strata %in% colnames(data)) {
+            stop("Error: Column '", strata, "' not found in '", quote(data), "'.")
+        }
 
         if (!all(sapply(strata, function(x) is.factor(data[[x]])))) {
             stop("Error: Please format any incidence strata as factors.")
