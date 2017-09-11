@@ -56,39 +56,20 @@ test_that("functional_form_age returns a list", {
     expect_list(prevsim)
 })
 
-test_that("test_prevalence_fit returns same values as before", {
-    expect_ref <- function(data) {
-        fn <- 'cache/diagnostics/prev_chisq.rds'
-        set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
-                                        data, num_years_to_estimate=10, population_size=1e6,
-                                        start='2004-01-30', num_reg_years=9)
-        expect_equal_to_reference(test_prevalence_fit(prevalence_object), file=fn)
-    }
+# TODO Build single prevalence object
 
-    expect_ref(prevsim)
-})
-
-test_that("test_prevalence_fit returns doubles", {
-    expect_double <- function(data) {
-        set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
-                                        data, num_years_to_estimate=10, population_size=1e6,
-                                        start='2004-01-30', num_reg_years=9)
-        expect_match(typeof(test_prevalence_fit(prevalence_object)), 'double')
-    }
-
-    expect_double(prevsim)
-})
-
-test_that("test_prevalence_fit returns no NAs", {
-    expect_NA <- function(data) {
-        set.seed(17)
-        prevalence_object <- prevalence(Surv(time, status) ~ sex(sex) + age(age) + entry(entrydate) + event(eventdate),
-                                        data, num_years_to_estimate=10, population_size=1e6,
-                                        start='2004-01-30', num_reg_years=9)
-        expect_equal(any(is.na(test_prevalence_fit(prevalence_object))), FALSE)
-    }
-
-    expect_NA(prevsim)
+test_that("test_prevalence_fit returns same values as before without error and isn't significant", {
+    set.seed(17)
+    prevalence_object <- prevalence("2013-01-01",
+                                    num_years_to_estimate=10,
+                                    data=prevsim,
+                                    inc_formula=entrydate ~ sex,
+                                    surv_formula=Surv(time, status) ~ sex + age,
+                                    dist='weibull',
+                                    death_column='eventdate')
+    fn <- 'cache/diagnostics/prev_chisq.rds'
+    expect_equal_to_reference(test_prevalence_fit(prevalence_object), file=fn)
+    expect_gt(prevalence_object$pval, 0.05)
+    expect_match(typeof(test_prevalence_fit(prevalence_object)), 'double')
+    expect_equal(any(is.na(test_prevalence_fit(prevalence_object))), FALSE)
 })
