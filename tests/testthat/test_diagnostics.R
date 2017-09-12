@@ -57,7 +57,6 @@ test_that("functional_form_age returns a list", {
 })
 
 test_that("test_prevalence_fit returns same values as before without error and isn't significant", {
-    skip("Unskip when finished building tests")
     set.seed(17)
     prevalence_object <- prevalence("2013-01-01",
                                     num_years_to_estimate=10,
@@ -65,7 +64,8 @@ test_that("test_prevalence_fit returns same values as before without error and i
                                     inc_formula=entrydate ~ sex,
                                     surv_formula=Surv(time, status) ~ sex + age,
                                     dist='weibull',
-                                    death_column='eventdate')
+                                    death_column='eventdate',
+                                    N_boot=20)
     fn <- 'cache/diagnostics/prev_pval.rds'
     expect_equal_to_reference(test_prevalence_fit(prevalence_object), file=fn)
     expect_gt(prevalence_object$pval, 0.05)
