@@ -282,25 +282,28 @@ prevalence <- function(index, num_years_to_estimate,
 
 
     # Calculate covariate averages for survfit later on
-    covars <- extract_covars(surv_model)
-    # Obtain if continuous or categorical
-    is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
-    fact_cols <- covars[is_factor]
-    cont_cols <- covars[!is_factor]
+    if (!is.null(prev_sim)) {
+        covars <- extract_covars(surv_model)
+        # Obtain if continuous or categorical
+        is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
+        fact_cols <- covars[is_factor]
+        cont_cols <- covars[!is_factor]
+        cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
+        cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
 
-    cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
-    cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
-
-    # Save into data frame
-    means <- data.frame()
-    for (var in cont_cols) {
-        means[1, var] <- cont_means[var]
+        # Save into data frame
+        means <- data.frame()
+        for (var in cont_cols) {
+            means[1, var] <- cont_means[var]
+        }
+        for (var in fact_cols) {
+            means[1, var] <- cat_modes[var]
+            means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
+        }
+        object$means <- means
+    } else {
+        object$means <- NULL
     }
-    for (var in fact_cols) {
-        means[1, var] <- cat_modes[var]
-        means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
-    }
-    object$means <- means
 
     # Add max time if possible
     if (!is.null(incident_column) & !is.null(death_column)) {
