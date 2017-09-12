@@ -96,17 +96,7 @@ MIN_INCIDENCE <- 10
 #' data(prevsim)
 #'
 #' \dontrun{
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'            data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-#'            index_date = '2013-09-01', num_reg_years = 8,
-#'            cure = 5)
-#'
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'            data=prevsim, num_years_to_estimate = 5, population_size=1e6)
-#'
-#' # Run on multiple cores
-#' prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-#'            data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
+#' TODO
 #' }
 #'
 #' @family prevalence functions
@@ -158,10 +148,18 @@ prevalence <- function(index, num_years_to_estimate,
     }
 
     if (!is.null(incident_column)) {
+        if (!incident_column %in% colnames(data)) {
+            stop("Error: Cannot find incident column '", incident_column, "' in supplied data set.")
+        }
         data[[incident_column]] <- lubridate::ymd(data[[incident_column]])
     }
     if (!is.null(death_column)) {
-        data[[death_column]] <- lubridate::ymd(data[[death_column]])
+        if (!death_column %in% colnames(data)) {
+            warning("Death column '", death_column, "' not found in supplied data set so estimates will be solely from simulation.")
+            death_column <- NULL
+        } else {
+            data[[death_column]] <- lubridate::ymd(data[[death_column]])
+        }
     }
 
     # This argument allows the user to specify when their registry started. I.e. it could have
@@ -174,7 +172,10 @@ prevalence <- function(index, num_years_to_estimate,
         registry_start_date <- min(data[[incident_column]])
     }
 
-    index <- lubridate::ymd(index)
+    index <- suppressWarnings(lubridate::ymd(index))
+    if (is.na(index)) {
+        stop("Error: Index date '", index, "' cannot be parsed as a date. Please enter it as a string in %Y%m%d or %Y-%m-%d format.")
+    }
     registry_start_date <- lubridate::ymd(registry_start_date)
     sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
 
@@ -258,7 +259,7 @@ prevalence <- function(index, num_years_to_estimate,
 
     if (!is.null(counted_formula)) {
         if (!status_column %in% colnames(data)) {
-            stop("Error: cannot find status column ", status_column, " in data frame.")
+            stop("Error: cannot find status column '", status_column, "' in data frame.")
         }
         counted_prev <- counted_prevalence(counted_formula, index, data, registry_start_date, status_column)
     } else {
@@ -282,25 +283,28 @@ prevalence <- function(index, num_years_to_estimate,
 
 
     # Calculate covariate averages for survfit later on
-    covars <- extract_covars(surv_model)
-    # Obtain if continuous or categorical
-    is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
-    fact_cols <- covars[is_factor]
-    cont_cols <- covars[!is_factor]
+    if (!is.null(prev_sim)) {
+        covars <- extract_covars(surv_model)
+        # Obtain if continuous or categorical
+        is_factor <- sapply(covars, function(x) is.factor(data[[x]]) || is.character(data[[x]]))
+        fact_cols <- covars[is_factor]
+        cont_cols <- covars[!is_factor]
+        cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
+        cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
 
-    cont_means <- sapply(cont_cols, function(x) mean(data[[x]]))
-    cat_modes <- sapply(fact_cols, function(x) names(which.max(table(data[[x]]))))
-
-    # Save into data frame
-    means <- data.frame()
-    for (var in cont_cols) {
-        means[1, var] <- cont_means[var]
+        # Save into data frame
+        means <- data.frame()
+        for (var in cont_cols) {
+            means[1, var] <- cont_means[var]
+        }
+        for (var in fact_cols) {
+            means[1, var] <- cat_modes[var]
+            means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
+        }
+        object$means <- means
+    } else {
+        object$means <- NULL
     }
-    for (var in fact_cols) {
-        means[1, var] <- cat_modes[var]
-        means[[var]] <- factor(means[[var]], levels=levels(data[[var]]))
-    }
-    object$means <- means
 
     # Add max time if possible
     if (!is.null(incident_column) & !is.null(death_column)) {

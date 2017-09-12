@@ -157,7 +157,7 @@ The parameter values for this mixture cure model are displayed below.
 cure_mod
 ```
 
-To use this as the survival model in a prevalence estimation, simply pass it in to the surv_model argument as before:
+To use this as the survival model in a prevalence estimation, simply pass it in to the surv_model argument as before (note that the number of simulations has been reduced owing to the longer computational time required to fit a cure model):
 
 ```{r}
 prev_cure <- prevalence(index='2013-01-30', 
@@ -167,10 +167,11 @@ prev_cure <- prevalence(index='2013-01-30',
                         surv_model=cure_mod,
                         population_size = 1e6,
                         death_column = 'eventdate',
-                        N_boot = 100)
+                        N_boot = 30)
 ```
                         
 As can be seen, using a cure model decreases the prevalence estimates since survival probabilities are now reduced by taking population mortality into account.
+
 ```{r}
 prev_cure 
 ```

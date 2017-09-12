@@ -1,6 +1,10 @@
 new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col,
                                population_size=NULL, proportion=100e3,
                                level=0.95, precision=2) {
+    if (year <= 0) {
+        warning("Cannot estimate prevalence for a non-positive value of num_year_to_estimate.")
+        return(list(absolute.prevalence=0))
+    }
 
     # CRAN check
     incident_date <- NULL
