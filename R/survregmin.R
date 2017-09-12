@@ -59,7 +59,7 @@ extract_covars.survregmin <- function(object) {
 #' @export
 predict_survival_probability.survregmin <- function(object, newdata, times) {
 
-    if (nrow(newdata) != length(times)) {
+    if (!is.null(object$covars) & nrow(newdata) != length(times)) {
         stop("Error: newdata has dimensions ", dim(newdata), " and times has length ", length(times), ". There should be one value of times for every row in newdata")
     }
 
@@ -74,8 +74,12 @@ predict_survival_probability.survregmin <- function(object, newdata, times) {
     }
 
     # Expand data into dummy categorical and include intercept
-    formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
-    wide_df <- model.matrix(formula, newdata)
+    if (!is.null(object$covars)) {
+        formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
+        wide_df <- model.matrix(formula, newdata)
+    } else {
+        wide_df <- cbind(rep(1, length(times)))
+    }
 
     # Obtain coefficient for location parameter
     num_params <- distribution_params[[object$dist]]

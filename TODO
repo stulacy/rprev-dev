@@ -4,4 +4,5 @@
   - More rigorous stress testing
   - Add in docs for generic methods for incidence and survival models
   - Add Travis support
+  - Have predict_survival_probability.survregmin not require factors to manually have their original levels added
 
