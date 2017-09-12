@@ -69,7 +69,7 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
         time_to_entry <- time_to_entry[time_to_entry < timeframe]
         new_data <- data.table::data.table(time_to_entry)
     } else {
-        new_data <- data.table::rbindlist(apply(object$rate, 1, function(row) {
+        foo <- apply(object$rate, 1, function(row) {
             rate <- as.numeric(row['Freq'])
             initial_num_inds <- INCIDENCE_MARGIN * rate * timeframe
             time_to_entry <- cumsum(rexp(initial_num_inds, rate))
@@ -78,8 +78,10 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
             new_data <- data.table::data.table(time_to_entry)
             new_data[, names(row[-length(row)]) := row[-length(row)]]
             new_data
-        }))
+        })
+        new_data <- data.table::rbindlist(foo)
     }
+
 
     if (length(covars) > 0) {
         # draw covariate values from model that are in survival formula and not in data frame
@@ -87,31 +89,37 @@ draw_incident_population.expinc <- function(object, data, timeframe, covars) {
         higher_order <- missing_covars[grep("^I\\(.+\\)$", missing_covars)]
         covars_to_sample <- setdiff(missing_covars, higher_order)
 
-        # Draw new covariates from prior with appropriate stratification
-        if (is.null(object$strata)) {
-            new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
-            data.table::setDT(new_covars)
-        } else {
-            strata_vals <- object$rate[[object$strata]]
-            freqs <- table(new_data[[object$strata]])
-            covars_list <- setNames(lapply(strata_vals, function(sx) {
-                priors <- data[data[[object$strata]] == sx, ]
-                num <- freqs[as.character(sx)]
-                setNames(lapply(covars_to_sample, function(x) sample(priors[[x]], num, replace=T)), covars_to_sample)
-            }), strata_vals)
-            new_covars <- data.table::rbindlist(covars_list)
-        }
+        # Possible to have length covars > 0 and no missing variables, i.e. if the variable is used as
+        # stratification in incidence model
+        if (length(covars_to_sample) > 0) {
 
-        # Add in higher order terms
-        # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
-        # this is acceptable as the covariates missing from this data set will be those used in the incidence modelling and
-        # so will be categorical and thus not not have higher order terms
-        for (term in higher_order) {
-            new_covars[, (term) := eval(parse(text=term))]
-        }
+            # Draw new covariates from prior with appropriate stratification
+            if (is.null(object$strata)) {
+                new_covars <- setNames(lapply(covars_to_sample, function(x) sample(data[[x]], nrow(new_data), replace=T)), covars_to_sample)
+                data.table::setDT(new_covars)
+            } else {
+                strata_vals <- object$rate[[object$strata]]
+                freqs <- table(new_data[[object$strata]])
+                covars_list <- setNames(lapply(strata_vals, function(sx) {
+                    priors <- data[data[[object$strata]] == sx, ]
+                    num <- freqs[as.character(sx)]
+                    setNames(lapply(covars_to_sample, function(x) sample(priors[[x]], num, replace=T)), covars_to_sample)
+                }), strata_vals)
+                new_covars <- data.table::rbindlist(covars_list)
+            }
 
-        # Combine together to form a population that has an entry time and the required covariates for modelling survival
-        new_data <- cbind(new_data, new_covars)
+            # Add in higher order terms
+            # NB This method of evaluating higher order won't work if the covariate isn't in this new_covars data, however,
+            # this is acceptable as the covariates missing from this data set will be those used in the incidence modelling and
+            # so will be categorical and thus not not have higher order terms
+            for (term in higher_order) {
+                new_covars[, (term) := eval(parse(text=term))]
+            }
+
+            # Combine together to form a population that has an entry time and the required covariates for modelling survival
+            new_data <- cbind(new_data, new_covars)
+        }
     }
+
     new_data
 }
