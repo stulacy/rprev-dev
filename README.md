@@ -4,4 +4,4 @@ rprev estimates disease prevalence at a specified index date from registry data.
 
 ## Installation
 
-To install from CRAN, simply use `install.packages('rprev')`. The code is currently not available elsewhere.
+To install from CRAN, simply use `install.packages('rprev')`, while the latest development version can be installed from GitHub using `devtools::install_github("stulacy/rprev-dev")`.
