@@ -10,4 +10,3 @@ inst/doc/*
 vignettes/*_cache/*
 vignettes/*_files/*
 vignettes/*.R
-man/*
