@@ -232,7 +232,7 @@ To this end, an incidence object needs to have an appropriate S3 class method ca
 ```{r, eval=F}
 draw_incident_population.myobj <- function(object, data, timeframe, covars, ...) {
     # object: The incidence model that will have been created on the bootstrapped data
-    # data: The data available to fit the model on, will be a bootstrapped subset of the 'data' argument to 'prevalence'
+    # data: The data available to fit the model on, will the original data set provided as this acts as the attribute prior distribution.
     # timeframe: A single number specifying how long to generate incident cases for.
     # covars: A character vector specifying the names of individual covariates that must be included in the returned data.table (or data frame)
     
@@ -272,6 +272,93 @@ predict_survival_probability.myobj <- function(object, newdata, times) {
     #  A vector of survival probabilities of length equal to the length of 'times' and the 
     #  number of rows in 'newdata'.
 }
+```
+
+## Examples
+
+This section provides example code for providing custom incidence and survival objects.
+
+First, we'll demonstrate how to build a Poisson homogeneous model. This process is parameterised by a single value $\lambda$, the rate. This value needs to be saved in the resultant object along with the function call. This function will be hardcoded to work with a particular data set (as will the vast majority of custom processes), in particular the `prevsim` simulated data will be used to highlight the process.
+
+```{r, eval=F}
+build_poisson <- function(input_data) {
+    rate <- nrow(input_data) / as.numeric(difftime(max(input_data$entrydate), min(input_data$eventdate)))
+    # Build a survival model using the specified formula and input data
+    object <- list(rate=rate,
+                   call=match.call())  # the function call must be included as an item 'call'
+    class(object) <- "pois"
+    object
+}
+```
+
+**Remember that the input data frame needs to be called `data`**.
+
+```{r}
+data <- prevsim
+pois_mod <- build_poisson(input_data=data)
+```
+
+Printing the class shows the requirements are met:
+
+  - Any required parameters are saved
+  - The call is saved and the input data was passed in as `data`
+  - The object has a class (*pois*) in this case
+
+```{r}
+pois_mod
+```
+
+The primary function of the incidence model is to generate an incident population. For this example we just have a standard homogeneous Poisson process with no stratification. Inter-arrival times are exponentially distributed so it's a simple case of sampling arrivals in the time frame and then sampling individual attributes from the 
+
+```{r, eval=F}
+draw_incident_population.pois <- function(object, data, timeframe, covars, ...) {
+    # object: The incidence model that will have been created on the bootstrapped data
+    # data: The data available to fit the model on, will the original data set provided as this acts as the attribute prior distribution.
+    # timeframe: A single number specifying how long to generate incident cases for.
+    # covars: A character vector specifying the names of individual covariates that must be included in the returned data.table (or data frame)
+    
+    # Returns a data.table (or data frame but data.table is preferred) where each row represents an incident case with:
+    #   - The first column being the time since the origin, i.e. index date - N year prevalence
+    #   - Any subsequent columns holding covariates that must be provided as specified in the 'covars' argument
+    
+    # Firstly draw inter-arrival times in the period [0, timeframe]. The expected number is simply timeframe * rate so we'll take this amount +
+    # a margin for error.
+    expected <- 1.5 * (timeframe * object$rate)
+    # Now draw inter-arrival times
+    inter_arrival <- rexp(expected, object$rate)
+    # Determine absolute incident times
+    incident_times <- cumsum(inter_arrival)
+    # Truncate to those within the timeframe
+    incident_times <- incident_times[incident_times < timeframe]
+    num_incident <- length(incident_times)
+    
+    # Sample individual attributes into a matrix. The required attributes are given by 'covars' argument
+    attrs <- do.call('cbind', lapply(covars, function(x) sample(prevsim[[x]], num_incident, replace=T)))
+    
+    # Now add the incident times as the first column
+    attrs <- cbind(incident_times, attrs)
+    
+    # Convert to data frame and add column names
+    attrs <- data.frame(attrs)
+    colnames(attrs) <- c('incident_time', covars)
+    
+    # Return this data frame
+    attrs
+}
+```
+
+Passing this object into `prevalence` through `inc_model` produces prevalence estimations. Note that an additional argument is required to provide the name of the column in the data set that provides the incident dates, since this is no longer provided by the unused `inc_formula` option.
+
+```{r}
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=c(3, 5, 10, 20), 
+           data=prevsim, 
+           inc_model = pois_mod,
+           surv_formula = Surv(time, status) ~ age + sex, 
+           dist='weibull', 
+           population_size = 1e6,
+           incident_column = 'entrydate',
+           death_column = 'eventdate')
 ```
 
 # References
