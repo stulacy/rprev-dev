@@ -1,8 +1,6 @@
   - More distributions supported by survregmin
   - Parallelise main simulation loop
   - Default incidence model handle multiple stratas
-  - More rigorous stress testing
-  - Add in docs for generic methods for incidence and survival models
-  - Add Travis support
+  - Add in docs for generic methods for incidence and survival models (export them?)
   - Have predict_survival_probability.survregmin not require factors to manually have their original levels added
 

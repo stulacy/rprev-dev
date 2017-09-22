@@ -191,9 +191,6 @@ prevalence <- function(index, num_years_to_estimate,
         if (!is.null(inc_model) & !(is.null(inc_formula))) {
             stop("Error: Please provide only one of inc_model and inc_formula.")
         }
-        if (is.null(inc_formula )) {
-            stop("Error: Functionality for custom incidence objects isn't fully implemented yet. Please provide an 'inc_formula' and use the default homogeneous Poisson process model.")
-        }
         if (is.null(inc_model)) {
             inc_model <- fit_exponential_incidence(inc_formula, data)
         }
@@ -419,7 +416,7 @@ sim_prevalence <- function(data, index, starting_date,
         data.table::setDT(incident_population)
 
         # For each individual determine the time between incidence and the index
-        incident_date <- as.Date(starting_date + incident_population$time_to_entry)
+        incident_date <- as.Date(starting_date + incident_population[[1]])
         time_to_index <- as.numeric(difftime(index, incident_date, units='days'))
 
         # Estimate whether alive as Bernouilli trial with p = S(t)
