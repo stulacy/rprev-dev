@@ -21,7 +21,8 @@ Imports:
     lazyeval,
     magrittr,
     rms,
-    tidyr
+    tidyr,
+    tidyselect (>= 0.2.0)
 RoxygenNote: 6.0.1
 Suggests: testthat,
     knitr
