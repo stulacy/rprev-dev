@@ -280,7 +280,7 @@ This section provides example code for providing custom incidence and survival o
 
 First, we'll demonstrate how to build a Poisson homogeneous model. This process is parameterised by a single value $\lambda$, the rate. This value needs to be saved in the resultant object along with the function call. This function will be hardcoded to work with a particular data set (as will the vast majority of custom processes), in particular the `prevsim` simulated data will be used to highlight the process.
 
-```{r, eval=F}
+```{r}
 build_poisson <- function(input_data) {
     rate <- nrow(input_data) / as.numeric(difftime(max(input_data$entrydate), min(input_data$eventdate)))
     # Build a survival model using the specified formula and input data
@@ -310,7 +310,7 @@ pois_mod
 
 The primary function of the incidence model is to generate an incident population. For this example we just have a standard homogeneous Poisson process with no stratification. Inter-arrival times are exponentially distributed so it's a simple case of sampling arrivals in the time frame and then sampling individual attributes from the 
 
-```{r, eval=F}
+```{r}
 draw_incident_population.pois <- function(object, data, timeframe, covars, ...) {
     # object: The incidence model that will have been created on the bootstrapped data
     # data: The data available to fit the model on, will the original data set provided as this acts as the attribute prior distribution.
@@ -349,6 +349,8 @@ draw_incident_population.pois <- function(object, data, timeframe, covars, ...) 
 
 Passing this object into `prevalence` through `inc_model` produces prevalence estimations. Note that an additional argument is required to provide the name of the column in the data set that provides the incident dates, since this is no longer provided by the unused `inc_formula` option.
 
+TODO Run through test
+
 ```{r}
 prevalence(index='2013-01-30', 
            num_years_to_estimate=c(3, 5, 10, 20), 
@@ -360,5 +362,74 @@ prevalence(index='2013-01-30',
            incident_column = 'entrydate',
            death_column = 'eventdate')
 ```
+
+The second process that can be specified is a model that determines survival. For this example we'll use a Weibull model on `age`, using the `flexsurv` package. This functionality is already implemented as discussed earlier, but it is an appropriate example custom model.
+
+```{r}
+library(flexsurv)
+build_wei <- function(data) {
+    mod <- flexsurvreg(Surv(time, status) ~ age, data=data, dist='weibull')
+    # Note that we don't have to manually add a 'call' object since the object returned by
+    # flexsurvreg already has one
+    class(mod) <- 'mysurv'
+    mod
+}
+```
+
+```{r}
+survobj <- build_wei(data=prevsim)
+survobj$call
+```
+
+```{r}
+class(survobj)
+```
+
+The object has the required saved information:
+
+  - Any required parameters are saved (in the form of default `flexsurv` attributes)
+  - The call is saved and the input data was passed in as `data`
+  - The object has a class (*mysurv*) 
+  
+Survival objects need two have two functionalities. The first is to return the names of columns in the registry data that are required by the model. In this example only `age` is required so it is a very function.
+
+```{r}
+extract_covars.mysurv <- function(object) {
+    "age"
+}
+```
+
+The primary functionality of a survival model is to estimate survival probability at each time point. For a Weibull model this is simply provided by $1-CDF$. The weibull model has the following coefficients:
+
+```{r}
+coef(survobj)
+```
+
+```{r}
+predict_survival_probability.mysurv <- function(object, newdata, times) {
+    # object: The survival object
+    # newdata: A data frame (or data.table) with the incident population stored with their 
+    #   required covariates for the model.
+    # times: A vector of times to estimate survival probability at for individuals in 
+    #   corresponding rows of 'newdata'. This should be the same length as there are 
+    #   rows in 'newdata' since each individual has their survival probability estimated once.
+    
+    # Returns:
+    #  A vector of survival probabilities of length equal to the length of 'times' and the 
+    #  number of rows in 'newdata'.
+    
+    # Calculate linear predictor, this will form the shape parameter
+    shape <- exp(coef(object)[1] + newdata$age*coef(object)[3])
+    scale <- exp(coef(object)[2])
+    1 - pweibull(times, shape, scale)
+}
+```
+
+While more in-depth testing would be required to validate the predictions output by `predict_survival_probability`, from a programming perspective at least it is outputting numbers.
+
+```{r}
+predict_survival_probability(survobj, newdata=data.frame(age=c(50, 70)), times=c(100, 100))
+```
+
 
 # References
