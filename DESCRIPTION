@@ -1,8 +1,8 @@
 Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
-Version: 0.2.3
-Date: 2017-02-13
+Version: 0.2.4
+Date: 2017-09-22
 Authors@R: c(
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
         person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
@@ -21,7 +21,8 @@ Imports:
     lazyeval,
     magrittr,
     rms,
-    tidyr
+    tidyr,
+    tidyselect (>= 0.2.0)
 RoxygenNote: 6.0.1
 Suggests: testthat,
     knitr

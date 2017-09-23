@@ -164,7 +164,7 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' @importFrom ggplot2 theme_bw
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 aes_string
-#' @importFrom tidyr gather_
+#' @importFrom tidyr gather
 plot.survfit.prev <- function(x, pct_show=0.9, ...) {
     num_boot <- dim(x$surv)[1]
     num_days <- dim(x$surv)[2]
@@ -175,8 +175,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
     colnames(df) <- seq(num_days)
     df[, 'bootstrap'] <- seq(num_boot)
 
-    gathered <- df %>% tidyr::gather_('time', 'survprob',
-                                      dplyr::select_vars_(names(df), '-bootstrap'))
+    gathered <- tidyr::gather(df, 'time', 'survprob', -'bootstrap')
 
     smooth <- gathered %>%
         dplyr::group_by_('time') %>%
@@ -189,8 +188,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
                       function(row) mean(row > smooth$mx | row < smooth$mn) > pct_show)
 
     outliers <- df[row_inds, ] %>%
-                    tidyr::gather_('time', 'survprob',
-                                   dplyr::select_vars_(names(df), '-bootstrap')) %>%
+                    tidyr::gather('time', 'survprob', -'bootstrap') %>%
                     dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
                                    bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
 

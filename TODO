@@ -1,3 +1,4 @@
   - More rigorous stress testing
+  - Make each example run less than 5 seconds
   - Centre image in user guide
   - How to handle when survival model building doesn't converge? Ignore and resample, raise warning? Or just throw error?

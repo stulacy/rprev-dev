@@ -1,3 +1,6 @@
+# rprev 0.2.4
+
+Fixed an issue caused by the latest version of `tidyr::gather()` in `r-devel`.
 # rprev 0.2.3
 
 ## Renamed `raw_incidence` to `yearly_incidence` 
