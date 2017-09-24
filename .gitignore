@@ -6,7 +6,6 @@
 *.html
 tests/*.html
 newversion_test/*
-inst/doc/*
 vignettes/*_cache/*
 vignettes/*_files/*
 vignettes/*.R
