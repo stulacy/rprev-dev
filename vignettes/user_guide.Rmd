@@ -431,5 +431,17 @@ While more in-depth testing would be required to validate the predictions output
 predict_survival_probability(survobj, newdata=data.frame(age=c(50, 70)), times=c(100, 100))
 ```
 
+Plugging this model into the `prevalence` function now works.
+
+```{r}
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=c(3, 5, 10, 20), 
+           data=prevsim, 
+           inc_formula = entrydate ~ 1,
+           surv_model = survobj,
+           population_size = 1e6,
+           death_column = 'eventdate',
+           N_boot = 100)
+```
 
 # References
