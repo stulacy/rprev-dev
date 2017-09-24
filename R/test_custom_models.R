@@ -38,8 +38,8 @@ test_incidence_model <- function(object, data, timeframe=3652) {
     }
     
     # Draw an incident population and test its output
-    tryCatch(
-        inc_pop <- draw_incident_population(object, data, timeframe, covars=NULL),
+    tryCatch({
+        inc_pop <- draw_incident_population(object, data, timeframe, covars=NULL)
         if (!class(inc_pop) %in% c("data.frame", "data.table")) {
             message("Error: Output class of draw_incident_population is not data.frame or data.table")
         }
@@ -57,10 +57,11 @@ test_incidence_model <- function(object, data, timeframe=3652) {
         }
         if (any(inc_pop[[1]] > timeframe)) {
             message("Error: Some entry values are greater than the timeframe permitted.")
-        }
+        }},
         error=function(e) {
             stop("Error encountered: ", e)
         })
+    message("Incidence model passed all tests.")
     inc_pop
 }
 
@@ -154,5 +155,6 @@ test_survival_model <- function(object, data, maxtime=3652, sample_size=10) {
         error=function(e) {
             stop("Error encountered: ", e)
         })
+    message("Survival model passed all tests.")
     preds
 }
