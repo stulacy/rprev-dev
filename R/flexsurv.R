@@ -6,8 +6,7 @@ extract_covars.flexsurvreg <- function(object) {
 
 #' @export
 predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
-                                                     t=NULL,
-                                                     ...)
+                                                     times=NULL)
 {
     x <- object
     dat <- x$data

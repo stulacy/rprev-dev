@@ -38,11 +38,10 @@ flexsurvcure_population <- function(formula, data, dist='weibull', pop_data=NULL
 
 #' @export
 predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
-                                                      t=NULL,
-                                                      ...)
+                                                      times=NULL)
 {
     # Get estimates from flexsurvreg method
-    estimates <- predict_survival_probability.flexsurvreg(object, newdata, t, ...)
+    estimates <- predict_survival_probability.flexsurvreg(object, newdata, times)
 
     if (!is.null(object$pop_mortality)) {
         # Obtain age at index in days

@@ -15,7 +15,7 @@
 #' @return The dummy incident population that has been generated to allow
 #' for further diagnostics to be run.
 #'   
-#'  @export
+#' @export
 test_incidence_model <- function(object, data, timeframe=3652) {
     
     # Check has required attributes
@@ -76,7 +76,7 @@ test_incidence_model <- function(object, data, timeframe=3652) {
 #' @param data Registry data in the form of a data frame. Ideally
 #'   will be the same source that will be used for the prevalence
 #'   estimation later on.
-#' @param times Maximum time at which to test survival probability in days. 
+#' @param timeframe Maximum time at which to test survival probability in days. 
 #' If not supplied then chooses random values over a period of 10 years, which
 #' should be suitable for many diseases.
 #' @param sample_size The number of randomly drawn individuals to predict
@@ -86,7 +86,7 @@ test_incidence_model <- function(object, data, timeframe=3652) {
 #' console.
 #' 
 #' @export
-test_survival_model <- function(object, data, maxtime=3652, sample_size=10) {
+test_survival_model <- function(object, data, timeframe=3652, sample_size=10) {
     # Check has required attributes
     if (is.null(object$call)) {
         stop("Error: object does not have a call attribute.")

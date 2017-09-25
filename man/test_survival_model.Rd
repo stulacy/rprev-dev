@@ -5,7 +5,7 @@
 \title{Tests that a custom survival object has the required attributes
 for use in the \code{prevalence} function.}
 \usage{
-test_survival_model(object, data, maxtime = 3652, sample_size = 10)
+test_survival_model(object, data, timeframe = 3652, sample_size = 10)
 }
 \arguments{
 \item{object}{The custom survival object.}
@@ -14,12 +14,12 @@ test_survival_model(object, data, maxtime = 3652, sample_size = 10)
 will be the same source that will be used for the prevalence
 estimation later on.}
 
-\item{sample_size}{The number of randomly drawn individuals to predict
-sample size for.}
-
-\item{times}{Maximum time at which to test survival probability in days. 
+\item{timeframe}{Maximum time at which to test survival probability in days. 
 If not supplied then chooses random values over a period of 10 years, which
 should be suitable for many diseases.}
+
+\item{sample_size}{The number of randomly drawn individuals to predict
+sample size for.}
 }
 \value{
 None. Instead, messages get displayed to the 

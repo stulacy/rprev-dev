@@ -20,8 +20,6 @@ should work well for most diseases.}
 \value{
 The dummy incident population that has been generated to allow
 for further diagnostics to be run.
-  
- @export
 }
 \description{
 Runs checks to assess whether a custom incidence model is
