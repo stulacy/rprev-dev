@@ -46,7 +46,7 @@ predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
     if (!is.null(object$pop_mortality)) {
         # Obtain age at index in days
         # TODO Possible to not have hardcoded?
-        newdata$age <- floor((newdata$age * 365.25) + t)
+        newdata$age <- floor((newdata$age * 365.25) + times)
 
         # Obtain mortality rates from these values
         comb <- suppressWarnings(dplyr::left_join(newdata, object$pop_mortality, by=c('age', object$pop_covars)))

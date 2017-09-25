@@ -10,6 +10,8 @@ predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
 {
     x <- object
     dat <- x$data
+    t <- times  # Needed for the call as it uses current environment rather than passing vars
+    # in directly
     Xraw <- model.frame(x)[,unique(attr(model.frame(x),"covnames.orig")),drop=FALSE]
     isfac <- sapply(Xraw, function(x){is.factor(x) || is.character(x)})
 

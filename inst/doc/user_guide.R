@@ -46,19 +46,6 @@ prevalence_total$simulated
 llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
 llog
 
-## ---- cache=T------------------------------------------------------------
-prev_llog <- prevalence(index='2013-01-30', 
-                        num_years_to_estimate=c(3, 5, 10, 20), 
-                        data=prevsim, 
-                        inc_formula = entrydate ~ sex,
-                        surv_model=llog,
-                        population_size = 1e6,
-                        death_column = 'eventdate',
-                        N_boot = 100)
-
-## ---- cache=T------------------------------------------------------------
-prev_llog
-
 ## ------------------------------------------------------------------------
 cure_mod <- flexsurvcure_population(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
 
