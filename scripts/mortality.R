@@ -6,8 +6,6 @@ library(rprev)
 data(UKmortality)
 
 interpolate_daily_mortality <- function(data) {
-    DAYS_IN_YEAR <- 365.25
-
     # Could probably improve on this extraction of response and variable
     rate <- vapply(seq(0, max_age-1),
                    function(x) mean(data[floor(data$age) == x, 'rate']),
@@ -15,7 +13,7 @@ interpolate_daily_mortality <- function(data) {
     num_ages <- length(rate)
 
     a_rate <- c(2 * rate[1] - rate[2], rate, 2 * rate[num_ages] - rate[num_ages - 1])
-    base <- 183 + DAYS_IN_YEAR * (0:num_ages) # Where does 183/182 come from?
+    base <- 183 + DAYS_IN_YEAR * (0:num_ages)
     base <- c(-182, base)
     daily_rate <- approx(base, a_rate, 1:(num_ages * DAYS_IN_YEAR))
     daily_rate$y / DAYS_IN_YEAR

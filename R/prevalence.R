@@ -439,7 +439,8 @@ sim_prevalence <- function(data, index, starting_date,
 
     # Force death at 100 if possible
     if (!is.null(age_column) & age_column %in% colnames(results)) {
-        results[(get(age_column)*365.25 + time_to_index) > 36525, alive_at_index := 0]
+        # TODO Add param to specify age at which say person is dead
+        results[(get(age_column)*DAYS_IN_YEAR + time_to_index) > 36525, alive_at_index := 0]
     } else {
         message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
@@ -492,7 +493,7 @@ summary.prevalence <- function(object, ...) {
         cat("\nSimulation\n~~~~~~~~~~\n")
         cat("Iterations:", object$N_boot, "\n")
         cat("Average incidence rate:",
-            round(object$simulated[, length(incident_date), by=sim][, mean(V1)] / (max(object$est_years)*365.25), 3),
+            round(object$simulated[, length(incident_date), by=sim][, mean(V1)] / (max(object$est_years)*DAYS_IN_YEAR), 3),
             "\n")
         cat("P-value:", object$pval)
     }
