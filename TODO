@@ -1,4 +1,3 @@
-  - More distributions supported by survregmin, and have these documented in the argument list
   - Parallelise main simulation loop
   - Add in docs for generic methods for incidence and survival models (export them?)
   - Have predict_survival_probability.survregmin not require factors to manually have their original levels added

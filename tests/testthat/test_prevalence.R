@@ -173,7 +173,7 @@ test_that("prevalence function handles incorrectly specified inputs", {
                             data=prevsim,
                             inc_formula=entrydate ~ sex,
                             surv_formula=Surv(time, status) ~ sex,
-                            dist='exp',
+                            dist='exponental',
                             death_column='eventdate',
                             N_boot = 15))
     expect_error(prevalence(index="20130101",
@@ -181,7 +181,7 @@ test_that("prevalence function handles incorrectly specified inputs", {
                             data=prevsim,
                             inc_formula=entrydate ~ sex,
                             surv_formula=Surv(time, status) ~ sex,
-                            dist='weibul',
+                            dist='gompertz',
                             death_column='eventdate',
                             N_boot = 15))
     expect_error(prevalence(index="20130101",

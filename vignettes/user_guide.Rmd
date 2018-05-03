@@ -40,12 +40,6 @@ summary(prevsim)
 
 The following Kaplan-Meier plot shows that survival in *prevsim* is typical of many diseases, whereby males have poorer survival outcomes than females. It also highlights that survival starts to level off after 2000 days.
 
-```{r, echo=F}
-#As our registry is short relative to the duration of survival from this disease, we do not have much information about long-term survival after this point in our patient population in order to base a model. In this scenario, instead of extrapolating survival (and thus risking the problem of "immortal" subjects), we recommend using general population survival data to model long-term survivors, and we refer to this as a *cure model* [@crouch2014determining]. In this model, after a specified "cure time", surviving subjects are considered to revert to the survival characteristics for someone of their age and sex in the general population. In our example, a patient is considered *cured* after five years survival with the disease.
-
-#Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `rprev` includes data from the Office of National Statistics (ONS) [see @ons, data licenced under the Open Government Licence v3.0] to describe UK mortality rates (in data set `UKmortality`), however, the user may supply their own population mortality data. 
-```
-
 ```{r basicsurvival, fig.height=4, fig.width=7, echo=F}
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
 survf_df <- data.frame(t=survf$time, s=survf$surv, sex=rep(c('M', 'F'), survf$strata))

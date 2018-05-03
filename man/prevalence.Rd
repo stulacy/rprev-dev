@@ -9,7 +9,8 @@ prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
   registry_start_date = NULL, death_column = NULL, incident_column = NULL,
   age_column = "age", status_column = "status", N_boot = 1000,
   population_size = NULL, proportion = 1e+05, level = 0.95,
-  dist = "weibull", precision = 2, n_cores = 1)
+  dist = c("exponential", "weibull", "lognormal", "loglogistic"),
+  precision = 2, n_cores = 1)
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
@@ -69,9 +70,7 @@ risk.}
 
 \item{level}{Double representing the desired confidence interval width.}
 
-\item{dist}{The distribution used by the default parametric survival model.
-    Possible values are: 'weibull', 'lognormal', 'exponential'
-TODO Specify possible values in vector format as often see}
+\item{dist}{The distribution used by the default parametric survival model.}
 
 \item{precision}{Integer representing the number of decimal places required.}
 

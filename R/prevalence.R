@@ -62,8 +62,6 @@ MIN_INCIDENCE <- 10
 #' @param surv_formula A formula used to specify a survival model, where the
 #' LHS a Surv object, as used by \code{flexsurvreg}.
 #' @param dist The distribution used by the default parametric survival model.
-#'     Possible values are: 'weibull', 'lognormal', 'exponential'
-#' TODO Specify possible values in vector format as often see
 #' @param surv_model An object that has a \code{predict_survival_probability}
 #'     method. See the vignette for further guidance.
 #' @param registry_start_date The starting date of the registry. If not supplied
@@ -116,7 +114,7 @@ prevalence <- function(index, num_years_to_estimate,
                        N_boot=1000,
                        population_size=NULL, proportion=100e3,
                        level=0.95,
-                       dist='weibull',
+                       dist=c('exponential', 'weibull', 'lognormal', 'loglogistic'),
                        precision=2, n_cores=1) {
 
     # Needed for CRAN check
@@ -128,6 +126,8 @@ prevalence <- function(index, num_years_to_estimate,
             incident_column <- all.vars(update(inc_formula, .~0))
         }
     }
+
+    dist <- match.arg(dist)
 
     # Is it right for surv_formula to have precedence over surv_formula?
     if (!is.null(surv_formula)) {
@@ -197,24 +197,19 @@ prevalence <- function(index, num_years_to_estimate,
 
         # Survival models
         if (!is.null(surv_model) & !(is.null(surv_formula))) {
-            stop("Error: Please provide only one of surv_model and surv_formula.")
+            warning("warning: both surv_model and surv_formula provided, survival model will be built using surv_model and surv_formula ignored.")
         }
 
         if (!is.null(surv_model) & !(missing(dist))) {
-            stop("Error: Please provide only one of surv_model and dist.")
+            warning("warning: both surv_model and dist provided, survival model will be built using surv_model and dist ignored.")
         }
 
-        available_dists <- c('lognormal', 'weibull', 'exponential')
-        if (!missing(dist) & ! dist %in% available_dists) {
-            stop("Error: Please select one of the following distributions: ", paste(available_dists, collapse=', '))
+        if (missing(surv_model) & missing (surv_formula)) {
+            stop("Error: Please provide one of surv_model or surv_formula.")
         }
 
         if (!missing(surv_formula)) {
             surv_model <- build_survreg(surv_formula, data, dist)
-        }
-
-        if (missing(surv_model)) {
-            stop("Error: Please provide one of surv_model or surv_formula.")
         }
 
         prev_sim <- sim_prevalence(data, index, sim_start_date,
