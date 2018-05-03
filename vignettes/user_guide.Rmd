@@ -64,7 +64,7 @@ The primary function in `rprev` is `prevalence`, which performs all the data pre
 
 The default incidence model assumes a Poisson homogeneous process, i.e. that the incidence rate is constant. This assumption can be rather tenuous, particularly for infectious diseases and those with a seasonal component, but is still appropriate for a large number of diseases. Of course, it is important to check whether your data meets this assumption; diagnostics are covered in [a separate vignette](diagnostics.html). A Poisson homogeneous process relies on a single parameter, the incidence rate. In `rprev` this is calculated within the `prevalence` function from incidence dates into the registry. An additional functionality that `rprev` provides is allowing for stratification of incidence by a categorical variable, for example, sex.
 
-The homogeneous Poisson process model is specified by an argument to `prevalence` called `inc_formula`, which accepts a formula with the LHS as name of the column that holds the incident dates, and the RHS naming the variables to stratify by (or 1 if none). For example, in the `prevsim` data set, the *entrydate* column describes the date the patient was entered into the registry, and so the formula for a non-stratified incidence model is `inc_formula = entrydate ~ 1`. If we have reason to believe that males and females have significantly different incidence rates then we can stratify by sex: `inc_formula = entrydate ~ sex`.
+The homogeneous Poisson process model is specified by an argument to `prevalence` called `inc_formula`, which accepts a formula with the LHS as name of the column that holds the incident dates, and the RHS naming the variables to stratify by (or 1 if none). For example, in the `prevsim` data set, the *entrydate* column describes the date the patient was entered into the registry, and so the formula for a non-stratified incidence model is `inc_formula = entrydate ~ 1`. For example, if we have reason to believe that males and females have significantly different incidence rates then we can stratify by sex: `inc_formula = entrydate ~ sex`.
 
 ## Survival specification
 
@@ -106,14 +106,14 @@ prevalence_total$estimates
 Additional information about the simulation can be found in the `simulated` object, which contains a `data.table` containing information about the simulated incident population. This can be used to quickly assess the accuracy of the model fits for both the incidence and survival processes. Each row corresponds to a simulated individual drawn using the specified incidence model, with the *sim* column specifying the simulation number. *time_to_entry* measures the time from the origin (index date minus n-year prevalence), with *incident_date* providing this same information expressed as an absolute date. The *sex* and *age* columns are the simulated covariate values that have also been determined in the *draw_incident_population* method of an incidence model object. *alive_at_index* is a binary value of whether this individual was still alive at the index date, with the following columns indicating if they contributed to any n-year prevalence. *prev_registry* measures whether the person was contributing to prevalence after being incident at the same time the registry was collecting data, allowing for a direct comparison between the known prevalence for that timeframe and the simulated prevalence.
 
 ```{r}
-prevalence_total$simulated
+head(prevalence_total$simulated)
 ```
 
 ## Using `flexsurv` objects
 
-The default survival models are based on the `survival::survreg` function and are optimised to improve runtime. A more flexible alternative is to provide `flexsurv` objects from the `flexsurv` package. This is an easily extensible framework that comes with implementations of a large number of standard parametric families in addition to other models such as Royston and Parmar's Flexible Parametric Models. 
+The default survival models are based on the `survival::survreg` function and are optimised to improve runtime. A more flexible alternative is to provide `flexsurvreg` objects from the `flexsurv` package. This is an easily extensible framework that comes with implementations of a large number of standard parametric families in addition to other models such as Royston and Parmar's Flexible Parametric Models. 
 
-To use a `flexsurv` object with `prevalence`, simply fit one first and then pass it in through the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation. Firstly the survival model is fitted, allowing for appropriate diagnostics to be performed first.
+To use a `flexsurvreg` object with `prevalence`, simply fit one first and then pass it in through the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation. Firstly the survival model is fitted, allowing for appropriate diagnostics to be performed first.
 
 ```{r}
 llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
@@ -217,7 +217,7 @@ prevalence(...
            ...)
 ```
 
-The second application of the models is to run their primary function, which is achieved by specifying an appropriate S3 class method. The following sections describes these methods and their parameterisation. See [Hadley Wickham's guide to S3 objects](http://adv-r.had.co.nz/S3.html) for further support on object-oriented programming in R.
+Once the models have been built, generic methods are used to generate the estimated incident cases and survival probabilities, which is achieved by specifying an appropriate S3 class method. The following sections describes these methods and their parameterisation. See [Hadley Wickham's guide to S3 objects](http://adv-r.had.co.nz/S3.html) for further support on object-oriented programming in R.
 
 An additional source of support is the source code for the exisiting objects that have been provided with the package which is freely available on CRAN and the development code is hosted on Github. For example, *homogeneous_poisson.R* contains the necessary methods for the default incidence model, and *survregmin.R* and *flexsurv.R* provide survival objects for the default implementation and for `flexsurv` objects respectively.
 
@@ -411,7 +411,7 @@ extract_covars.mysurv <- function(object) {
 }
 ```
 
-The primary functionality of a survival model is to estimate survival probability for each individual at a specific time-point. For a Weibull model this is simply provided by $1-CDF$, with the CDF implemented already in base R as `pweibull`. 
+The primary functionality of a survival model is to estimate survival probability for each individual at a specific time-point. For a Weibull model this is simply provided by $1-F(x)$, with the CDF implemented already in base R as `pweibull`. 
 
 ```{r}
 predict_survival_probability.mysurv <- function(object, newdata, times) {

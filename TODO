@@ -1,6 +1,7 @@
-  - More distributions supported by survregmin
+  - More distributions supported by survregmin, and have these documented in the argument list
   - Parallelise main simulation loop
-  - Default incidence model handle multiple stratas
   - Add in docs for generic methods for incidence and survival models (export them?)
   - Have predict_survival_probability.survregmin not require factors to manually have their original levels added
+  - Provide cure model implementation using the previously used model
+  - Provide simulated data set with cure fraction
 

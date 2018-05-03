@@ -494,7 +494,7 @@ summary.prevalence <- function(object, ...) {
     cat("Counted prevalent cases:", object$counted, "\n")
 
     if (!all(is.na(object$simulated))) {
-        cat("\nSimulation\n~~~~~~~~~~~~~\n")
+        cat("\nSimulation\n~~~~~~~~~~\n")
         cat("Iterations:", object$N_boot, "\n")
         cat("Average incidence rate:",
             round(object$simulated[, length(incident_date), by=sim][, mean(V1)] / (max(object$est_years)*365.25), 3),
