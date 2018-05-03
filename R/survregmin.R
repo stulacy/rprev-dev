@@ -59,6 +59,20 @@ extract_covars.survregmin <- function(object) {
 #' @export
 predict_survival_probability.survregmin <- function(object, newdata, times) {
 
+    dists <- list('weibull' = list('prob' = function(times, lps, scale=NULL) {
+                                    pweibull(times, 1 / exp(scale), exp(lps))
+                                   },
+                                   'npars' = 2),
+                  'lognormal' = list('prob' = function(times, lps, scale=NULL) {
+                                     plnorm(times, lps, exp(scale))
+                                 },
+                                 'npars' = 2),
+                  'exponential' = list('prob' = function(times, lps, scale=NULL) {
+                                     pexp(times, 1/exp(lps))
+                                 },
+                                 'npars' = 1)
+                 )
+
     if (!is.null(object$covars) & nrow(newdata) != length(times)) {
         stop("Error: newdata has dimensions ", dim(newdata), " and times has length ", length(times), ". There should be one value of times for every row in newdata")
     }
@@ -82,7 +96,7 @@ predict_survival_probability.survregmin <- function(object, newdata, times) {
     }
 
     # Obtain coefficient for location parameter
-    num_params <- distribution_params[[object$dist]]
+    num_params <- dists[[object$dist]]$npars
     if (num_params == 2) {
         lps <- wide_df %*% object$coefs[-length(object$coefs)]
     } else if (num_params == 1) {
@@ -100,26 +114,6 @@ predict_survival_probability.survregmin <- function(object, newdata, times) {
         stop("Error: Unknown number of parameters ", num_params)
     }
 
-    1- distribution_drawing[[object$dist]](times, lps, scale)
+    1- dists[[object$dist]]$prob(times, lps, scale)
 }
 
-
-# TODO Combine these
-distribution_drawing <- list('weibull' = function(times, lps, scale=NULL) {
-                                pweibull(times, 1 / exp(scale), exp(lps))
-                             },
-                             'lognormal' = function(times, lps, scale=NULL) {
-                                 plnorm(times, lps, exp(scale))
-                             },
-                             'loglogistic' = function(times, lps, scale=NULL) {
-                                 pllogis(times, 1 / exp(scale), exp(lps))
-                             },
-                             'exponential' = function(times, lps, scale=NULL) {
-                                 pexp(times, 1/exp(lps))
-                             }
-                             )
-distribution_params <- list('weibull'=2,
-                            'lognormal'=2,
-                            'loglogistic'=2,
-                            'exponential'=1
-                            )

@@ -96,7 +96,16 @@ MIN_INCIDENCE <- 10
 #' data(prevsim)
 #'
 #' \dontrun{
-#' TODO
+#' data(prevsim)
+#'
+#' prevalence(index='2013-01-30',
+#'            num_years_to_estimate=c(3, 5, 10, 20),
+#'            data=prevsim,
+#'            inc_formula = entrydate ~ sex,
+#'            surv_formula = Surv(time, status) ~ age + sex,
+#'            dist='weibull',
+#'            population_size = 1e6,
+#'            death_column = 'eventdate')
 #' }
 #'
 #' @family prevalence functions
@@ -117,7 +126,7 @@ prevalence <- function(index, num_years_to_estimate,
                        N_boot=1000,
                        population_size=NULL, proportion=100e3,
                        level=0.95,
-                       dist=c('exponential', 'weibull', 'lognormal', 'loglogistic'),
+                       dist=c('exponential', 'weibull', 'lognormal'),
                        precision=2, n_cores=1) {
 
     # Needed for CRAN check

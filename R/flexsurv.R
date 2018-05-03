@@ -18,7 +18,7 @@ predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
     X <- form.model.matrix(object, as.data.frame(newdata))
 
     fn <- summary.fns(x)
-    fn <- expand.summfn.args(fn)  # TODO is this needed?
+    fn <- expand.summfn.args(fn)
     beta <- if (x$ncovs==0) 0 else x$res[x$covpars,"est"]
 
     if (ncol(X) != length(beta)){

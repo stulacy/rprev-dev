@@ -51,6 +51,7 @@ fit_exponential_incidence <- function(inc_form, data) {
     obj
 }
 
+#' @export
 draw_incident_population.expinc <- function(object, data, timeframe, covars) {
 
     if (timeframe < 0) {

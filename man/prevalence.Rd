@@ -9,8 +9,8 @@ prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
   registry_start_date = NULL, death_column = NULL, incident_column = NULL,
   age_column = "age", age_dead = 100, status_column = "status",
   N_boot = 1000, population_size = NULL, proportion = 1e+05,
-  level = 0.95, dist = c("exponential", "weibull", "lognormal",
-  "loglogistic"), precision = 2, n_cores = 1)
+  level = 0.95, dist = c("exponential", "weibull", "lognormal"),
+  precision = 2, n_cores = 1)
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
@@ -123,7 +123,16 @@ on providing a custom survival model.
 data(prevsim)
 
 \dontrun{
-TODO
+data(prevsim)
+
+prevalence(index='2013-01-30',
+           num_years_to_estimate=c(3, 5, 10, 20),
+           data=prevsim,
+           inc_formula = entrydate ~ sex,
+           surv_formula = Surv(time, status) ~ age + sex,
+           dist='weibull',
+           population_size = 1e6,
+           death_column = 'eventdate')
 }
 
 }
