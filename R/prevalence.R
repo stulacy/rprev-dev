@@ -73,7 +73,9 @@ MIN_INCIDENCE <- 10
 #'     date. If not provided either in this argument or in \code{inc_formula},
 #'     then prevalence cannot be counted and estimates will be solely derived from simulation.
 #' @param age_column A string providing the name of the column that holds patient age. If provided
-#'     then patients are assumed to die at 100 years.
+#'     then patients alive at \code{age_dead} are set to die. This helps combat 'immortal' patients.
+#' @param age_dead The age at which patients are set to be dead if they are still alive, to prevent
+#'     'immortal' patients. Used in conjunction with \code{age_column}.
 #' @param status_column A string providing the name of the column that holds patient event status at
 #'     the event time. If not provided in \code{surv_formula} or in this argument then prevalence
 #'     cannot be counted.
@@ -110,6 +112,7 @@ prevalence <- function(index, num_years_to_estimate,
                        death_column=NULL,
                        incident_column=NULL,
                        age_column='age',
+                       age_dead=100,
                        status_column='status',
                        N_boot=1000,
                        population_size=NULL, proportion=100e3,
@@ -215,6 +218,7 @@ prevalence <- function(index, num_years_to_estimate,
         prev_sim <- sim_prevalence(data, index, sim_start_date,
                                    inc_model, surv_model,
                                    age_column=age_column,
+                                   age_dead=age_dead,
                                    N_boot=N_boot,
                                    n_cores=n_cores)
 
@@ -386,6 +390,7 @@ sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
                            N_boot=1000,
+                           age_dead=100,
                            n_cores=1) {
 
     # Needed for CRAN check
@@ -439,8 +444,7 @@ sim_prevalence <- function(data, index, starting_date,
 
     # Force death at 100 if possible
     if (!is.null(age_column) & age_column %in% colnames(results)) {
-        # TODO Add param to specify age at which say person is dead
-        results[(get(age_column)*DAYS_IN_YEAR + time_to_index) > 36525, alive_at_index := 0]
+        results[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, alive_at_index := 0]
     } else {
         message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }

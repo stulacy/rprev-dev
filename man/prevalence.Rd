@@ -7,10 +7,10 @@
 prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
   inc_model = NULL, surv_formula = NULL, surv_model = NULL,
   registry_start_date = NULL, death_column = NULL, incident_column = NULL,
-  age_column = "age", status_column = "status", N_boot = 1000,
-  population_size = NULL, proportion = 1e+05, level = 0.95,
-  dist = c("exponential", "weibull", "lognormal", "loglogistic"),
-  precision = 2, n_cores = 1)
+  age_column = "age", age_dead = 100, status_column = "status",
+  N_boot = 1000, population_size = NULL, proportion = 1e+05,
+  level = 0.95, dist = c("exponential", "weibull", "lognormal",
+  "loglogistic"), precision = 2, n_cores = 1)
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
@@ -55,7 +55,10 @@ date. If not provided either in this argument or in \code{inc_formula},
 then prevalence cannot be counted and estimates will be solely derived from simulation.}
 
 \item{age_column}{A string providing the name of the column that holds patient age. If provided
-then patients are assumed to die at 100 years.}
+then patients alive at \code{age_dead} are set to die. This helps combat 'immortal' patients.}
+
+\item{age_dead}{The age at which patients are set to be dead if they are still alive, to prevent
+'immortal' patients. Used in conjunction with \code{age_column}.}
 
 \item{status_column}{A string providing the name of the column that holds patient event status at
 the event time. If not provided in \code{surv_formula} or in this argument then prevalence

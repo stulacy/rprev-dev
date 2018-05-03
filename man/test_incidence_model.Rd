@@ -13,7 +13,7 @@ test_incidence_model(object, data, timeframe = 3652)
 will be the same source that will be used for the prevalence
 estimation later on.}
 
-\item{timeframe}{How long to generate incident cases for in days. 
+\item{timeframe}{How long to generate incident cases for in days.
 This is disease-specific, but the default of ten years
 should work well for most diseases.}
 }

@@ -14,7 +14,7 @@ test_survival_model(object, data, timeframe = 3652, sample_size = 10)
 will be the same source that will be used for the prevalence
 estimation later on.}
 
-\item{timeframe}{Maximum time at which to test survival probability in days. 
+\item{timeframe}{Maximum time at which to test survival probability in days.
 If not supplied then chooses random values over a period of 10 years, which
 should be suitable for many diseases.}
 
@@ -22,7 +22,7 @@ should be suitable for many diseases.}
 sample size for.}
 }
 \value{
-None. Instead, messages get displayed to the 
+None. Instead, messages get displayed to the
 console.
 }
 \description{

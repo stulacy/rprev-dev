@@ -45,7 +45,6 @@ predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
 
     if (!is.null(object$pop_mortality)) {
         # Obtain age at index in days
-        # TODO Possible to not have hardcoded?
         newdata$age <- floor((newdata$age * DAYS_IN_YEAR) + times)
 
         # Obtain mortality rates from these values

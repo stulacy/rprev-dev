@@ -5,7 +5,7 @@
 \title{Estimate prevalence using Monte Carlo simulation.}
 \usage{
 sim_prevalence(data, index, starting_date, inc_model, surv_model,
-  age_column = "age", N_boot = 1000, n_cores = 1)
+  age_column = "age", N_boot = 1000, age_dead = 100, n_cores = 1)
 }
 \arguments{
 \item{data}{A data frame with the corresponding column names provided in
@@ -24,9 +24,12 @@ method. See the vignette for further guidance.}
 method. See the vignette for further guidance.}
 
 \item{age_column}{A string providing the name of the column that holds patient age. If provided
-then patients are assumed to die at 100 years.}
+then patients alive at \code{age_dead} are set to die. This helps combat 'immortal' patients.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
+
+\item{age_dead}{The age at which patients are set to be dead if they are still alive, to prevent
+'immortal' patients. Used in conjunction with \code{age_column}.}
 
 \item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
 survival models. Defaults to 1; multi-core functionality is provided by the
