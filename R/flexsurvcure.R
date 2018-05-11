@@ -1,39 +1,32 @@
-#' Builds a cure model with an associated population mortality table
-#'
-#' @param pop_data A data frame comprising population survival as a daily rate for 36525 days (100 years).
-#'   It can also be stratified by other variables that are found in the survival \code{formula} for this model,
-#'   such as sex. It \strong{must} contain a field called \code{surv}, holding the survival probabilities for
-#'   an individual indexed with the covariate values in the other columns.
+#' @description Fits mixture and non-mixture cure models using \code{flexsurvcure}. Please read the detailed description below
+#'   for how to use this model.
+#' @inherit curemodels title details params
+#' @param formula Formula specifying survival model as used by \code{\link{flexsurvcure}{flexsurvcure}}.
 #' @inheritParams flexsurvcure::flexsurvcure
-#'
+#' @return An object of class \code{flexsurvcure}.
 #' @importFrom magrittr "%>%"
 #' @export
-#' TODO Improve pop_data docs to mention that MUST have 'surv', and every other field is an index that must be in
-#' 'data'. Remove emphasis on 36525 as not necesary
-flexsurvcure_population <- function(formula, data, dist='weibull', pop_data=NULL, link='logistic', mixture=T, ...) {
+flexsurvcure_population <- function(formula, data, daily_survival=NULL, population_covariates=NULL,
+                                    dist='weibull', link='logistic', mixture=TRUE, ...) {
     obj <- flexsurvcure::flexsurvcure(formula=formula, data=data,
                                       dist=dist,
                                       link=link, mixture=mixture,
                                       ...)
 
-    if (is.null(pop_data)) {
+    if (is.null(daily_survival)) {
         utils::data('UKmortalitydays', envir=environment())
-        pop_data <- get('UKmortalitydays', envir=environment())
+        daily_survival <- get('UKmortalitydays', envir=environment())
     }
 
+    validate_population_survival(daily_survival, data, population_covariates)
+
     # Save individual attributes (NOT AGE) that are in mortality data
-
     model_covs <- attr(obj$concat.formula, "covnames")
-    mortality_covars <- setdiff(intersect(model_covs, colnames(pop_data)), 'age')
+    mortality_covars <- setdiff(intersect(model_covs, colnames(daily_survival)), 'age')
+
+
     obj$pop_covars <- mortality_covars
-
-    num_rates <- pop_data %>%
-                    dplyr::count_(mortality_covars)
-    if (any(num_rates$n != 36525))
-        stop("Error: 'pop_data' must have 36525 rows for daily mortality over 100 years for each covariate combination")
-
-    # Save pop_data to obj
-    obj$pop_mortality <- pop_data
+    obj$pop_mortality <- daily_survival
     obj$call <- match.call()
 
     obj
@@ -55,6 +48,7 @@ predict_survival_probability.flexsurvcure <- function(object, newdata=NULL,
 
         # For people that don't have a mortality set to 0 as assumedly because they
         # are > 100
+        # TODO more explicit solution for this please!
         comb[is.na(comb$surv), 'surv'] <- 0
 
         # scale estimates

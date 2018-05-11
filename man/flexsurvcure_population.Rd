@@ -2,58 +2,28 @@
 % Please edit documentation in R/flexsurvcure.R
 \name{flexsurvcure_population}
 \alias{flexsurvcure_population}
-\title{Builds a cure model with an associated population mortality table}
+\title{Builds survival models for diseases with cured fractions using population mortality tables}
 \usage{
-flexsurvcure_population(formula, data, dist = "weibull", pop_data = NULL,
-  link = "logistic", mixture = T, ...)
+flexsurvcure_population(formula, data, daily_survival = NULL,
+  dist = "weibull", link = "logistic", mixture = TRUE, ...)
 }
 \arguments{
-\item{formula}{A formula expression in conventional R linear modeling
-syntax. The response must be a survival object as returned by the
-\code{\link{Surv}} function, and any covariates are given on the right-hand
-side.  For example,
-
-\code{Surv(time, dead) ~ age + sex}
-
-\code{Surv} objects of \code{type="right"},\code{"counting"},
-\code{"interval1"} or \code{"interval2"} are supported, corresponding to
-right-censored, left-truncated or interval-censored observations.
-
-If there are no covariates, specify \code{1} on the right hand side, for
-example \code{Surv(time, dead) ~ 1}.
-
-By default, covariates are placed on the ``theta'' parameter of the
-distribution, representing the cure fraction, through a linear
-model with the selected link function.
-
-Covariates can be placed on parameters of the base distribution by using the
-name of the parameter as a ``function'' in the formula.  For example, in a
-Weibull model, the following expresses the scale parameter in terms of age
-and a treatment variable \code{treat}, and the shape parameter in terms of
-sex and treatment.
-
-\code{Surv(time, dead) ~ age + treat + shape(sex) + shape(treat)}
-
-However, if the names of the ancillary parameters clash with any real
-functions that might be used in formulae (such as \code{I()}, or
-\code{factor()}), then those functions will not work in the formula.  A
-safer way to model covariates on ancillary parameters is through the
-\code{anc} argument to \code{\link{flexsurvreg}}.
-
-\code{\link{survreg}} users should also note that the function
-\code{strata()} is ignored, so that any covariates surrounded by
-\code{strata()} are applied to the location parameter.}
+\item{formula}{Formula specifying survival model as used by \code{\link{flexsurvcure}{flexsurvcure}}.}
 
 \item{data}{A data frame in which to find variables supplied in
 \code{formula}.  If not given, the variables should be in the working
 environment.}
 
-\item{dist}{A string representing one of the built-in distributions of flexsurv.
-\code{Surv(time, dead) ~ age + treat, anc = list(shape = ~ sex + treat)}}
-
-\item{pop_data}{A data frame comprising population survival as a daily rate for 36525 days (100 years).
+\item{daily_survival}{A data frame comprising population survival as a daily probability for as long as possible,
+ideally 100 years (36525 days).
+Defaults to using UK mortality from the \code{UKmortalitydays} data set.
+It \strong{must contain columns 'age' and 'surv'}, providing the age (in days) and survival
+probability at that age respectively.
 It can also be stratified by other variables that are found in the survival \code{formula} for this model,
 such as sex.}
+
+\item{dist}{A string representing one of the built-in distributions of flexsurv.
+\code{Surv(time, dead) ~ age + treat, anc = list(shape = ~ sex + treat)}}
 
 \item{link}{A string representing the link function to use for estimation of the
 cure fraction.  Defaults to logistic.}
@@ -62,6 +32,22 @@ cure fraction.  Defaults to logistic.}
 
 \item{...}{other arguments to be passed to \code{\link{flexsurvreg}}.}
 }
+\value{
+An object of class \code{flexsurvcure}.
+}
 \description{
-Builds a cure model with an associated population mortality table
+Fits mixture and non-mixture cure models using \code{flexsurvcure}. Please read the detailed description below
+  for how to use this model.
+}
+\details{
+To model population survival, population mortality tables are required, as specified by the \code{daily_survival}
+argument. If not provided, then the default population mortality is that of the UK population, which goes up
+to 100 years of age. If a simulated individual has expected lifespan longer than the maximum age in the mortality table
+then they are estimated to have died at this age limit,
+which is why it is advantageous to provide as many accurate survival probabilities as possible.
+
+Due to the linking with the registry data and the ability for user-specified mortality tables, there are stricter
+requirements on the survival models used in cure models than elsewhere. For example, the time-scale of the
+survival model specified in \code{formula} \strong{must be in days} so that it matches up with the mortality tables.
+Likewise, \strong{age in years must be included as a covariate} in the survival model
 }

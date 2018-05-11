@@ -212,10 +212,6 @@ prevalence <- function(index, num_years_to_estimate,
             warning("warning: both surv_model and surv_formula provided, survival model will be built using surv_model and surv_formula ignored.")
         }
 
-        if (!is.null(surv_model) & !(missing(dist))) {
-            warning("warning: both surv_model and dist provided, survival model will be built using surv_model and dist ignored.")
-        }
-
         if (missing(surv_model) & missing (surv_formula)) {
             stop("Error: Please provide one of surv_model or surv_formula.")
         }

@@ -1,35 +1,42 @@
-#' Fixed cure model where survival reverts to population mortality
-#' at a specified timepoint.
-#'
-#' @inheritParams flexsurvcure_population
-#' @param formula Survival formula
-#' @param data Dataset
-#' @param dist Distribution to be used
-#' @param time Time-limit at which a patient is considered cured. Uses
-#'     same time-scale as survival time in \code{data}.
+#' @description Fits a cure model which assumes that if an individual has survived
+#'  beyond a set time-point then they are considered cured and their mortality reverts
+#'  to population levels.
+#'  Please read the detailed description below for how to use this model.
+#' @inherit curemodels title details params
+#' @inheritParams prevalence
+#' @param cure_time Time-limit at which a patient is considered cured.
+#' @param formula Formula specifying survival function, as used in
+#'   \code{\link{prevalence}} with the \code{surv_formula} argument.
+#'   \strong{Must be in days}.
 #'
 #' @return An object of class \code{fixedcure} that can be passed
 #'   into \code{\link{prevalence}}.
-fixed_cure <- function(formula, data, dist, time, pop_data) {
-    obj <- build_survreg(formula, data, user_dist)
+#' @export
+fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population_covariates=NULL,
+                       dist=c('exponential', 'weibull', 'lognormal')) {
+    dist <- match.arg(dist)
+    obj <- build_survreg(formula, data, dist)
 
-    # TODO Make a function to validate mortality data so can reuse it with flexsurvcure
-    if (is.null(pop_data)) {
+    func_call <- match.call()
+    func_call$formula <- eval(formula)
+    func_call$dist <- eval(dist)
+    func_call$time <- eval(time)
+    func_call$daily_survival <- eval(daily_survival)
+    obj$call <- func_call
+
+    if (is.null(daily_survival)) {
         utils::data('UKmortalitydays', envir=environment())
-        pop_data <- get('UKmortalitydays', envir=environment())
+        daily_survival <- get('UKmortalitydays', envir=environment())
     }
 
+    validate_population_survival(daily_survival, data, population_covariates)
+
     # Save individual attributes (NOT AGE) that are in mortality data
-    # TODO This should identify all covariates that are in pop_data that AREN'T 'surv'
-    mortality_covars <- setdiff(intersect(obj$covars, colnames(pop_data)), 'age')
+    # TODO This should identify all covariates that are in daily_survival that AREN'T 'surv'
+    mortality_covars <- setdiff(intersect(obj$covars, colnames(daily_survival)), 'age')
     obj$pop_covars <- mortality_covars
 
-    num_rates <- pop_data %>%
-                    dplyr::count_(mortality_covars)
-    if (any(num_rates$n != 36525))
-        stop("Error: 'pop_data' must have 36525 rows for daily mortality over 100 years for each covariate combination")
-
-    obj$pop_data <- pop_data
+    obj$pop_data <- daily_survival
     obj$cure_time <- time
 
     class(obj) <- 'fixedcure'
@@ -37,18 +44,33 @@ fixed_cure <- function(formula, data, dist, time, pop_data) {
     obj
 }
 
-# TODO Need consistent time scale, i.e. YEARS or DAYS! Ideally wouldn't matter, but does make a difference for the cure model
-# Maybe just have the documentation state that cure time needs to be on same time scale as that used in Surv(time, status)
-
 #' @export
 predict_survival_probability.fixedcure <- function(object, newdata, times) {
 
+    browser()
     raw_probs <- predict_survival_probability.survregmin(object, newdata, times)
+    pop_indices <- setNames(object$pop_covars, object$pop_covars)
 
-    # TODO Find times which are greater than cure time
+    cured_individuals <- newdata %>%
+        dplyr::mutate(time_to_index = times,
+                      raw_prob = raw_probs) %>%
+        dplyr::filter(time_to_index > object$cure_time)
 
-    # Calculate population mortalities at these times
+    if (nrow(cured_individuals) > 0) {
 
+        cured_individuals <- cured_individuals %>%
+            dplyr::mutate(age_at_cure = floor(age * DAYS_IN_YEAR + object$cure_time),
+                          age_at_index = floor(age * DAYS_IN_YEAR + time_to_index))
+        # TODO How to get this working for people who have age at cure or age at index > max age in mortality data? Assume dead?
+        adj_probs <- cured_individuals %>%
+                dplyr::left_join(object$pop_data, by=c('age_at_cure'='age', pop_indices)) %>%
+                dplyr::left_join(object$pop_data, by=c('age_at_index'='age', pop_indices), suffix=c('.cure', '.index')) %>%
+                dplyr::mutate(adj_prob = raw_prob * (surv.index / surv.cure))
+
+        raw_probs[times > object$cure_time] <- adj_probs$adj_prob
+    }
+
+    raw_probs
 }
 
 #' @export

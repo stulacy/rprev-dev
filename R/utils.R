@@ -37,3 +37,34 @@ determine_yearly_endpoints <- function(date, num_years, direction='forwards') {
 .extract_var_name <- function(expr) {
     as.character(expr)[[2]]
 }
+
+# Checks that all the factors to stratify population survival by are in the registry data set.
+validate_population_survival <- function(population_data, registry_data, population_covariates=NULL) {
+
+    if (!'surv' %in% colnames(population_data))
+        stop("Error: no 'surv' column found in population survival rates 'daily_survival'.")
+
+    if (min(population_data$surv) < 0 | max(population_data$surv) > 1)
+        stop("Error: population survival probabilities found in 'surv' are out of the range [0,1].")
+
+    if (!'age' %in% colnames(population_data))
+        stop("Error: no 'age' column found in population survival rates 'daily_survival'.")
+    if (!'age' %in% colnames(registry_data))
+        stop("Error: no 'age' column found in registry data frame 'data'.")
+
+    # Remove age from population covariates as must be there anyway
+    population_covariates <- setdiff(population_covariates, 'age')
+
+    pop_covariates_in_pop <- sapply(population_covariates, function(x) x %in% colnames(population_data))
+    pop_covariates_in_reg <- sapply(population_covariates, function(x) x %in% colnames(registry_data))
+
+    if (!all(pop_covariates_in_pop))
+        stop(paste("Error: not all values in population_covariates are in 'daily_survival'. Missing",
+                   paste(population_covariates[!pop_covariates_in_pop], collapse=","), "."))
+
+    if (!all(pop_covariates_in_reg))
+        stop(paste("Error: not all values in population_covariates are in 'data'. Missing",
+                   paste(population_covariates[!pop_covariates_in_reg], collapse=","), "."))
+
+    # TODO make test that all levels of factors are in both
+}
