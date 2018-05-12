@@ -59,12 +59,19 @@ validate_population_survival <- function(population_data, registry_data, populat
     pop_covariates_in_reg <- sapply(population_covariates, function(x) x %in% colnames(registry_data))
 
     if (!all(pop_covariates_in_pop))
-        stop(paste("Error: not all values in population_covariates are in 'daily_survival'. Missing",
+        stop(paste0("Error: not all values in population_covariates are in 'daily_survival'. Missing ",
                    paste(population_covariates[!pop_covariates_in_pop], collapse=","), "."))
 
     if (!all(pop_covariates_in_reg))
-        stop(paste("Error: not all values in population_covariates are in 'data'. Missing",
+        stop(paste0("Error: not all values in population_covariates are in 'data'. Missing ",
                    paste(population_covariates[!pop_covariates_in_reg], collapse=","), "."))
 
-    # TODO make test that all levels of factors are in both
+    missing_covar_factors <- sapply(population_covariates, function(covar) {
+        all(unique(registry_data[[covar]]) %in% population_data[[covar]])
+    })
+    
+    if (!all(missing_covar_factors))
+        stop(paste("Error: not all values of", 
+                   paste(population_covariates[!missing_covar_factors], collapse=','),
+                   "are present in population survival."))
 }

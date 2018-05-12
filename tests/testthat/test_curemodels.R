@@ -53,3 +53,20 @@ test_that("validate_population_survival checks the existence of other stratifica
 })
 
 # TODO Test all levels of covariates
+test_that("validate_population_survival verifies all linkage covariate values in registry data are in the population data set", {
+    data("UKmortalitydays")
+    no_female_pop <- data.frame(age=1:36525, surv=runif(36525), sex='M')
+    sex_as_int <- data.frame(time=runif(50, 0, 3000),
+                             sex=sample(c(0, 1), 50, replace=T),
+                             age= rnorm(50, 60, 10),
+                             status=sample(c(0, 1), 50, replace=T))
+
+    # Wrongly encoded sex, as sex as M/F in population registry
+    expect_error(validate_population_survival(UKmortalitydays, sex_as_int, "sex"),
+                 "Error: not all values of sex are present in population survival.")
+    
+    # Missing level. prevsim as M/F and test here has just M
+    expect_error(validate_population_survival(no_female_pop, prevsim, "sex"),
+                 "Error: not all values of sex are present in population survival.")
+
+})
