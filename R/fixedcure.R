@@ -26,7 +26,8 @@
 #'   such as sex.
 #' @param population_covariates A character vector containing fields to stratify population survival by in addition to
 #'   age, as descripted in \code{Details} below. These \strong{must} be the names of columns in both \code{data} and
-#'   \code{daily_survival}
+#'   \code{daily_survival}. If not provided then defaults to the fields that are present in both \code{data} and
+#'   \code{daily_survival}.
 #' @param cure_time Time-limit at which a patient is considered cured.
 #' @param formula Formula specifying survival function, as used in
 #'   \code{\link{prevalence}} with the \code{surv_formula} argument.
@@ -47,6 +48,11 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
     if (is.null(daily_survival)) {
         utils::data('UKmortalitydays', envir=environment())
         daily_survival <- get('UKmortalitydays', envir=environment())
+    }
+
+    # If don't provide population covariates then set to the ones in both data sets
+    if (is.null(population_covariates)) {
+        population_covariates <- setdiff(intersect(colnames(data), colnames(daily_survival)), 'age')
     }
 
     validate_population_survival(daily_survival, data, population_covariates)
