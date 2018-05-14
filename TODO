@@ -1,5 +1,5 @@
   - Parallelise main simulation loop
   - Have predict_survival_probability.survregmin not require factors to manually have their original levels added
-  - Provide cure model implementation using the previously used model
+  - Check why prevalence decreases with mixture cure model
   - Provide simulated data set with cure fraction
 
