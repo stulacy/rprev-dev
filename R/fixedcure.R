@@ -28,11 +28,7 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
 
     validate_population_survival(daily_survival, data, population_covariates)
 
-    # Save individual attributes (NOT AGE) that are in mortality data
-    # TODO This should identify all covariates that are in daily_survival that AREN'T 'surv'
-    mortality_covars <- setdiff(intersect(obj$covars, colnames(daily_survival)), 'age')
-    obj$pop_covars <- mortality_covars
-
+    obj$pop_covars <- population_covariates
     obj$pop_data <- daily_survival
     obj$cure_time <- cure_time
 

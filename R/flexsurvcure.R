@@ -20,12 +20,7 @@ flexsurvcure_population <- function(formula, data, daily_survival=NULL, populati
 
     validate_population_survival(daily_survival, data, population_covariates)
 
-    # Save individual attributes (NOT AGE) that are in mortality data
-    model_covs <- attr(obj$concat.formula, "covnames")
-    mortality_covars <- setdiff(intersect(model_covs, colnames(daily_survival)), 'age')
-
-
-    obj$pop_covars <- mortality_covars
+    obj$pop_covars <- population_covariates
     obj$pop_mortality <- daily_survival
     obj$call <- match.call()
 
