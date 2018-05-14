@@ -50,6 +50,12 @@ predict_survival_probability.fixedcure <- function(object, newdata, times) {
     raw_prob <- NULL
     surv.index <- NULL
     surv.cure <- NULL
+    surv_prob <- NULL
+    adj_prob <- NULL
+    time_calc_survival <- NULL
+    id <- NULL
+    cured <- NULL
+    . <- NULL
 
     # Calculate raw survival time
     probs <- newdata %>%

@@ -153,21 +153,47 @@ cure_mod
 
 To use this as the survival model in a prevalence estimation, simply pass it in to the surv_model argument as before (note that the number of simulations has been reduced owing to the longer computational time required to fit a cure model):
 
-```{r}
-prev_cure <- prevalence(index='2013-01-30', 
-                        num_years_to_estimate=c(3, 5, 10, 20), 
-                        data=prevsim, 
-                        inc_formula = entrydate ~ sex,
-                        surv_model=cure_mod,
-                        population_size = 1e6,
-                        death_column = 'eventdate',
-                        N_boot = 30)
-```
-                        
+TODO Why have they decreased?!
+
 As can be seen, using a cure model decreases the prevalence estimates since survival probabilities are now reduced by taking population mortality into account.
 
 ```{r}
-prev_cure 
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=20, 
+           data=prevsim, 
+           inc_formula = entrydate ~ sex,
+           surv_model=cure_mod,
+           population_size = 1e6,
+           death_column = 'eventdate',
+           N_boot = 30)
+```
+
+The estimates from the full model are displayed below for comparison.
+
+```{r}
+prevalence_total
+```
+
+Note that a separate cure model implementation is available in the function `fixed_cure`, which specifies a *cure time* for the disease, beyond which a patient's survival is determined to have returned to population survival rates. A model is build in a very similar way to `survival::survreg`, but with the addition of specifying a cure time (in the same time-scale as survival), here we have used 5 years, which a quarter of these simulated patients survive until. However, we have no other basis for suggesting a cure model here and are only using it for demonstration of the software.
+
+As with `flexsurvcure`, population lifetables can be provided, although by default UK mortality tables are provided with the package in `UKmortalitydays`. Please look at the documentation for `fixed_cure` or `flexsurvcure_population` if you wish to provide your own life tables.
+
+```{r}
+fix_cure_mod <- fixed_cure(Surv(time, status) ~ age + sex, data=prevsim, cure_time=5*365.25, 
+                           dist='weibull')
+```
+
+Use of a fixed cure model here has increased the prevalence as patients are reverting back to population levels of survival.
+
+```{r}
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=20, 
+           data=prevsim, 
+           inc_formula = entrydate ~ sex,
+           surv_model=fix_cure_mod,
+           population_size = 1e6,
+           death_column = 'eventdate',
+           N_boot = 30)
 ```
 
 # Custom incidence and survival models
