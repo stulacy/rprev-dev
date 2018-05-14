@@ -5,7 +5,8 @@
 \title{Builds survival models for diseases with cured fractions using population mortality tables}
 \usage{
 flexsurvcure_population(formula, data, daily_survival = NULL,
-  dist = "weibull", link = "logistic", mixture = TRUE, ...)
+  population_covariates = NULL, dist = "weibull", link = "logistic",
+  mixture = TRUE, ...)
 }
 \arguments{
 \item{formula}{Formula specifying survival model as used by \code{\link{flexsurvcure}{flexsurvcure}}.}
@@ -21,6 +22,10 @@ It \strong{must contain columns 'age' and 'surv'}, providing the age (in days) a
 probability at that age respectively.
 It can also be stratified by other variables that are found in the survival \code{formula} for this model,
 such as sex.}
+
+\item{population_covariates}{A character vector containing fields to stratify population survival by in addition to
+age, as descripted in \code{Details} below. These \strong{must} be the names of columns in both \code{data} and
+\code{daily_survival}}
 
 \item{dist}{A string representing one of the built-in distributions of flexsurv.
 \code{Surv(time, dead) ~ age + treat, anc = list(shape = ~ sex + treat)}}

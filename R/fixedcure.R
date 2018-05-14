@@ -47,6 +47,13 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
 #' @export
 predict_survival_probability.fixedcure <- function(object, newdata, times) {
 
+    # For R CMD CHECK
+    time_to_index <- NULL
+    age <- NULL
+    raw_prob <- NULL
+    surv.index <- NULL
+    surv.cure <- NULL
+
     browser()
     raw_probs <- predict_survival_probability.survregmin(object, newdata, times)
     pop_indices <- setNames(object$pop_covars, object$pop_covars)
