@@ -44,8 +44,9 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
     func_call <- match.call()
     func_call$formula <- eval(formula)
     obj$call <- func_call
+    miss_pop_data <- is.null(daily_survival)
 
-    if (is.null(daily_survival)) {
+    if (miss_pop_data) {
         utils::data('UKmortality', envir=environment())
         daily_survival <- get('UKmortality', envir=environment())
     }
@@ -57,6 +58,12 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
     # If don't provide population covariates then set to the ones in both data sets
     if (is.null(population_covariates)) {
         population_covariates <- setdiff(intersect(colnames(data), colnames(daily_survival)), 'age')
+    }
+
+    # If using default UKmortality data set then if don't have sex as a population covariate stratify it
+    # to 'overall' mortality
+    if (miss_pop_data & !'sex' %in% population_covariates) {
+        daily_survival <- daily_survival[ sex == 'overall']
     }
 
     validate_population_survival(daily_survival, data, population_covariates)
@@ -76,8 +83,6 @@ predict_survival_probability.fixedcure <- function(object, newdata, times) {
     # For R CMD CHECK
     time_to_index <- NULL
     age <- NULL
-    #surv.index <- NULL
-    #surv.cure <- NULL
     surv_prob <- NULL
     adj_prob <- NULL
     time_calc_survival <- NULL
