@@ -1,27 +1,11 @@
 #' General population survival data.
 #'
-#' A dataset containing basic mortality rates stratified by sex and age (0 to 100 year) from
-#' the UK population, yearly, obtained from:
-#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
-#' Adapted from public sector information licensed under the Open Government Licence v3.0.
-#' Data were relabelled according to the mean year of the three-year birth window.
-#'
-#' @format A data frame with 6666 rows and 4 columns:
-#' \describe{
-#'  \item{calendar_year}{year}
-#'  \item{sex}{boolean variable; 0 for males and 1 for females}
-#'  \item{age}{age in years}
-#'  \item{rate}{death rate}
-#' }
-"UKmortality"
-
-#' General population survival data.
-#'
 #' A dataset containing daily population survival rates for individuals up to 100 years old,
-#' from the UK population, obtained from:
-#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables}.
+#' from the UK population, derived from the 2009 mortality rates found at:
+#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables},
 #' Adapted from public sector information licensed under the Open Government Licence v3.0.
 #' Data were relabelled according to the mean year of the three-year birth window.
+#' It is stored as a \code{data.table} for efficient access.
 #'
 #' @format A data frame with 109575 rows and 3 columns:
 #' \describe{
@@ -29,7 +13,7 @@
 #'  \item{sex}{string, either 'M' or 'F'}
 #'  \item{surv}{survival probability , estimated as the cumulative product of (1 - mortality rate)}
 #' }
-"UKmortalitydays"
+"UKmortality"
 
 #' Simulated patient dataset.
 #'
