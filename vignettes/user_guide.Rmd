@@ -139,10 +139,12 @@ An important consideration of predicting disease survivability is the issue of w
 
 Since cure models can provide more accurate models of survival for certain diseases, we have included a software implementation with `rprev`. The `flexsurvcure` package provides implementations of mixture and non-mixture cure models for use with time-to-event data, however, it assumes that $S_{cured}(t)=1$, which is not appropriate when the event being modelled is death. For this reason, `rprev` provides a wrapper to `flexsurvcure` that embeds the object with the population mortality data held in the `UKmortalitydays` data set provided with the package. Survival probability estimates at the index date are then multiplied by the population survival function to produce accurate estimates.
 
+TODO Update with new implementation
+
 To use a cure model for prevalence estimations, firstly fit a model using the `flexsurvcure_population` function. This accepts all the arguments to `flexsurvcure`, so refer to the documentation of that function for further support. There is an additional argument, `pop_data`, which specifies the population survival curve, although a default data set is provided (see the help file for `UKmortalitydays` for further detail).
 
 ```{r}
-cure_mod <- flexsurvcure_population(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+cure_mod <- flexsurvcure::flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
 ```
 
 The parameter values for this mixture cure model are displayed below.
@@ -152,8 +154,6 @@ cure_mod
 ```
 
 To use this as the survival model in a prevalence estimation, simply pass it in to the surv_model argument as before (note that the number of simulations has been reduced owing to the longer computational time required to fit a cure model):
-
-TODO Why have they decreased?!
 
 As can be seen, using a cure model decreases the prevalence estimates since survival probabilities are now reduced by taking population mortality into account.
 

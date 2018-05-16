@@ -20,7 +20,7 @@ fixed_cure(formula, data, cure_time, daily_survival = NULL,
 
 \item{daily_survival}{A data frame comprising population survival as a daily probability for as long as possible,
 ideally 100 years (36525 days).
-Defaults to using UK mortality from the \code{UKmortalitydays} data set.
+Defaults to using UK population survival from the \code{UKmortality} data set.
 It \strong{must contain columns 'age' and 'surv'}, providing the age (in days) and survival
 probability at that age respectively.
 It can also be stratified by other variables that are found in the survival \code{formula} for this model,
@@ -28,7 +28,8 @@ such as sex.}
 
 \item{population_covariates}{A character vector containing fields to stratify population survival by in addition to
 age, as descripted in \code{Details} below. These \strong{must} be the names of columns in both \code{data} and
-\code{daily_survival}}
+\code{daily_survival}. If not provided then defaults to the fields that are present in both \code{data} and
+\code{daily_survival}.}
 
 \item{dist}{The distribution used by the default parametric survival model.}
 }
