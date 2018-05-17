@@ -110,7 +110,8 @@ The default survival models are based on the `survival::survreg` function and ar
 To use a `flexsurvreg` object with `prevalence`, simply fit a model to the registry data and then pass it in through the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation. Firstly the survival model is fitted, allowing for appropriate diagnostics to be performed first.
 
 ```{r}
-llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
+library(flexsurv)
+llog <- flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
 llog
 ```
 
@@ -168,7 +169,8 @@ prevalence_total
 An additional cure model implementation that can also be used are the mixture and non-mixture cure models as implemented by `flexsurvcure`. These are fitted in the same way as standard `flexsurv` object as described above. These are also considerably slower to run than non-cure survival models.
 
 ```{r}
-mixture_cure <- flexsurvcure::flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+library(flexsurvcure)
+mixture_cure <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
 ```
 
 ```{r}
@@ -309,12 +311,12 @@ draw_incident_population.pois <- function(object, data, timeframe, covars, ...) 
 }
 ```
 
-To validate that an incidence model has been correctly specified, the `test_incidence_model` function has been provided. It accepts the incidence model itself and the registry data that it has been designed to work with. It will verify that the required attributes and methods are available, and that `draw_incident_population` successfully simulates individuals.
+To validate that an incidence model has been correctly specified, the `validate_incidence_model` function has been provided. It accepts the incidence model itself and the registry data that it has been designed to work with. It will verify that the required attributes and methods are available, and that `draw_incident_population` successfully simulates individuals.
 
 If any issues are found then the function stops execution and displays an error message detailing the fault, otherwise it returns a list of simulated arrival times, allowing for further diagnostics to be performed.
 
 ```{r}
-inc_times <- test_incidence_model(pois_mod, prevsim)
+inc_times <- validate_incidence_model(pois_mod, prevsim)
 ```
 
 ```{r}
@@ -419,10 +421,10 @@ While more in-depth testing would be required to validate the predictions output
 predict_survival_probability(survobj, newdata=data.frame(age=c(50, 70)), times=c(100, 100))
 ```
 
-There is also a function `test_survival_model` that checks the survival model contains the required attributes and methods, and that `predict_survival_probability` outputs sensible probabilities that are monotonically decreasing with time. If the test passes, it returns survival probabilties taken from random individuals in the supplied registry data at random time-points.
+There is also a function `validate_survival_model` that checks the survival model contains the required attributes and methods, and that `predict_survival_probability` outputs sensible probabilities that are monotonically decreasing with time. If the test passes, it returns survival probabilties taken from random individuals in the supplied registry data at random time-points.
 
 ```{r}
-probs <- test_survival_model(survobj, prevsim)
+probs <- validate_survival_model(survobj, prevsim)
 head(probs)
 ```
 

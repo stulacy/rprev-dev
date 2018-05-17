@@ -34,16 +34,9 @@ confidence intervals for the given registry data.
 \examples{
 data(prevsim)
 
-rawinc <- yearly_incidence(prevsim$entrydate)
-mean_incidence_rate(rawinc, population_size=3.5e6)
+#rawinc <- yearly_incidence(prevsim$entrydate)
+#mean_incidence_rate(rawinc, population_size=3.5e6)
 
-rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-mean_incidence_rate(rawinc2, population_size=3.5e6)
-
-}
-\seealso{
-Other incidence functions: \code{\link{incidence_age_distribution}},
-  \code{\link{incidence}}, \code{\link{plot.incidence}},
-  \code{\link{test_incidence_fit}},
-  \code{\link{yearly_incidence}}
+#rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
+#mean_incidence_rate(rawinc2, population_size=3.5e6)
 }

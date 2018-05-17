@@ -164,7 +164,7 @@ draw_incident_population.pois <- function(object, data, timeframe, covars, ...) 
 }
 
 ## ------------------------------------------------------------------------
-inc_times <- test_incidence_model(pois_mod, prevsim)
+inc_times <- validate_incidence_model(pois_mod, prevsim)
 
 ## ------------------------------------------------------------------------
 head(inc_times)
@@ -231,7 +231,7 @@ predict_survival_probability.mysurv <- function(object, newdata, times) {
 predict_survival_probability(survobj, newdata=data.frame(age=c(50, 70)), times=c(100, 100))
 
 ## ------------------------------------------------------------------------
-probs <- test_survival_model(survobj, prevsim)
+probs <- validate_survival_model(survobj, prevsim)
 head(probs)
 
 ## ------------------------------------------------------------------------

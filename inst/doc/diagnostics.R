@@ -39,8 +39,7 @@ legend("topright", legend=substring(names(km2$strata), 25, 32), lty = 1,
 plot(km, lwd=2, col="blue", mark.time=F, conf.int=T, xlab="Days", 
      ylab="Survival probability")
 num_reg_years <- 9
-registry_years <- determine_yearly_endpoints(date='2004-01-30', 
-                                             num_years=num_reg_years)
+registry_years <- sapply(0:9, function(x) as.Date(paste0(2004+x, "-01-30")))
 sapply(seq(num_reg_years),
        function(i) lines(survfit(Surv(time, status) ~ 1, 
                                  data=prevsim[prevsim$entrydate >= 

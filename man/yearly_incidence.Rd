@@ -26,20 +26,3 @@ Vector of length \code{num_years} of integers, representing the number
 \description{
 Calculates yearly incidence for the available registry data.
 }
-\examples{
-data(prevsim)
-
-yearly_incidence(prevsim$entrydate, start_date="2004-01-01", num_years=8)
-yearly_incidence(prevsim$entrydate)
-yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
-yearly_incidence(prevsim$entrydate, num_years=5, end_date="2015-05-01")
-
-}
-\seealso{
-Other incidence functions: \code{\link{incidence_age_distribution}},
-  \code{\link{incidence}},
-  \code{\link{mean_incidence_rate}},
-  \code{\link{plot.incidence}},
-  \code{\link{test_incidence_fit}}
-}
