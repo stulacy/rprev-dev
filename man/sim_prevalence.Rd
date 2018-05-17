@@ -37,31 +37,16 @@ survival models. Defaults to 1; multi-core functionality is provided by the
 }
 \value{
 A list with the following attributes:
-  \item{mean_yearly_contributions}{A vector of length
-  \code{num_years_to_estimate}, representing the average number of prevalent
-  cases subdivided by year of diagnosis across each bootstrap iteration.}
-  \item{posterior_age}{Posterior distributions of age, sampled at every
-  bootstrap iteration.} \item{yearly_contributions}{Total simulated prevalent
-  cases from every bootstrapped sample.} \item{pop_mortality}{Population
-  survival rates in the format of a list, stratified by sex.}
-  \item{nbootstraps}{Number of bootstrapped samples used in the prevalence
-  estimation.} \item{coefs}{The bootstrapped Weibull coefficients used by the
-  survival models.} \item{full_coefs}{The Weibull coefficients from a model
-  fitted to the full dataset.}
+  \item{results}{A data.table containing the simulated incident populations from each 
+  simulation along with their covariates and survival status at the index.}
+  \item{full_surv_model}{The survival model built on the full registry data set.}
+  \item{full_inc_model}{The incidence model built on the full registry data set.}
+  \item{surv_models}{A list containing survival models built on each bootstrap sample.}
+  \item{inc_models}{A list containing incidence models built on each bootstrap sample.}
 }
 \description{
 Estimates prevalent cases at a specific index date by use of Monte Carlo
 simulation. Simulated cases are marked with age and sex to enable agreement
 with population survival data where a cure model is used, and calculation of
 the posterior distributions of each.
-}
-\examples{
-data(prevsim)
-
-\dontrun{
-simulated_prevalence(prevsim, "2013-01-01",
-                     starting_date="2003-01-01",
-                     inc_model, surv_model)
-}
-
 }
