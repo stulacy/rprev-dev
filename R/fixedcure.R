@@ -38,6 +38,9 @@
 #' @export
 fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population_covariates=NULL,
                        dist=c('exponential', 'weibull', 'lognormal')) {
+    # R CMD CHECK
+    sex <- NULL
+
     dist <- match.arg(dist)
     obj <- build_survreg(formula, data, dist)
 
