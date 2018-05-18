@@ -25,7 +25,7 @@ which performs the combination of counted incidence from the registry data,
 and the simulated cases, along with the calculation of their survival
 probabilities at the index date.
 
-\code{\link{incidence}} provides a summary of the incident cases in the
+\code{\link{test_homogeneity}} provides a summary of the incident cases in the
 registry data set, allowing for inspection of whether the default
 homogeneous Poisson process assumption holds for the disease in question.
 }

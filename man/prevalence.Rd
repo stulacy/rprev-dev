@@ -83,12 +83,12 @@ survival models. Defaults to 1; multi-core functionality is provided by the
 }
 \value{
 A \code{prevalence} object containing the following attributes:
-  \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.} 
+  \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
   \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
     Each row corresponds to a simulated incident case with their simulated attributes and survival status.
-    The \code{time_to_entry} field represents the incident time on a scale where the origin is 
+    The \code{time_to_entry} field represents the incident time on a scale where the origin is
     the index date - max(num_years_to_estimate).
-    Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed 
+    Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed
     to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
     person was incident during the registry time-span and alive at the index. These cases are used to
     assess the model fit, as the numbers can be simply compared to the known registry prevalence.}
@@ -107,8 +107,8 @@ A \code{prevalence} object containing the following attributes:
   \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
   \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
     \code{survfit} to scale the time-axis.}
-  \item{pval}{The p-value resulting from a hypothesis test on the difference between the 
-  simulated and counted prevalence on the time-span covered by the registry. Tests the 
+  \item{pval}{The p-value resulting from a hypothesis test on the difference between the
+  simulated and counted prevalence on the time-span covered by the registry. Tests the
   prevalence fit; if a significant result is found then further diagnostics are required.}
 }
 \description{

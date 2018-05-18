@@ -27,20 +27,19 @@ data(prevsim)
 
 The simulation of incident cases in the years for which registry data is not available currently assumes that the incidence process is homogeneous Poisson. The package includes several functions for inspecting the incidence data, as well as diagnosing the validity of this assumption.
 
-The primary function is `incidence`, which calculates several summary statistics of the disease incidence. It requires a vector of entry dates into the registry, along with the size of the population under consideration. The registry under interest can be subset to only count incident cases from specific years of interest, useful if there are doubts about the accuracy of the data, for example during the first year of operation. This function also fits a spline smooth to the incidence rate data.
+The primary function is `test_homogeneity`, which calculates several summary statistics of the disease incidence. It requires a vector of entry dates into the registry, along with the size of the population under consideration. The registry under interest can be subset to only count incident cases from specific years of interest, useful if there are doubts about the accuracy of the data, for example during the first year of operation. This function also fits a spline smooth to the incidence rate data.
 
 ```{r}
-inc <- incidence(prevsim$entrydate, population_size=3.2e6, start='2005-09-01', num_reg_years=5)
+inc <- test_homogeneity(prevsim$entrydate, population_size=3.2e6)
 ```
 
-This function returns an S3 object of class `incidence` with the following attributes.
+This function returns an object with the following attributes.
 
 ```{r}
-inc
 names(inc)
 ```
 
-The `summary.incidence` method displays the most useful information about the incidence process of the disease of interest.
+The `summary` method displays the most useful information about the incidence process of the disease of interest.
 
 ```{r}
 summary(inc)
@@ -58,7 +57,7 @@ inc$mean
 
 Alongside the p-values from the over/under dispersion test, `rprev` provides visual tools to assess the consistency of the incidence data with an homogeneous Poisson process.
 
-`plot.incidence` displays a plot of the actual incidence rate as recorded in the registry, with the smooth overlaid. If incidence is an homogeneous Poisson process, both the smooth (green) and incidence process (red) should remain within the 95% confidence interval (dashed blue) and be evenly distributed about the mean (blue line). 
+The `plot` method displays a plot of the actual incidence rate as recorded in the registry, with the smooth overlaid. If incidence is an homogeneous Poisson process, both the smooth (green) and incidence process (red) should remain within the 95% confidence interval (dashed blue) and be evenly distributed about the mean (blue line). 
 
 ```{r, fig.width = 7, fig.height = 4}
 plot(inc)

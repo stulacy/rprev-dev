@@ -90,12 +90,12 @@ MIN_INCIDENCE <- 10
 #'   \code{doParallel} package.
 #'
 #' @return A \code{prevalence} object containing the following attributes:
-#'   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.} 
+#'   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
 #'   \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
 #'     Each row corresponds to a simulated incident case with their simulated attributes and survival status.
-#'     The \code{time_to_entry} field represents the incident time on a scale where the origin is 
+#'     The \code{time_to_entry} field represents the incident time on a scale where the origin is
 #'     the index date - max(num_years_to_estimate).
-#'     Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed 
+#'     Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed
 #'     to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
 #'     person was incident during the registry time-span and alive at the index. These cases are used to
 #'     assess the model fit, as the numbers can be simply compared to the known registry prevalence.}
@@ -114,10 +114,10 @@ MIN_INCIDENCE <- 10
 #'   \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
 #'   \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
 #'     \code{survfit} to scale the time-axis.}
-#'   \item{pval}{The p-value resulting from a hypothesis test on the difference between the 
-#'   simulated and counted prevalence on the time-span covered by the registry. Tests the 
+#'   \item{pval}{The p-value resulting from a hypothesis test on the difference between the
+#'   simulated and counted prevalence on the time-span covered by the registry. Tests the
 #'   prevalence fit; if a significant result is found then further diagnostics are required.}
-#'   
+#'
 #' @references Crouch, Simon, et al. "Determining disease prevalence from
 #'   incidence and survival using simulation techniques." Cancer epidemiology
 #'   38.2 (2014): 193-199.
@@ -153,7 +153,7 @@ prevalence <- function(index, num_years_to_estimate,
                        age_dead=100,
                        status_column='status',
                        N_boot=1000,
-                       population_size=NULL, proportion=100e3,
+                       population_size=NULL, proportion=1e5,
                        level=0.95,
                        dist=c('exponential', 'weibull', 'lognormal'),
                        precision=2, n_cores=1) {
@@ -295,7 +295,7 @@ prevalence <- function(index, num_years_to_estimate,
     } else {
         counted_prev <- NULL
     }
-    object <- list(estimates=estimates, 
+    object <- list(estimates=estimates,
                    simulated=prev_sim$results,
                    counted=counted_prev,
                    full_surv_model=surv_model,
@@ -395,7 +395,7 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #'     Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.
 #'
 #' @return A list with the following attributes:
-#'   \item{results}{A data.table containing the simulated incident populations from each 
+#'   \item{results}{A data.table containing the simulated incident populations from each
 #'   simulation along with their covariates and survival status at the index.}
 #'   \item{full_surv_model}{The survival model built on the full registry data set.}
 #'   \item{full_inc_model}{The incidence model built on the full registry data set.}

@@ -37,7 +37,7 @@ survival models. Defaults to 1; multi-core functionality is provided by the
 }
 \value{
 A list with the following attributes:
-  \item{results}{A data.table containing the simulated incident populations from each 
+  \item{results}{A data.table containing the simulated incident populations from each
   simulation along with their covariates and survival status at the index.}
   \item{full_surv_model}{The survival model built on the full registry data set.}
   \item{full_inc_model}{The incidence model built on the full registry data set.}

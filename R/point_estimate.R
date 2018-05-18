@@ -1,5 +1,5 @@
 new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col,
-                               population_size=NULL, proportion=100e3,
+                               population_size=NULL, proportion=1e5,
                                level=0.95, precision=2) {
     if (year <= 0) {
         warning("Cannot estimate prevalence for a non-positive value of num_year_to_estimate.")
@@ -54,13 +54,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         CI <- z_level * se * proportion
 
         # Setup labels for proportion list outputs
-        proportion_unit <- if (proportion / 1e6 >= 1) 'M' else {
-                                  if (proportion / 1e3 >= 1) 'K' else ''
-                              }
-        proportion_val <- if (proportion / 1e6 >= 1) proportion / 1e6 else {
-                                  if (proportion / 1e3 >= 1) proportion / 1e3 else proportion
-                            }
-        est_lab <- paste('per', proportion_val, proportion_unit, sep='')
+        est_lab <- paste0('per', proportion_label(proportion))
         upper_lab <- paste(est_lab, '.upper', sep='')
         lower_lab <- paste(est_lab, '.lower', sep='')
         result[[est_lab]] <- the_proportion

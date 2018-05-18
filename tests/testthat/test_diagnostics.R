@@ -2,50 +2,34 @@ library(rprev)
 context('Diagnostics')
 data(prevsim)
 
-test_that("test_homogeneity returns same values as before", {
-    expect_ref <- function(data, N_sim) {
-        fn <- 'cache/diagnostics/sim_check.rds'
-        set.seed(17)
-        expect_equal_to_reference(test_homogeneity(yearly_incidence(prevsim$entrydate), N_sim = 10), file=fn)
-    }
+test_that("test_dispersion correct values", {
     set.seed(17)
-    expect_ref(incidence(prevsim$entrydate), N_sim = 10)
+    raw_inc <- c(50, 48, 42, 62, 61, 55)
+    expect_equal(test_dispersion(raw_inc, N_sim = 20), c(0.25, 0.75))
 })
 
-test_that("test_homogeneity with 100000 simulations returns same values as before", {
-    skip_on_cran()
-    skip("too slow")
-    expect_ref <- function(data) {
-        fn <- 'cache/diagnostics/sim_check_100000.rds'
-        set.seed(18)
-        expect_equal_to_reference(test_homogeneity(yearly_incidence(prevsim$entrydate)), file=fn)
-    }
-    set.seed(18)
-    expect_ref(incidence(prevsim$entrydate))
-})
-
-test_that("test_homogeneity returns doubles", {
+test_that("test_dispersion returns doubles", {
     expect_double <- function(data, N_sim) {
-        expect_match(typeof(test_homogeneity(yearly_incidence(prevsim$entrydate), N_sim = 10)), 'double')
+        expect_match(typeof(test_dispersion(c(30, 25, 28, 40, 62), N_sim = 10)), 'double')
     }
 
     expect_double(incidence(prevsim$entrydate), N_sim = 10)
 })
 
-test_that("test_homogeneity returns no NAs", {
+test_that("test_dispersion returns no NAs", {
     expect_NA <- function(data, N_sim) {
-        expect_equal(any(is.na(test_homogeneity(yearly_incidence(prevsim$entrydate), N_sim = 10))), FALSE)
+        expect_equal(any(is.na(test_dispersion(c(30, 25, 28, 42, 60), N_sim = 10))), FALSE)
     }
 
     expect_NA(incidence(prevsim$entrydate), N_sim = 10)
 })
 
-test_that("test_homogeneity returns the correct number of values", {
+test_that("test_dispersion returns the correct number of values", {
     expect_length <- function(data, N_sim) {
-        expect_equal(length(test_homogeneity(yearly_incidence(prevsim$entrydate), N_sim = 10)),2)
+        expect_equal(length(test_dispersion(c(50, 42, 55, 60, 30), N_sim = 10)),2)
     }
 
-    expect_length(test_homogeneity(incidence(prevsim$entrydate), N_sim = 10))
+    expect_length(test_dispersion(incidence(prevsim$entrydate), N_sim = 10))
 })
 
 test_that("test_prevalence_fit returns same values as before without error and isn't significant", {
