@@ -89,6 +89,35 @@ MIN_INCIDENCE <- 10
 #'   survival models. Defaults to 1; multi-core functionality is provided by the
 #'   \code{doParallel} package.
 #'
+#' @return A \code{prevalence} object containing the following attributes:
+#'   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.} 
+#'   \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
+#'     Each row corresponds to a simulated incident case with their simulated attributes and survival status.
+#'     The \code{time_to_entry} field represents the incident time on a scale where the origin is 
+#'     the index date - max(num_years_to_estimate).
+#'     Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed 
+#'     to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
+#'     person was incident during the registry time-span and alive at the index. These cases are used to
+#'     assess the model fit, as the numbers can be simply compared to the known registry prevalence.}
+#'   \item{counted}{The number of incident cases present in the registry data set.}
+#'   \item{full_surv_model}{The survival model built on the complete registry data set.}
+#'   \item{full_inc_model}{The incidence model built on the complete registry data set.}
+#'   \item{surv_models}{A list of the survival models fitted to each bootstrap iteration.}
+#'   \item{inc_models}{A list of the incidence models fitted to each bootstrap iteration.}
+#'   \item{index_date}{The index date.}
+#'   \item{est_years}{The years at which prevalence is estimated at.}
+#'   \item{counted_incidence_rate}{The overall incidence rate in the registry data set.}
+#'   \item{registry_start}{The date the registry was identified at starting at.}
+#'   \item{proportion}{The denominator to use for estimating prevalence rates.}
+#'   \item{status_col}{The column in the registry data containing the survival status.}
+#'   \item{N_boot}{The number of bootstrap iterations that were run.}
+#'   \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
+#'   \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
+#'     \code{survfit} to scale the time-axis.}
+#'   \item{pval}{The p-value resulting from a hypothesis test on the difference between the 
+#'   simulated and counted prevalence on the time-span covered by the registry. Tests the 
+#'   prevalence fit; if a significant result is found then further diagnostics are required.}
+#'   
 #' @references Crouch, Simon, et al. "Determining disease prevalence from
 #'   incidence and survival using simulation techniques." Cancer epidemiology
 #'   38.2 (2014): 193-199.
@@ -266,7 +295,8 @@ prevalence <- function(index, num_years_to_estimate,
     } else {
         counted_prev <- NULL
     }
-    object <- list(estimates=estimates, simulated=prev_sim$results,
+    object <- list(estimates=estimates, 
+                   simulated=prev_sim$results,
                    counted=counted_prev,
                    full_surv_model=surv_model,
                    full_inc_model=full_inc_model,
@@ -281,7 +311,6 @@ prevalence <- function(index, num_years_to_estimate,
                    proportion=proportion,
                    status_col=status_column,
                    N_boot=N_boot)
-
 
     # Calculate covariate averages for survfit later on
     if (!is.null(prev_sim)) {
@@ -366,26 +395,12 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #'     Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.
 #'
 #' @return A list with the following attributes:
-#'   \item{mean_yearly_contributions}{A vector of length
-#'   \code{num_years_to_estimate}, representing the average number of prevalent
-#'   cases subdivided by year of diagnosis across each bootstrap iteration.}
-#'   \item{posterior_age}{Posterior distributions of age, sampled at every
-#'   bootstrap iteration.} \item{yearly_contributions}{Total simulated prevalent
-#'   cases from every bootstrapped sample.} \item{pop_mortality}{Population
-#'   survival rates in the format of a list, stratified by sex.}
-#'   \item{nbootstraps}{Number of bootstrapped samples used in the prevalence
-#'   estimation.} \item{coefs}{The bootstrapped Weibull coefficients used by the
-#'   survival models.} \item{full_coefs}{The Weibull coefficients from a model
-#'   fitted to the full dataset.}
-#' @examples
-#' data(prevsim)
-#'
-#' \dontrun{
-#' simulated_prevalence(prevsim, "2013-01-01",
-#'                      starting_date="2003-01-01",
-#'                      inc_model, surv_model)
-#' }
-#'
+#'   \item{results}{A data.table containing the simulated incident populations from each 
+#'   simulation along with their covariates and survival status at the index.}
+#'   \item{full_surv_model}{The survival model built on the full registry data set.}
+#'   \item{full_inc_model}{The incidence model built on the full registry data set.}
+#'   \item{surv_models}{A list containing survival models built on each bootstrap sample.}
+#'   \item{inc_models}{A list containing incidence models built on each bootstrap sample.}
 #' @importFrom utils data
 #' @import stats
 #' @importFrom doParallel registerDoParallel

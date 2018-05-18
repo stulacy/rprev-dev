@@ -6,11 +6,6 @@ data(prevsim)
 ## ------------------------------------------------------------------------
 summary(prevsim)
 
-## ---- echo=F-------------------------------------------------------------
-#As our registry is short relative to the duration of survival from this disease, we do not have much information about long-term survival after this point in our patient population in order to base a model. In this scenario, instead of extrapolating survival (and thus risking the problem of "immortal" subjects), we recommend using general population survival data to model long-term survivors, and we refer to this as a *cure model* [@crouch2014determining]. In this model, after a specified "cure time", surviving subjects are considered to revert to the survival characteristics for someone of their age and sex in the general population. In our example, a patient is considered *cured* after five years survival with the disease.
-
-#Until the point in time that the cure model takes effect, survival is modelled on disease registry data; after this time, survival probability for the surviving cases is modelled using population mortality rates. `rprev` includes data from the Office of National Statistics (ONS) [see @ons, data licenced under the Open Government Licence v3.0] to describe UK mortality rates (in data set `UKmortality`), however, the user may supply their own population mortality data. 
-
 ## ----basicsurvival, fig.height=4, fig.width=7, echo=F--------------------
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
 survf_df <- data.frame(t=survf$time, s=survf$surv, sex=rep(c('M', 'F'), survf$strata))
@@ -40,7 +35,7 @@ summary(prevalence_total)
 prevalence_total$estimates
 
 ## ------------------------------------------------------------------------
-prevalence_total$simulated
+head(prevalence_total$simulated)
 
 ## ------------------------------------------------------------------------
 llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
@@ -60,23 +55,34 @@ prev_llog <- prevalence(index='2013-01-30',
 prev_llog
 
 ## ------------------------------------------------------------------------
-cure_mod <- flexsurvcure_population(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+fix_cure_mod <- fixed_cure(Surv(time, status) ~ age + sex, data=prevsim, cure_time=5*365.25, 
+                           dist='weibull')
 
 ## ------------------------------------------------------------------------
-cure_mod
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=20, 
+           data=prevsim, 
+           inc_formula = entrydate ~ sex,
+           surv_model=fix_cure_mod,        # Pass in the cure model that was built above
+           population_size = 1e6,
+           death_column = 'eventdate',
+           N_boot = 30)
 
 ## ------------------------------------------------------------------------
-prev_cure <- prevalence(index='2013-01-30', 
-                        num_years_to_estimate=c(3, 5, 10, 20), 
-                        data=prevsim, 
-                        inc_formula = entrydate ~ sex,
-                        surv_model=cure_mod,
-                        population_size = 1e6,
-                        death_column = 'eventdate',
-                        N_boot = 30)
+prevalence_total
 
 ## ------------------------------------------------------------------------
-prev_cure 
+mixture_cure <- flexsurvcure::flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+
+## ------------------------------------------------------------------------
+prevalence(index='2013-01-30', 
+           num_years_to_estimate=20, 
+           data=prevsim, 
+           inc_formula = entrydate ~ sex,
+           surv_model=mixture_cure,
+           population_size = 1e6,
+           death_column = 'eventdate',
+           N_boot = 30)
 
 ## ---- eval=F-------------------------------------------------------------
 #  build_my_survival_object <- function(formula, input_data) {
@@ -102,40 +108,6 @@ prev_cure
 #             surv_model=myobj, # This WON'T work, since the data parameter was called 'some_data' instead
 #             ...)
 
-## ---- eval=F-------------------------------------------------------------
-#  draw_incident_population.myobj <- function(object, data, timeframe, covars, ...) {
-#      # object: The incidence model that will have been created on the bootstrapped data
-#      # data: The data available to fit the model on, will the original data set provided as this acts as the attribute prior distribution.
-#      # timeframe: A single number specifying how long to generate incident cases for.
-#      # covars: A character vector specifying the names of individual covariates that must be included in the returned data.table (or data frame)
-#  
-#      # Returns a data.table (or data frame but data.table is preferred) where each row represents an incident case with:
-#      #   - The first column being the time since the origin, i.e. index date - N year prevalence
-#      #   - Any subsequent columns holding covariates that must be provided as specified in the 'covars' argument
-#  }
-
-## ---- eval=F-------------------------------------------------------------
-#  extract_covars.myobj <- function(object) {
-#      # object: The survival model
-#  
-#      # Returns a character vector detailing the covariates required to fit this model. All of
-#      # these values should be columns in the data that is passed in the main 'prevalence' function.
-#  }
-
-## ---- eval=F-------------------------------------------------------------
-#  predict_survival_probability.myobj <- function(object, newdata, times) {
-#      # object: The survival object
-#      # newdata: A data frame (or data.table) with the incident population stored with their
-#      #   required covariates for the model.
-#      # times: A vector of times to estimate survival probability at for individuals in
-#      #   corresponding rows of 'newdata'. This should be the same length as there are
-#      #   rows in 'newdata' since each individual has their survival probability estimated once.
-#  
-#      # Returns:
-#      #  A vector of survival probabilities of length equal to the length of 'times' and the
-#      #  number of rows in 'newdata'.
-#  }
-
 ## ------------------------------------------------------------------------
 build_poisson <- function(input_data) {
     rate <- nrow(input_data) / as.numeric(difftime(max(input_data$entrydate), min(input_data$eventdate)))
@@ -153,19 +125,21 @@ pois_mod <- build_poisson(input_data=data)
 ## ------------------------------------------------------------------------
 pois_mod
 
+## ---- eval=F-------------------------------------------------------------
+#  # object: The incidence model that will have been created on the bootstrapped data
+#  # data: The data available to fit the model on, will be the registry data set provided to prevalence as this acts as the attribute prior distribution.
+#  # timeframe: A single number specifying how long to generate incident cases for.
+#  # covars: A character vector specifying the names of individual covariates that must be included in the returned data.table (or data frame)
+#  
+#  # Returns a data.table (or data frame but data.table is preferred) where each row represents an incident case with:
+#  #   - The first column being the time since the origin, i.e. index date - N year prevalence
+#  #   - Any subsequent columns holding covariates that must be provided as specified in the 'covars' argument
+#  draw_incident_population <- function(object, data, timeframe, covars, ...)
+
 ## ------------------------------------------------------------------------
 draw_incident_population.pois <- function(object, data, timeframe, covars, ...) {
-    # object: The incidence model that will have been created on the bootstrapped data
-    # data: The data available to fit the model on, will the original data set provided as this acts as the attribute prior distribution.
-    # timeframe: A single number specifying how long to generate incident cases for.
-    # covars: A character vector specifying the names of individual covariates that must be included in the returned data.table (or data frame)
-    
-    # Returns a data.table (or data frame but data.table is preferred) where each row represents an incident case with:
-    #   - The first column being the time since the origin, i.e. index date - N year prevalence
-    #   - Any subsequent columns holding covariates that must be provided as specified in the 'covars' argument
-    
-    # Firstly draw inter-arrival times in the period [0, timeframe]. The expected number is simply timeframe * rate so we'll take this amount +
-    # a margin for error.
+    # Firstly draw inter-arrival times in the period [0, timeframe]. 
+    # The expected number is simply timeframe * rate so we'll take this amount + a margin for error.
     expected <- 1.5 * (timeframe * object$rate)
     # Now draw inter-arrival times
     inter_arrival <- rexp(expected, object$rate)
@@ -176,7 +150,7 @@ draw_incident_population.pois <- function(object, data, timeframe, covars, ...) 
     num_incident <- length(incident_times)
     
     # Sample individual attributes into a matrix. The required attributes are given by 'covars' argument
-    attrs <- do.call('cbind', lapply(covars, function(x) sample(prevsim[[x]], num_incident, replace=T)))
+    attrs <- do.call('cbind', lapply(covars, function(x) sample(data[[x]], num_incident, replace=T)))
     
     # Now add the incident times as the first column
     attrs <- cbind(incident_times, attrs)
@@ -190,7 +164,7 @@ draw_incident_population.pois <- function(object, data, timeframe, covars, ...) 
 }
 
 ## ------------------------------------------------------------------------
-inc_times <- test_incidence_model(pois_mod, prevsim)
+inc_times <- validate_incidence_model(pois_mod, prevsim)
 
 ## ------------------------------------------------------------------------
 head(inc_times)
@@ -210,10 +184,8 @@ prevalence(index='2013-01-30',
 library(flexsurv)
 build_wei <- function(data) {
     mod <- flexsurvreg(Surv(time, status) ~ age, data=data, dist='weibull')
-    # Note that we don't have to manually add a 'call' object since the object returned by
-    # flexsurvreg already has one
     obj <- list(coefs=coef(mod),
-                call=mod$call)
+                call=match.call())
     class(obj) <- 'mysurv'
     obj
 }
@@ -222,24 +194,33 @@ build_wei <- function(data) {
 survobj <- build_wei(data=data)
 survobj
 
+## ---- eval=F-------------------------------------------------------------
+#  # object: The survival model
+#  
+#  # Returns a character vector detailing the covariates required to fit this model. All of
+#  # these values should be columns in the data that is passed in the main 'prevalence' function.
+#  extract_covars <- function(object)
+
 ## ------------------------------------------------------------------------
 extract_covars.mysurv <- function(object) {
     "age"
 }
 
+## ---- eval=F-------------------------------------------------------------
+#  # object: The survival object
+#  # newdata: A data frame (or data.table) with the incident population stored with their
+#  #   required covariates for the model.
+#  # times: A vector of times to estimate survival probability at for individuals in
+#  #   corresponding rows of 'newdata'. This should be the same length as there are
+#  #   rows in 'newdata' since each individual has their survival probability estimated once.
+#  
+#  # Returns:
+#  #  A vector of survival probabilities of length equal to the length of 'times' and the
+#  #  number of rows in 'newdata'.
+#  predict_survival_probability <- function(object, newdata, times)
+
 ## ------------------------------------------------------------------------
 predict_survival_probability.mysurv <- function(object, newdata, times) {
-    # object: The survival object
-    # newdata: A data frame (or data.table) with the incident population stored with their 
-    #   required covariates for the model.
-    # times: A vector of times to estimate survival probability at for individuals in 
-    #   corresponding rows of 'newdata'. This should be the same length as there are 
-    #   rows in 'newdata' since each individual has their survival probability estimated once.
-    
-    # Returns:
-    #  A vector of survival probabilities of length equal to the length of 'times' and the 
-    #  number of rows in 'newdata'.
-    
     # Calculate linear predictor, this will form the shape parameter
     shape <- exp(object$coefs[1] + newdata$age*object$coefs[3])
     scale <- exp(object$coefs[2])
@@ -250,7 +231,7 @@ predict_survival_probability.mysurv <- function(object, newdata, times) {
 predict_survival_probability(survobj, newdata=data.frame(age=c(50, 70)), times=c(100, 100))
 
 ## ------------------------------------------------------------------------
-probs <- test_survival_model(survobj, prevsim)
+probs <- validate_survival_model(survobj, prevsim)
 head(probs)
 
 ## ------------------------------------------------------------------------

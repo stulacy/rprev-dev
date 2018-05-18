@@ -19,16 +19,17 @@ Imports:
     doParallel,
     dplyr,
     foreach,
-    flexsurv,
-    flexsurvcure,
     ggplot2,
     lazyeval,
     lubridate,
     magrittr,
-    rms,
     tidyr
 RoxygenNote: 6.0.1
-Suggests: testthat,
-    knitr
+Suggests: 
+    flexsurv,
+    flexsurvcure,
+    knitr,
+    rms,
+    testthat
 URL: https://github.com/stulacy/rprev-dev
 VignetteBuilder: knitr

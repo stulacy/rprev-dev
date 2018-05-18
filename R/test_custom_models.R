@@ -16,7 +16,7 @@
 #' for further diagnostics to be run.
 #'
 #' @export
-test_incidence_model <- function(object, data, timeframe=3652) {
+validate_incidence_model <- function(object, data, timeframe=3652) {
 
     # Check has required attributes
     if (is.null(object$call)) {
@@ -86,7 +86,7 @@ test_incidence_model <- function(object, data, timeframe=3652) {
 #' console.
 #'
 #' @export
-test_survival_model <- function(object, data, timeframe=3652, sample_size=10) {
+validate_survival_model <- function(object, data, timeframe=3652, sample_size=10) {
     # Check has required attributes
     if (is.null(object$call)) {
         stop("Error: object does not have a call attribute.")

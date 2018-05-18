@@ -52,7 +52,6 @@ test_that("validate_population_survival checks the existence of other stratifica
     expect_silent(validate_population_survival(wsex, prevsim))
 })
 
-# TODO Test all levels of covariates
 test_that("validate_population_survival verifies all linkage covariate values in registry data are in the population data set", {
     data("UKmortality")
     no_female_pop <- data.frame(age=1:36525, surv=runif(36525), sex='M')

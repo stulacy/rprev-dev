@@ -81,6 +81,36 @@ risk.}
 survival models. Defaults to 1; multi-core functionality is provided by the
 \code{doParallel} package.}
 }
+\value{
+A \code{prevalence} object containing the following attributes:
+  \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.} 
+  \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
+    Each row corresponds to a simulated incident case with their simulated attributes and survival status.
+    The \code{time_to_entry} field represents the incident time on a scale where the origin is 
+    the index date - max(num_years_to_estimate).
+    Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed 
+    to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
+    person was incident during the registry time-span and alive at the index. These cases are used to
+    assess the model fit, as the numbers can be simply compared to the known registry prevalence.}
+  \item{counted}{The number of incident cases present in the registry data set.}
+  \item{full_surv_model}{The survival model built on the complete registry data set.}
+  \item{full_inc_model}{The incidence model built on the complete registry data set.}
+  \item{surv_models}{A list of the survival models fitted to each bootstrap iteration.}
+  \item{inc_models}{A list of the incidence models fitted to each bootstrap iteration.}
+  \item{index_date}{The index date.}
+  \item{est_years}{The years at which prevalence is estimated at.}
+  \item{counted_incidence_rate}{The overall incidence rate in the registry data set.}
+  \item{registry_start}{The date the registry was identified at starting at.}
+  \item{proportion}{The denominator to use for estimating prevalence rates.}
+  \item{status_col}{The column in the registry data containing the survival status.}
+  \item{N_boot}{The number of bootstrap iterations that were run.}
+  \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
+  \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
+    \code{survfit} to scale the time-axis.}
+  \item{pval}{The p-value resulting from a hypothesis test on the difference between the 
+  simulated and counted prevalence on the time-span covered by the registry. Tests the 
+  prevalence fit; if a significant result is found then further diagnostics are required.}
+}
 \description{
 Point prevalence at a specific index date is estimated using contributions to
 prevalence from both available registry data, and from Monte Carlo

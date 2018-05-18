@@ -36,6 +36,8 @@
 #'
 #' @export
 #' @family incidence functions
+#' TODO Refactor arguments so that population size isnt required 
+#' and count back from index
 incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
                       df=6, precision=2, level=0.95){
 
@@ -61,7 +63,7 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
                    index_dates = reg_years,
                    mean=mean_incidence_rate(raw_inc, population_size=population_size,
                                             precision=precision, level=level),
-                   pvals=test_incidence_fit(raw_inc),
+                   pvals=test_homogeneity(raw_inc),
                    dof=df)
     attr(object, 'class') <- 'incidence'
     object
@@ -79,17 +81,6 @@ incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
 #' If both \code{end_date} and \code{start_date} are specified then \code{start_date} takes precedence.
 #' @return Vector of length \code{num_years} of integers, representing the number
 #'   of absolute incidence values for each included year of the registry.
-#' @examples
-#' data(prevsim)
-#'
-#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", num_years=8)
-#' yearly_incidence(prevsim$entrydate)
-#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
-#' yearly_incidence(prevsim$entrydate, num_years=5, end_date="2015-05-01")
-#'
-#' @export
-#' @family incidence functions
 yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NULL) {
 
     if (!is.null(start_date)) { # Having the start date takes priority
@@ -145,14 +136,11 @@ yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NU
 #' @examples
 #' data(prevsim)
 #'
-#' rawinc <- yearly_incidence(prevsim$entrydate)
-#' mean_incidence_rate(rawinc, population_size=3.5e6)
+#' #rawinc <- yearly_incidence(prevsim$entrydate)
+#' #mean_incidence_rate(rawinc, population_size=3.5e6)
 #'
-#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-#' mean_incidence_rate(rawinc2, population_size=3.5e6)
-#'
-#' @export
-#' @family incidence functions
+#' #rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
+#' #mean_incidence_rate(rawinc2, population_size=3.5e6)
 mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0.95){
 
     mean_rate <- mean(raw_inc)

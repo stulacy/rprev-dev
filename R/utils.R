@@ -12,7 +12,6 @@ DAYS_IN_YEAR <- 365.25
 #' @param direction A string indicating whether the parameter \code{date} represents
 #' the opening or closing interval. Must take values either 'forwards' or 'backwards'.
 #' @return A vector of dates delineating complete years of registry data.
-#' @export
 determine_yearly_endpoints <- function(date, num_years, direction='forwards') {
 
     if (! direction %in% c('forwards', 'backwards'))

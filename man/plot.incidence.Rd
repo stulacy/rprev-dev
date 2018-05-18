@@ -38,9 +38,5 @@ plot(inc)
 
 }
 \seealso{
-Other incidence functions: \code{\link{incidence_age_distribution}},
-  \code{\link{incidence}},
-  \code{\link{mean_incidence_rate}},
-  \code{\link{test_incidence_fit}},
-  \code{\link{yearly_incidence}}
+Other incidence functions: \code{\link{test_homogeneity}}
 }
