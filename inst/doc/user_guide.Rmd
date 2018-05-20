@@ -110,8 +110,7 @@ The default survival models are based on the `survival::survreg` function and ar
 To use a `flexsurvreg` object with `prevalence`, simply fit a model to the registry data and then pass it in through the `surv_model` argument. For example, the log-logistic distribution isn't currently supported by the default survival model in `rprev`, but it can be used in the `flexsurv` implementation. Firstly the survival model is fitted, allowing for appropriate diagnostics to be performed first.
 
 ```{r}
-library(flexsurv)
-llog <- flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
+llog <- flexsurv::flexsurvreg(Surv(time, status) ~ age + sex, data=prevsim, dist='llogis')
 llog
 ```
 
@@ -169,8 +168,7 @@ prevalence_total
 An additional cure model implementation that can also be used are the mixture and non-mixture cure models as implemented by `flexsurvcure`. These are fitted in the same way as standard `flexsurv` object as described above. These are also considerably slower to run than non-cure survival models.
 
 ```{r}
-library(flexsurvcure)
-mixture_cure <- flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
+mixture_cure <- flexsurvcure::flexsurvcure(Surv(time, status) ~ age + sex, data=prevsim, dist='weibull', link='logistic', mixture=TRUE)
 ```
 
 ```{r}

@@ -1,11 +1,33 @@
-#' Summarise disease incidence.
+#' Inspects disease incidence for its compatibility with a homogeneous Poisson process.
 #'
 #' Calculates incidence by year of the registry data, along with mean incidence
 #' with confidence intervals. A smoothed cumulative incidence function is fit to
 #' the data for inspecting deviations in the registry data from a homogeneous
 #' Poisson process.
-#'
-#' TODO Add details about truncation and yearly endpoints
+#' 
+#' Annual incidence rates are calculated for every year that is present in
+#' \code{entry}, with years being delimited by the date specified in \code{year_start}
+#' that include every incident case.
+#' For example, under the default values, if the earliest incident date in \code{entry}
+#' is 1981-04-28, and the latest is 2016-02-16, then annual incidence rates will be
+#' calculated with the boundaries 1981-01-01 - 1982-01-01, ..., 2016-01-01-2017-01-01.
+#' 
+#' If \code{year_start} was specified as '09-01' then the boundaries would be
+#' 1980-09-01 - 1981-09-01, ..., 2015-09-01 - 2016-09-01.
+#' 
+#' The \code{truncate_start} and \code{truncate_end} arguments remove incident
+#' cases in the first and last years after and before the yearly boundaries 
+#' respectively. So if they were
+#' both \code{TRUE}, with \code{year_start} as '09-01' as before, then the
+#' boundaries would be:
+#' 
+#' 1981-09-01 - 1982-09-01, ..., 2015-09-01 - 2016-09-01, i.e. the 
+#' incident cases between 1981-04-28 and 1981-09-01 are discarded by
+#' \code{truncate_start} and those between 2016-02-16 and 2016-09-01
+#' removed by \code{truncate_end}.
+#' 
+#' This helps to ensure that annual incidence is measured on a time-scale appropriate
+#' for your registry.
 #'
 #' @param entry Vector of diagnosis dates for each patient in the registry in
 #'   the format YYYY-MM-DD.
@@ -211,17 +233,17 @@ plot.incdiag <- function(x, level=0.95, ...){
 
 #' @export
 print.incdiag <- function(x, ...) {
-    cat("Cumulative incidence object with", length(x$raw_incidence), "years of data.\n")
+    cat("Cumulative incidence object with", length(x$yearly_incidence), "years of data.\n")
     cat("Smooth fitted using", x$dof, "degrees of freedom.\n")
 
 }
 
 #' @export
 summary.incdiag <- function(object, ...) {
-    cat("Number of years of registry data:", length(object$raw_incidence), "\n")
+    cat("Number of years of registry data:", length(object$yearly_incidence), "\n")
 
     cat("\nIncidence\n~~~~~~~~~\n")
-    cat("Known incidence by year:", object$raw_incidence, "\n")
+    cat("Known incidence by year:", object$yearly_incidence, "\n")
     cat("Diagnoses (time since registry began):\n")
     print(summary(object$ordered_diagnoses))
     cat("p-values for over/under dispersion:", object$pvals, "\n")

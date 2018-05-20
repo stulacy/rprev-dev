@@ -1,14 +1,13 @@
 ## ----setup, message = FALSE, warning = FALSE, echo=F---------------------
 library(rprev)
 library(survival)
+library(ggplot2)
 data(prevsim)
 
 ## ------------------------------------------------------------------------
-inc <- incidence(prevsim$entrydate, population_size=3.2e6, start='2005-09-01', num_reg_years=5)
-
-## ------------------------------------------------------------------------
-inc
-names(inc)
+inc <- test_homogeneity(prevsim$entrydate,
+                        population_size=3.2e6,
+                        truncate_end=TRUE)
 
 ## ------------------------------------------------------------------------
 summary(inc)
@@ -20,7 +19,11 @@ inc$mean
 plot(inc)
 
 ## ----incidenceage, fig.width = 7, fig.height = 4, error = TRUE-----------
-incidence_age_distribution(prevsim$age)
+ggplot(prevsim, aes(age, y=..count..)) +
+    geom_line(stat='density') +
+    xlim(0, 100) +
+    labs(x='Age (years)', y='Number incident cases') +
+    theme_bw()
 
 ## ----survivaldiag, fig.width = 7, fig.height = 4-------------------------
 km <- survfit(Surv(time, status) ~ 1, data=prevsim)
@@ -60,8 +63,31 @@ lines(cxp, lwd=2, col=1:length(ages), lty=2, mark.time=F)
 ## ------------------------------------------------------------------------
 cox.zph(cx)
 
-## ----ageform2, fig.width = 7, fig.height = 4, error = TRUE---------------
-functional_form_age(Surv(time, status) ~ age, prevsim, df=4, plot_fit=T)
+## ----ageform3, warning=F, message=F, fig.width = 7, fig.height = 4, error = TRUE----
+library(rms)
+library(dplyr)
+
+mod_spline <- cph(Surv(time, status) ~ rcs(age, df=4), prevsim, x=TRUE, y=TRUE, surv=TRUE, time.inc=1)
+
+# Calculates log hazard linear predictor at 100 linearly separated ages between the limits
+# in the registr data
+age_range <- seq(min(prevsim$age), max(prevsim$age), length.out=100)
+preds <- predict(mod_spline, newdata=age_range, se.fit=T)
+preds_df <- as.data.frame(preds) %>%
+                rename(lp=linear.predictors, se=se.fit) %>%
+                mutate(age = age_range,
+                       upper = lp + 2 * se,
+                       lower = lp - 2 * se)
+
+ggplot(preds_df, aes(x=age, y=lp)) +
+    geom_ribbon(aes(ymin=lower, ymax=upper),
+                     colour='#d2d2d2', alpha=0.30) +
+    geom_line(colour='#0080ff', size=1.2) +
+    theme_bw() +
+    labs(x='Age', y='Log relative hazard')
+
+## ------------------------------------------------------------------------
+mod_spline
 
 ## ----prevalencetotal, error = TRUE---------------------------------------
 prevalence_total <- prevalence(index='2013-01-30', 

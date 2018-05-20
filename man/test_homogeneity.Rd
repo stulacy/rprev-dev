@@ -2,7 +2,7 @@
 % Please edit documentation in R/incidence.R
 \name{test_homogeneity}
 \alias{test_homogeneity}
-\title{Summarise disease incidence.}
+\title{Inspects disease incidence for its compatibility with a homogeneous Poisson process.}
 \usage{
 test_homogeneity(entry, year_start = "01-01", truncate_start = FALSE,
   truncate_end = FALSE, population_size = NULL, df = 4,
@@ -54,7 +54,29 @@ the data for inspecting deviations in the registry data from a homogeneous
 Poisson process.
 }
 \details{
-TODO Add details about truncation and yearly endpoints
+Annual incidence rates are calculated for every year that is present in
+\code{entry}, with years being delimited by the date specified in \code{year_start}
+that include every incident case.
+For example, under the default values, if the earliest incident date in \code{entry}
+is 1981-04-28, and the latest is 2016-02-16, then annual incidence rates will be
+calculated with the boundaries 1981-01-01 - 1982-01-01, ..., 2016-01-01-2017-01-01.
+
+If \code{year_start} was specified as '09-01' then the boundaries would be
+1980-09-01 - 1981-09-01, ..., 2015-09-01 - 2016-09-01.
+
+The \code{truncate_start} and \code{truncate_end} arguments remove incident
+cases in the first and last years after and before the yearly boundaries 
+respectively. So if they were
+both \code{TRUE}, with \code{year_start} as '09-01' as before, then the
+boundaries would be:
+
+1981-09-01 - 1982-09-01, ..., 2015-09-01 - 2016-09-01, i.e. the 
+incident cases between 1981-04-28 and 1981-09-01 are discarded by
+\code{truncate_start} and those between 2016-02-16 and 2016-09-01
+removed by \code{truncate_end}.
+
+This helps to ensure that annual incidence is measured on a time-scale appropriate
+for your registry.
 }
 \examples{
 data(prevsim)

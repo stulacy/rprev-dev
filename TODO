@@ -1,4 +1,3 @@
   - Parallelise main simulation loop
   - Have predict_survival_probability.survregmin not require factors to manually have their original levels added
-  - Rename incidence function to remove any potential confusion with incidence models
 
