@@ -27,19 +27,3 @@ An S3 object of class \code{survfit.prev} with the following
 Calculates bootstrapped survival probabilities from the Weibull models fitted
 to the \code{prevalence} object.
 }
-\examples{
-data(prevsim)
-
-\dontrun{
-prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
-                       entry(entrydate) + event(eventdate),
-                       data=prevsim, num_years_to_estimate = c(5, 10),
-                       population_size=1e6, start = "2005-09-01",
-                       num_reg_years = 8, cure = 5)
-
-survobj <- survfit(prev_obj)
-
-survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
-}
-
-}

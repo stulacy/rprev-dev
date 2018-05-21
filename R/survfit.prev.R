@@ -14,20 +14,6 @@
 #'   probabilities, where the rows represent a different bootstrapped Weibull
 #'   model, and the columns are each timepoint.} \item{fullsurv}{A vector of
 #'   survival probabilities for the predictors provided in newdata.}
-#' @examples
-#' data(prevsim)
-#'
-#' \dontrun{
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
-#'                        entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10),
-#'                        population_size=1e6, start = "2005-09-01",
-#'                        num_reg_years = 8, cure = 5)
-#'
-#' survobj <- survfit(prev_obj)
-#'
-#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
-#' }
 #'
 #' @importFrom survival survfit
 #' @export
@@ -38,6 +24,14 @@ survfit.prevalence <- function(formula, newdata=NULL, ...) {
         # Check names have same names as those in original data
         if (!all(sort(names(newdata)) == sort(names(formula$means))))
             stop("Error: Please provide a list with the same column names as in the original dataset.")
+
+        # Set levels of newdata to the levels in the original data (which have been previously saved in 'means')
+        orig_levels <- lapply(formula$means, levels)
+        cat_vars <- orig_levels[!sapply(orig_levels, is.null)]
+        for (var in names(cat_vars)) {
+            levels(newdata[[var]]) <- cat_vars[[var]]
+        }
+
     }
     if (is.null(formula$max_event_time)) {
         stop("Error: Cannot fit survfit model as event times have not been saved in the prevalence ",

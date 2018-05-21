@@ -449,7 +449,6 @@ sim_prevalence <- function(data, index, starting_date,
              inc=bs_inc)
     }
 
-    # TODO Add in multi core functionality
     if (n_cores > 1) {
         message("Multi-core functionality not currently implemented, defaulting to single-core.")
         #doParallel::registerDoParallel(n_cores)
