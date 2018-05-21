@@ -14,7 +14,7 @@ vignette: >
 
 The [user guide](user_guide.html) highlighted the basic use of the prevalence simulation methodology, demonstrating that the prevalence process is a result of two distinct processes: incidence and survival. `rprev` allows for custom specification of both of these systems, in addition to providing default implementations that work well in many situations. This vignette acts as a guide to assessing the modelling assumptions made when using these default models, including the use of diagnostic functions provided with `rprev`. 
 
-First, we will inspect the consistency of incidence data across the range of the registry and determine if it can be appropriately modelled as an homogeneous Poisson process. Second, we will look at verifying assumptions made when using a parametric model of survival. We emphasise that **the user should check that their registry data does meet the required assumptions and if not, should understand that estimates of prevalence made using simulation based on that data may not be correct**.
+First, we will inspect the consistency of incidence data across the range of the registry and determine if it can be appropriately modelled as an homogeneous Poisson process. Second, we will look at verifying assumptions made when using a parametric model of survival. We emphasize that **the user should check that their registry data does meet the required assumptions and if not, should understand that estimates of prevalence made using simulation based on that data may not be correct**.
 
 ```{r setup, message = FALSE, warning = FALSE, echo=F}
 library(rprev)
@@ -105,7 +105,7 @@ sapply(seq(num_reg_years),
                          mark.time = F, conf.int = F))
 ```
 
-The effect of age on hazard can be visualised to determine if there are any non-proportional effects, by inspecting Schoenfeld residuals from a Cox model. This is easily done using the `cox.zph` function from the `survival` package. 
+The effect of age on hazard can be visualized to determine if there are any non-proportional effects, by inspecting Schoenfeld residuals from a Cox model. This is easily done using the `cox.zph` function from the `survival` package. 
 
 ```{r survivaldiag3, fig.width = 7, fig.height = 4}
 cx <- coxph(Surv(time, status) ~ age, data=prevsim)
@@ -125,7 +125,7 @@ cox.zph(cx)
 
 ## Functional form of age
 
-Often, it can be a rather tenuous assumption that age has a linear effect on log-hazard. We recommend investigating whether a non-linear functional form provides a more appropriate fit. In particular, the `rms` package provides the `cph` function to fit a Cox model, to which restricted cubic splines can be placed on covariates using `rcs` as demonstrated below. Plotting log hazard as a function of age provides a visual means of assesing model fit, to be used alongside inspection of the model coefficients.
+Often, it can be a rather tenuous assumption that age has a linear effect on log-hazard. We recommend investigating whether a non-linear functional form provides a more appropriate fit. In particular, the `rms` package provides the `cph` function to fit a Cox model, to which restricted cubic splines can be placed on covariates using `rcs` as demonstrated below. Plotting log hazard as a function of age provides a visual means of assessing model fit, to be used alongside inspection of the model coefficients.
 
 ```{r ageform3, warning=F, message=F, fig.width = 7, fig.height = 4, error = TRUE}
 library(rms)
@@ -151,7 +151,7 @@ ggplot(preds_df, aes(x=age, y=lp)) +
     labs(x='Age', y='Log relative hazard')
 ```
 
-For example, in this situation there isn't enough evidence to suggest a non-linear effect provides a better model fit over just a linear relationship.
+For example, in this situation there isn't enough evidence to suggest a non-linear effect provides a better model fit over a linear relationship.
 
 ```{r}
 mod_spline
@@ -159,7 +159,7 @@ mod_spline
 
 # Prevalence estimates
 
-As a reminder, prevalence is estimated using incidence and survival data from *n* years. However, registry data (and thus known incidence and survival) data may only be known for *r* years, where *r* <= *n*. If *r* < *n*, the remaining *n*-*r* years of incidence and survival are simulated using Monte Carlo techniques. If the incidence and survival models are well specified then the prevalence estimates should be reliable, however, it is still useful to check the fit before drawing any conclusions from the results. 
+As a reminder, prevalence is estimated using incidence and survival data from *n* years. However, registry data (and thus known incidence and survival) data may only be known for *r* years, where *r* <= *n*. If *r* < *n*, the remaining *n*-*r* years of incidence and survival are simulated using Monte Carlo techniques. If the incidence and survival models are well specified then the prevalence estimates should be reliable, however, it is beneficial to check the performance of these bootstrapped models (their variance in particular) before drawing any conclusions from the results. 
 
 ```{r prevalencetotal, error = TRUE}
 prevalence_total <- prevalence(index='2013-01-30', 
@@ -170,32 +170,6 @@ prevalence_total <- prevalence(index='2013-01-30',
                                dist='weibull', 
                                population_size = 1e6,
                                death_column = 'eventdate')
-```
-
-## Diagnosing incidence models
-
-We do not provide any functions for diagnosing the incidence models fitted to the bootstrap data, however, all the objects are available in the `inc_models` attribute of the returned `prevalence` object and can be used to check for any errors in fitting.
-
-## Diagnosing survival models
-
-To inspect the distribution of the bootstrapped survival models [see @crouch2014determining for details], a `survfit.prev` object can be constructed using the usual `survfit` call, accepting a data frame of new data (with identical column names to those found in the original data set). In the example below, survival probability is estimated for a 60 year old male:
-
-```{r}
-prevsurv <- survfit(prevalence_total, 
-                    newdata=data.frame(age=60, sex=factor('M', levels=levels(prevsim$sex))))
-prevsurv
-```
-
-The `summary.survfit.prev` method provides *N*-year survival probabilities, with *N* specified as an argument vector:
-
-```{r}
-summary(prevsurv, years=c(1, 3, 5, 10))
-```
-
-Plotting the `survfit.prev` object displays the survival curve of a Weibull model using the original data set (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval. This plot is useful to assess the variability of the survival models. Further manual inspection can be carried out by looking at the objects themselves, saved in the `surv_models` attribute of the `prevalence` object.
-
-```{r, fig.width=7, fig.height=4}
-plot(prevsurv, pct_show=0.90)
 ```
 
 ## Comparison between simulated and counted prevalence
@@ -214,9 +188,35 @@ This can also be calculated manually with the `test_prevalence_fit` function.
 test_prevalence_fit(prevalence_total)
 ```
 
+
+## Diagnosing incidence models
+
+We do not provide any functions for diagnosing the bootstrapped incidence models, however, all the objects are available in the `inc_models` attribute of the returned `prevalence` object and can be used to check for any errors in fitting. If the default homogeneous Poisson process model is being used then the techniques described earlier can be applied.
+
+## Diagnosing survival models
+
+To inspect the distribution of the bootstrapped survival models [see @crouch2014determining for details], a `survfit.prev` object can be constructed using the usual `survfit` call, accepting a data frame of new data, defaulting to the average covariate values in the registry data. In the example below, survival probability is estimated for a 60 year old male:
+
+```{r}
+prevsurv <- survfit(prevalence_total, newdata=data.frame(age=60, sex='M'))
+prevsurv
+```
+
+The `summary` method provides *N*-year survival probabilities, with *N* specified as an argument vector:
+
+```{r}
+summary(prevsurv, years=c(1, 3, 5, 10))
+```
+
+Plotting this object displays the survival curve of a Weibull model using the original data set (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval. This plot is useful to assess the variability of the survival models. Further manual inspection can be carried out by looking at the objects themselves, saved in the `surv_models` attribute of the `prevalence` object.
+
+```{r, fig.width=7, fig.height=4}
+plot(prevsurv, pct_show=0.90)
+```
+
 ## Simulated population
 
-The `simulated` attribute of the `prevalence` object holds a `data.table` with the incident population from every simulation, along with derived fields indicating whether they contributed to prevalence at the index date of any years of interest. It can be used as an overall check of the appropriateness of the generated incidence population, as well as identifying any discrepencies in the survival modelling.
+The `simulated` attribute of the `prevalence` object holds a `data.table` with the incident population from every simulation, along with derived fields indicating whether they contributed to prevalence at the index date of any years of interest. It can be used as an overall check of the appropriateness of the generated incidence population, as well as identifying any discrepancies in the survival modelling.
 
 ```{r}
 knitr::kable(head(prevalence_total$simulated))
