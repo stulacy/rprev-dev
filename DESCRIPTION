@@ -1,12 +1,12 @@
 Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
-Version: 0.2.3
-Date: 2017-02-13
+Version: 1.0.0
+Date: 2018-05-21
 Authors@R: c(
+        person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut')),
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
-        person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
-        person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut'))
+        person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut')
         )
 Description: Estimates disease prevalence for a given index date, using existing
     registry data extended with Monte Carlo simulations.
