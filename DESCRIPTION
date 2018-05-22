@@ -2,7 +2,7 @@ Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
 Version: 1.0.0
-Date: 2018-05-21
+Date: 2018-05-22
 Authors@R: c(
         person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut')),
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),

@@ -86,8 +86,6 @@ A \code{prevalence} object containing the following attributes:
   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
   \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
     Each row corresponds to a simulated incident case with their simulated attributes and survival status.
-    The \code{time_to_entry} field represents the incident time on a scale where the origin is
-    the index date - max(num_years_to_estimate).
     Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed
     to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
     person was incident during the registry time-span and alive at the index. These cases are used to

@@ -125,7 +125,8 @@ cox.zph(cx)
 
 ## Functional form of age
 
-Often, it can be a rather tenuous assumption that age has a linear effect on log-hazard. We recommend investigating whether a non-linear functional form provides a more appropriate fit. In particular, the `rms` package provides the `cph` function to fit a Cox model, to which restricted cubic splines can be placed on covariates using `rcs` as demonstrated below. Plotting log hazard as a function of age provides a visual means of assessing model fit, to be used alongside inspection of the model coefficients.
+The standard standard assumption in a survival model is that continuous variables have a linear relationship with log-hazard.
+When looking at the impact of age on disease survival, we highly recommend investigating whether a non-linear functional form provides a more appropriate fit. In particular, the `rms` package provides the `cph` function to fit a Cox model, to which restricted cubic splines can be placed on covariates using `rcs` as demonstrated below. Plotting log hazard as a function of age provides a visual means of assessing model fit, to be used alongside inspection of the model coefficients.
 
 ```{r ageform3, warning=F, message=F, fig.width = 7, fig.height = 4, error = TRUE}
 library(rms)
@@ -208,10 +209,10 @@ The `summary` method provides *N*-year survival probabilities, with *N* specifie
 summary(prevsurv, years=c(1, 3, 5, 10))
 ```
 
-Plotting this object displays the survival curve of a Weibull model using the original data set (orange), along with 95% confidence intervals derived using the bootstrapped models shaded in light grey, while outlier curves are individually plotted. Outliers are defined as those survival curves where at least `pct_show` proportion of their point predictions lie outside the 95% confidence interval. This plot is useful to assess the variability of the survival models. Further manual inspection can be carried out by looking at the objects themselves, saved in the `surv_models` attribute of the `prevalence` object.
+Plotting this object displays the survival curve of a Weibull model using the original data set (orange), along with a 95% confidence band derived using the bootstrapped models. This plot is useful to assess the variability of the survival models. Further manual inspection can be carried out by looking at the objects themselves, saved in the `surv_models` attribute of the `prevalence` object.
 
 ```{r, fig.width=7, fig.height=4}
-plot(prevsurv, pct_show=0.90)
+plot(prevsurv)
 ```
 
 ## Simulated population

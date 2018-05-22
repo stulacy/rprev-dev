@@ -15,7 +15,7 @@
 #'   model, and the columns are each timepoint.} \item{fullsurv}{A vector of
 #'   survival probabilities for the predictors provided in newdata.}
 #'
-#' @importFrom survival survfit
+#' @import stats
 #' @export
 survfit.prevalence <- function(formula, newdata=NULL, ...) {
     if (is.null(newdata)) {
@@ -119,13 +119,9 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #'
 #' The survival curve for a model formed on all the data is displayed in orange,
 #' while the 95% confidence interval for the bootstrapped models are displayed
-#' as a grey ribbon. Outlying survival curves are displayed in full, where the
-#' \code{pct_show} argument details the proportion of points outside of the
-#' confidence interval for a survival curve to be deemed as an outlier.
+#' as a grey ribbon.
 #'
 #' @param x A \code{survfit.prev} object.
-#' @param pct_show A list or dataframe with the covariate values to calculate
-#'   survival probabilities.
 #' @param ... Arguments passed to \code{plot}.
 #' @return An S3 object of class \code{ggplot}.
 #' @examples
@@ -141,26 +137,11 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 #'
 #' plot(survobj)
-#'
-#' plot(survobj, pct_show=0)  # Display curves with any outlying points
-#' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
-#' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
 #' }
 #'
 #' @export
 #' @importFrom magrittr "%>%"
-#' @importFrom dplyr select_vars
-#' @importFrom dplyr group_by
-#' @importFrom dplyr summarise
-#' @importFrom dplyr mutate
-#' @importFrom dplyr arrange
-#' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 geom_ribbon
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 aes_string
-#' @importFrom tidyr gather_
-plot.survfit.prev <- function(x, pct_show=0.9, ...) {
+plot.survfit.prev <- function(x, ...) {
 
     num_boot <- dim(x$surv)[1]
     num_days <- dim(x$surv)[2]
@@ -180,24 +161,13 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
         dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time'))) %>%
         dplyr::arrange_('time')
 
-    row_inds <- apply(df[, -ncol(df)], 1,
-                      function(row) mean(row > smooth$mx | row < smooth$mn) > pct_show)
-
-    outliers <- df[row_inds, ] %>%
-                    tidyr::gather('time', 'survprob', -'bootstrap') %>%
-                    dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
-                                   bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
-
     p <- ggplot2::ggplot() +
-            ggplot2::geom_line(data=outliers,
-                               ggplot2::aes_string(x='time', y='survprob', group='bootstrap'),
-                               colour='grey', linetype="dotted") +
             ggplot2::geom_ribbon(data=smooth,
-                                 ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.3) +
+                                 ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.15) +
             ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
                                ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
             ggplot2::theme_bw() +
             ggplot2::ylim(0, 1) +
-            ggplot2::labs(x="Days", y="Survival probability")
+            ggplot2::labs(x="Time", y="Survival probability")
     p
 }

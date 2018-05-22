@@ -113,7 +113,7 @@ prevsurv
 summary(prevsurv, years=c(1, 3, 5, 10))
 
 ## ---- fig.width=7, fig.height=4------------------------------------------
-plot(prevsurv, pct_show=0.90)
+plot(prevsurv)
 
 ## ------------------------------------------------------------------------
 knitr::kable(head(prevalence_total$simulated))
