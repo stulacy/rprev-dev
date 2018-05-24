@@ -46,6 +46,10 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
 
     func_call <- match.call()
     func_call$formula <- eval(formula)
+    func_call$dist <- eval(dist)
+    func_call$cure_time <- eval(cure_time)
+    func_call$population_covariates <- population_covariates
+
     obj$call <- func_call
     miss_pop_data <- is.null(daily_survival)
 
