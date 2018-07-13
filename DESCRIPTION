@@ -25,11 +25,12 @@ Imports:
     magrittr,
     tidyr
 RoxygenNote: 6.0.1
-Suggests: 
+Suggests:
     flexsurv,
     flexsurvcure,
     knitr,
     rms,
-    testthat
+    testthat,
+    covr
 URL: https://github.com/stulacy/rprev-dev
 VignetteBuilder: knitr
