@@ -4,13 +4,10 @@
 \alias{plot.survfit.prev}
 \title{Plot bootstrapped survival curves.}
 \usage{
-\method{plot}{survfit.prev}(x, pct_show = 0.9, ...)
+\method{plot}{survfit.prev}(x, ...)
 }
 \arguments{
 \item{x}{A \code{survfit.prev} object.}
-
-\item{pct_show}{A list or dataframe with the covariate values to calculate
-survival probabilities.}
 
 \item{...}{Arguments passed to \code{plot}.}
 }
@@ -23,9 +20,7 @@ This method plots survival curves for a \code{survfit.prev} object.
 \details{
 The survival curve for a model formed on all the data is displayed in orange,
 while the 95% confidence interval for the bootstrapped models are displayed
-as a grey ribbon. Outlying survival curves are displayed in full, where the
-\code{pct_show} argument details the proportion of points outside of the
-confidence interval for a survival curve to be deemed as an outlier.
+as a grey ribbon.
 }
 \examples{
 data(prevsim)
@@ -40,10 +35,6 @@ prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
 survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 
 plot(survobj)
-
-plot(survobj, pct_show=0)  # Display curves with any outlying points
-plot(survobj, pct_show=0.5)  # Display curves with half outlying points
-plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
 }
 
 }

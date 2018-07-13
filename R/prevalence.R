@@ -93,8 +93,6 @@ MIN_INCIDENCE <- 10
 #'   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
 #'   \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
 #'     Each row corresponds to a simulated incident case with their simulated attributes and survival status.
-#'     The \code{time_to_entry} field represents the incident time on a scale where the origin is
-#'     the index date - max(num_years_to_estimate).
 #'     Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed
 #'     to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
 #'     person was incident during the registry time-span and alive at the index. These cases are used to
@@ -401,11 +399,7 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 #'   \item{full_inc_model}{The incidence model built on the full registry data set.}
 #'   \item{surv_models}{A list containing survival models built on each bootstrap sample.}
 #'   \item{inc_models}{A list containing incidence models built on each bootstrap sample.}
-#' @importFrom utils data
-#' @import stats
-#' @importFrom doParallel registerDoParallel
-#' @importFrom foreach foreach
-#' @importFrom foreach %dopar%
+#' @importFrom survival survfit
 sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
@@ -468,8 +462,8 @@ sim_prevalence <- function(data, index, starting_date,
         message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
-    # This intermediary column isn't useful for the user and would just clutter up the output
-    results[, time_to_index := NULL]
+    # These intermediary columns aren't useful for the user and would just clutter up the output
+    results[, c('time_to_index', 'time_to_entry') := NULL]
 
     list(results=results,
          full_surv_model=surv_model,

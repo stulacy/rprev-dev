@@ -28,7 +28,9 @@
 #'   age, as descripted in \code{Details} below. These \strong{must} be the names of columns in both \code{data} and
 #'   \code{daily_survival}. If not provided then defaults to the fields that are present in both \code{data} and
 #'   \code{daily_survival}.
-#' @param cure_time Time-limit at which a patient is considered cured.
+#' @param cure_time Time-limit at which a patient is considered cured. Note that if this is 0 or negative then
+#'   survival will be based purely off the population rates (anything passed into \code{formula} and \code{data} will
+#'   be ignored).
 #' @param formula Formula specifying survival function, as used in
 #'   \code{\link{prevalence}} with the \code{surv_formula} argument.
 #'   \strong{Must be in days}.
@@ -36,17 +38,28 @@
 #' @return An object of class \code{fixedcure} that can be passed
 #'   into \code{\link{prevalence}}.
 #' @export
-fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population_covariates=NULL,
+fixed_cure <- function(formula=NULL, data=NULL, cure_time=10*365.25, daily_survival=NULL, population_covariates=NULL,
                        dist=c('exponential', 'weibull', 'lognormal')) {
     # R CMD CHECK
     sex <- NULL
 
     dist <- match.arg(dist)
-    obj <- build_survreg(formula, data, dist)
 
     func_call <- match.call()
-    func_call$formula <- eval(formula)
-    obj$call <- func_call
+    func_call$cure_time <- eval(cure_time)
+    func_call$population_covariates <- population_covariates
+
+    if (cure_time > 0) {
+        if (missing(formula) | missing(data)) {
+            stop("Error: must provide a formula and data.")
+        }
+        obj <- build_survreg(formula, data, dist)
+        func_call$formula <- eval(formula)
+        func_call$dist <- eval(dist)
+    } else {
+        obj <- list()
+    }
+
     miss_pop_data <- is.null(daily_survival)
 
     if (miss_pop_data) {
@@ -71,6 +84,7 @@ fixed_cure <- function(formula, data, cure_time, daily_survival=NULL, population
 
     validate_population_survival(daily_survival, data, population_covariates)
 
+    obj$call <- func_call
     obj$pop_covars <- population_covariates
     obj$pop_data <- daily_survival
     obj$cure_time <- cure_time
@@ -100,7 +114,14 @@ predict_survival_probability.fixedcure <- function(object, newdata, times) {
     probs[, c('id', 'time_to_index') := list(1:nrow(probs), times) ]
     probs[, cured := time_to_index > object$cure_time ]
     probs[, time_calc_survival := ifelse(cured, object$cure_time, time_to_index)]
-    probs[, surv_prob := predict_survival_probability.survregmin(object, .SD, time_calc_survival)]
+
+    if (!is.null(object$coefs)) {
+        probs[, surv_prob := predict_survival_probability.survregmin(object, .SD, time_calc_survival)]
+    } else {
+        # If have just population survival model then using 1 for survival here means
+        # the following multiplications gives actual population survival rates
+        probs[, surv_prob := 1]
+    }
 
     if (sum(probs$cured) > 0) {
         # Cured survival probabilty is defined by Simon as
@@ -138,7 +159,8 @@ predict_survival_probability.fixedcure <- function(object, newdata, times) {
 
 #' @export
 extract_covars.fixedcure <- function(object) {
-    object$covars
+    # Always need 'age' in cure models!
+    unique(c(object$covars, object$pop_covars, 'age'))
 }
 
 print.fixedcure <- function(object, ...) {

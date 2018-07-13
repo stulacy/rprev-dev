@@ -100,21 +100,20 @@ prevalence_total <- prevalence(index='2013-01-30',
                                death_column = 'eventdate')
 
 ## ------------------------------------------------------------------------
-prevsurv <- survfit(prevalence_total, 
-                    newdata=data.frame(age=60, sex=factor('M', levels=levels(prevsim$sex))))
+prevalence_total$pval
+
+## ----test, error = TRUE--------------------------------------------------
+test_prevalence_fit(prevalence_total)
+
+## ------------------------------------------------------------------------
+prevsurv <- survfit(prevalence_total, newdata=data.frame(age=60, sex='M'))
 prevsurv
 
 ## ------------------------------------------------------------------------
 summary(prevsurv, years=c(1, 3, 5, 10))
 
 ## ---- fig.width=7, fig.height=4------------------------------------------
-plot(prevsurv, pct_show=0.90)
-
-## ------------------------------------------------------------------------
-prevalence_total$pval
-
-## ----test, error = TRUE--------------------------------------------------
-test_prevalence_fit(prevalence_total)
+plot(prevsurv)
 
 ## ------------------------------------------------------------------------
 knitr::kable(head(prevalence_total$simulated))

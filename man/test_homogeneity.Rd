@@ -58,22 +58,20 @@ Annual incidence rates are calculated for every year that is present in
 \code{entry}, with years being delimited by the date specified in \code{year_start}
 that include every incident case.
 For example, under the default values, if the earliest incident date in \code{entry}
-is 1981-04-28, and the latest is 2016-02-16, then annual incidence rates will be
-calculated with the boundaries 1981-01-01 - 1982-01-01, ..., 2016-01-01-2017-01-01.
+is 1981-04-28, and the latest is 2016-12-16, then annual incidence rates will be
+calculated with the boundaries [1981-01-01, 1982-01-01), ..., [2016-01-01, 2017-01-01).
 
 If \code{year_start} was specified as '09-01' then the boundaries would be
-1980-09-01 - 1981-09-01, ..., 2015-09-01 - 2016-09-01.
+[1980-09-01, 1981-09-01), ..., [2016-09-01, 2017-09-01).
 
 The \code{truncate_start} and \code{truncate_end} arguments remove incident
-cases in the first and last years after and before the yearly boundaries 
-respectively. So if they were
-both \code{TRUE}, with \code{year_start} as '09-01' as before, then the
-boundaries would be:
+cases in the first and last years before and after the yearly boundaries
+respectively.
 
-1981-09-01 - 1982-09-01, ..., 2015-09-01 - 2016-09-01, i.e. the 
-incident cases between 1981-04-28 and 1981-09-01 are discarded by
-\code{truncate_start} and those between 2016-02-16 and 2016-09-01
-removed by \code{truncate_end}.
+So if they were both \code{TRUE}, with \code{year_start} as '09-01' as before, then the
+boundaries would be [1981-09-01, 1982-09-01), ..., [2015-09-01, 2016-09-01),
+i.e. the incident cases in [1981-04-28, 1981-09-01) are discarded by \code{truncate_start}
+and those in [2016-09-01, 2016-12-16] removed by \code{truncate_end}.
 
 This helps to ensure that annual incidence is measured on a time-scale appropriate
 for your registry.

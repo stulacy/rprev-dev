@@ -1,11 +1,12 @@
 ## Release summary
 
-Various bug fixes (detailed in NEWS.md) and reparameterisation of functions.
+Fixed a bug present in r-devel (detailed in NEWS.md).
 
 ## Test environments
 
-* local Windows 10 Enterprise install, R 3.3.2
-* local Fedora 25 install, R 3.3.2
+* local Windows 10 Enterprise install, R 3.4.1
+* local Debian 7 install, R 3.4.1
+* r-devel on Debian 7, R 3.5.0
 
 ## R CMD check results
 
