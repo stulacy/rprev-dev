@@ -1,188 +1,162 @@
-#' Summarise disease incidence.
+#' Inspects disease incidence for its compatibility with a homogeneous Poisson process.
 #'
 #' Calculates incidence by year of the registry data, along with mean incidence
 #' with confidence intervals. A smoothed cumulative incidence function is fit to
 #' the data for inspecting deviations in the registry data from a homogeneous
 #' Poisson process.
 #'
-#' @inheritParams prevalence
+#' Annual incidence rates are calculated for every year that is present in
+#' \code{entry}, with years being delimited by the date specified in \code{year_start}
+#' that include every incident case.
+#' For example, under the default values, if the earliest incident date in \code{entry}
+#' is 1981-04-28, and the latest is 2016-12-16, then annual incidence rates will be
+#' calculated with the boundaries [1981-01-01, 1982-01-01), ..., [2016-01-01, 2017-01-01).
+#'
+#' If \code{year_start} was specified as '09-01' then the boundaries would be
+#' [1980-09-01, 1981-09-01), ..., [2016-09-01, 2017-09-01).
+#'
+#' The \code{truncate_start} and \code{truncate_end} arguments remove incident
+#' cases in the first and last years before and after the yearly boundaries
+#' respectively.
+#'
+#' So if they were both \code{TRUE}, with \code{year_start} as '09-01' as before, then the
+#' boundaries would be [1981-09-01, 1982-09-01), ..., [2015-09-01, 2016-09-01),
+#' i.e. the incident cases in [1981-04-28, 1981-09-01) are discarded by \code{truncate_start}
+#' and those in [2016-09-01, 2016-12-16] removed by \code{truncate_end}.
+#'
+#' This helps to ensure that annual incidence is measured on a time-scale appropriate
+#' for your registry.
+#'
 #' @param entry Vector of diagnosis dates for each patient in the registry in
 #'   the format YYYY-MM-DD.
-#' @param start Date from which incident cases are included in the format
-#'   YYYY-MM-DD. Defaults to the earliest entry date.
-#' @param num_reg_years The number of years of the registry for which incidence
-#'   is to be calculated. Defaults to using all available complete years.
+#' @param year_start Date which to use to delimit years in the format MM-DD.
+#'   See details for how this is used.
+#' @param truncate_start See details.
+#' @param truncate_end See details.
+#' @param population_size The population of the area covered by the registry. If not provided
+#'   then only absolute incidence can be calculated.
 #' @param df The desired degrees of freedom of the smooth.
-#' @param precision The number of decimal places required.
+#' @param proportion The denominator of the incidence rate.
 #' @param level The desired confidence interval width.
+#' @param precision The number of decimal places required.
 #' @return An S3 object of class \code{incidence} with the following attributes:
-#'   \item{raw_incidence}{Vector of absolute incidence values for each included
-#'   year of the registry, as generated using \code{\link{yearly_incidence}}.}
+#'   \item{yearly_incidence}{Vector of absolute incidence values for each included
+#'   year of the registry}
 #'   \item{ordered_diagnoses}{Vector of times (days) between diagnosis date and
 #'   the earliest date of inclusion in the registry, ordered shortest to
-#'   longest.} \item{smooth}{Smooth fitted to the cumulative incidence data.}
+#'   longest.}
+#'   \item{smooth}{Smooth fitted to the cumulative incidence data.}
 #'   \item{index_dates}{Dates delimiting the years in which incidence is
-#'   calculated.} \item{mean}{List containing mean incidence per 100K with
-#'   confidence intervals. See \link{mean_incidence_rate}.} \item{dof}{Degrees
-#'   of freedom of the smooth.}
+#'   calculated.}
+#'   \item{mean}{List containing absolute yearly incidence as well as relative
+#'   rates.}
+#'   \item{pvals}{p-values resulting to a test of over and under dispersion on the
+#'   incidence data respectively. Used to test the suitability of the homogeneous
+#'   Poission process assumption.}
+#'   \item{dof}{Degrees of freedom of the smooth.}
 #' @examples
 #' data(prevsim)
 #'
 #' \dontrun{
-#' incidence(prevsim$entrydate, 1e6)
-#'
-#' incidence(prevsim$entrydate, 1e6, start = "2004-01-30", num_reg_years = 9)
+#' test_homogeneity(prevsim$entrydate)
 #' }
 #'
 #' @export
-#' @family incidence functions
-incidence <- function(entry, population_size, start=NULL, num_reg_years=NULL,
-                      df=6, precision=2, level=0.95){
+test_homogeneity <- function(entry, year_start='01-01',
+                             truncate_start=FALSE,
+                             truncate_end=FALSE,
+                             population_size=NULL, df=4, proportion=1e5,
+                             level=0.95, precision=2) {
 
-    if (is.null(start))
-        start <- min(entry)
+    # Obtain registry start and end points
+    entry <- as.Date(entry)
+    min_date <- min(entry)
+    min_year <- strftime(min_date, "%Y")
+    max_date <- max(entry)
+    max_year <- strftime(max_date, "%Y")
 
-    if (is.null(num_reg_years))
-        num_reg_years <- floor(as.numeric(difftime(max(entry), start) / DAYS_IN_YEAR))
+    potential_start <- as.Date(strptime(paste(min_year, year_start, sep='-'), format="%Y-%m-%d"))
+    potential_end <- as.Date(strptime(paste(max_year, year_start, sep='-'), format="%Y-%m-%d"))
 
-    reg_years <- determine_yearly_endpoints(start, num_reg_years)
-    index_date <- reg_years[length(reg_years)]
+    if (truncate_start) {
+        entry <- entry[entry >= potential_start]
+        min_date <- min(entry)
+    }
+    if (truncate_end) {
+        entry <- entry[entry <= potential_end]
+        max_date <- max(entry)
+    }
 
-    entry_trunc <- entry[entry >= start & entry < index_date]
+    # If earliest and latest incident cases lie within these years then use them
+    start_date <- if (min_date >= potential_start) {
+        potential_start
+    } else {
+        as.Date(strptime(paste(as.numeric(min_year)-1, year_start, sep='-'), format="%Y-%m-%d"))
+    }
+
+    end_date <- if (max_date <= potential_end) {
+        potential_end
+    } else {
+        as.Date(strptime(paste(as.numeric(max_year)+1, year_start, sep='-'), format="%Y-%m-%d"))
+    }
+
+    # Determine yearly endpoints
+    yearly_endpoints <- paste(seq(as.numeric(strftime(start_date, "%Y")),
+                                  as.numeric(strftime(end_date, "%Y"))),
+                              year_start, sep='-')
 
     # Slightly confused that the following are not all integers:
-    diags <- sort(as.numeric(difftime(entry_trunc, min(entry_trunc), units='days')))
-    smo <- smooth.spline(diags, seq(length(diags)), df=df)
-    raw_inc <- yearly_incidence(entry, start_date=start, num_years=num_reg_years)
+    diags <- sort(as.numeric(difftime(entry, min(entry), units='days')))
+    smo <- smooth.spline(diags, seq_along(diags), df=df)
 
-    object <- list(raw_incidence=raw_inc,
+    # Calculate number that are incident each year
+    yearly_inc <- vapply(seq(length(yearly_endpoints)-1),
+                       function(i) sum(entry >= yearly_endpoints[i] & entry < yearly_endpoints[i+1]),
+                       integer(1))
+
+    object <- list(yearly_incidence=yearly_inc,
                    ordered_diagnoses=diags,
                    smooth = smo,
-                   index_dates = reg_years,
-                   mean=mean_incidence_rate(raw_inc, population_size=population_size,
+                   index_dates=yearly_endpoints,
+                   mean=mean_incidence_rate(yearly_inc, population_size=population_size,
+                                            proportion=proportion,
                                             precision=precision, level=level),
-                   pvals=test_incidence_fit(raw_inc),
+                   pvals=test_dispersion(yearly_inc),
                    dof=df)
-    attr(object, 'class') <- 'incidence'
+    attr(object, 'class') <- 'incdiag'
     object
 }
 
-#' DEPRECATED: Please use \code{\link{yearly_incidence}} instead.
-#'
-#' Disease incidence.
-#'
-#' Calculates yearly incidence for the available registry data.
-#'
-#' @inheritParams incidence
-#' @return Vector of length num_reg_years of integers, representing the number
-#'   of absolute incidence values for each included year of the registry.
-#' @examples
-#' data(prevsim)
-#'
-#' @export
-#' @family incidence functions
-#' @seealso \link{yearly_incidence}
-raw_incidence <- function(entry, start=NULL, num_reg_years=NULL) {
-    .Deprecated("yearly_incidence")
-    yearly_incidence(entry, start_date=start, num_years=num_reg_years)
 
-}
-
-#' Disease incidence.
-#'
-#' Calculates yearly incidence for the available registry data.
-#'
-#' @inheritParams incidence
-#' @param start_date The initial date in the \code{entry} vector to start estimating incidence from.
-#' @param num_years The number of complete years to calculate incidence over. Defaults to the number of complete
-#' years of registry data available in \code{entry}.
-#' @param end_date The ending date in the \code{entry} vector to estimate incidence counting back from.
-#' If both \code{end_date} and \code{start_date} are specified then \code{start_date} takes precedence.
-#' @return Vector of length \code{num_years} of integers, representing the number
-#'   of absolute incidence values for each included year of the registry.
-#' @examples
-#' data(prevsim)
-#'
-#' yearly_incidence(prevsim$entrydate, start_date="2004-01-01", num_years=8)
-#' yearly_incidence(prevsim$entrydate)
-#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-#' yearly_incidence(prevsim$entrydate, start_date="2005-05-01")
-#' yearly_incidence(prevsim$entrydate, num_years=5, end_date="2015-05-01")
-#'
-#' @export
-#' @family incidence functions
-yearly_incidence <- function(entry, start_date=NULL, num_years=NULL, end_date=NULL) {
-
-    if (!is.null(start_date)) { # Having the start date takes priority
-        if (is.null(num_years)) {
-            if (is.null(end_date)) {
-                end_date <- max(entry)
-            }
-            num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
-        }
-        registry_years <- determine_yearly_endpoints(start_date, num_years)
-    } else {
-        if (!is.null(end_date)) { # Having end date takes second priority
-            if (is.null(num_years)) {
-                num_years <- floor(as.numeric(difftime(end_date, min(entry)) / DAYS_IN_YEAR))
-            }
-            registry_years <- determine_yearly_endpoints(end_date, num_years, direction='backwards')
-        } else { # No start date, no end date
-            start_date <- min(entry)
-            if (is.null(num_years)) {
-                num_years <- floor(as.numeric(difftime(max(entry), start_date) / DAYS_IN_YEAR))
-            }
-            registry_years <- determine_yearly_endpoints(start_date, num_years)
-        }
-    }
-
-    # Force date in case data isn't supplied correctly
-    entry <- as.Date(entry)
-    per_year <- vapply(seq(num_years),
-                       function(i) sum(entry >= registry_years[i] & entry < registry_years[i+1]),
-                       integer(1))
-
-    if(sum(per_year) < 30) warning("Warning: low number of incident cases.")
-    per_year
-}
-
-#' Mean disease incidence.
-#'
-#' Calculates the average incidence rate per one hundred thousand with
-#' confidence intervals for the given registry data.
-#'
-#' @inheritParams incidence
-#' @param raw_inc Vector of incidence values by year, as returned by
-#'   \code{\link{yearly_incidence}}.
-#' @return A list with the following values:
-#'
-#'   \item{absolute}{Overall incidence for the period of interest as a single
-#'   double} \item{per100K}{Incidence for the period of interest per one hundred
-#'   thousand} \item{per100K.lower}{Lower bounds of the specified confidence
-#'   level on the per one hundred thousand estimate} \item{per100K.upper}{Upper
-#'   bounds of the specified confidence level on the per one hundred thousand
-#'   estimate}
-#'
-#' @examples
-#' data(prevsim)
-#'
-#' rawinc <- yearly_incidence(prevsim$entrydate)
-#' mean_incidence_rate(rawinc, population_size=3.5e6)
-#'
-#' rawinc2 <- yearly_incidence(prevsim$entrydate, start_date="2005-05-01", num_years=5)
-#' mean_incidence_rate(rawinc2, population_size=3.5e6)
-#'
-#' @export
-#' @family incidence functions
-mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0.95){
-
+# Calculates the average incidence rate per one hundred thousand with
+# confidence intervals for the given registry data.
+#
+# param raw_inc Vector of incidence values by year.
+# return A list with the following values:
+#
+#   \item{absolute}{Overall incidence for the period of interest as a single
+#   double} \item{per100K}{Incidence for the period of interest per one hundred
+#   thousand} \item{per100K.lower}{Lower bounds of the specified confidence
+#   level on the per one hundred thousand estimate} \item{per100K.upper}{Upper
+#   bounds of the specified confidence level on the per one hundred thousand
+#   estimate}
+mean_incidence_rate <- function(raw_inc, population_size=NULL, precision = 2, level=0.95,
+                                proportion=1e5){
     mean_rate <- mean(raw_inc)
     z_conf <- qnorm((1+level)/2)
+    object <- list(absolute = mean_rate)
 
-    CI <- 100e3 * (z_conf * sqrt(mean_rate) / length(raw_inc)) / population_size
-    est <- 100e3 * mean_rate / population_size
+    if (!is.null(population_size)) {
+        CI <- proportion * (z_conf * sqrt(mean_rate) / length(raw_inc)) / population_size
+        est <- proportion * mean_rate / population_size
 
-    object <- list(absolute=mean_rate, per100K=est, per100K.lower=est-CI, per100K.upper=est+CI)
+        lab <- paste0('per', proportion_label(proportion))
+
+        object[[lab]] <- est
+        object[[paste0(lab, '.lower')]] <- est - CI
+        object[[paste0(lab, '.upper')]] <- est + CI
+    }
+
     lapply(object, round, precision)
 }
 
@@ -205,23 +179,15 @@ mean_incidence_rate <- function(raw_inc, population_size, precision = 2, level=0
 #' data(prevsim)
 #'
 #' \dontrun{
-#' inc <- incidence(prevsim$entrydate, population_size=1e6, start = "2004-01-30", num_reg_years = 9)
+#' inc <- test_homogeneity(prevsim$entrydate, population_size=1e6,
+#'                         start = "2004-01-30", num_reg_years = 9)
 #'
 #' plot(inc)
 #' }
 #'
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 geom_point
-#' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 geom_hline
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 aes_string
-#' @importFrom ggplot2 scale_colour_manual
 #' @export
-#' @family incidence functions
-plot.incidence <- function(x, level=0.95, ...){
-    raw_incidence <- x$raw_incidence
+plot.incdiag <- function(x, level=0.95, ...){
+    raw_incidence <- x$yearly_incidence
     mean_rate <- mean(raw_incidence)
     day_mean_rate <- mean_rate / DAYS_IN_YEAR
 
@@ -255,93 +221,19 @@ plot.incidence <- function(x, level=0.95, ...){
     p
 }
 
-#' Visualise incidence Poisson assumption.
-#'
-#' Plots a figure detailing the deviation of incidence rate from an homogeneous
-#' Poisson process using simulation.
-#'
-#' This function generates a plot where the red line is the deviation of
-#' cumulative diagnoses from the fitted smooth taken from the incidence object.
-#' In order to ascertain if the deviation is within reasonable bounds,
-#' simulation is used. The grey lines represent N draws from a uniform
-#' distribution between 0 and the last day of diagnosis, where N is the number
-#' of incident cases, plotted as deviations from a smooth fitted to them. The
-#' blue lines are 95\% confidence intervals drawn from the simulated data.
-#'
-#' @param object An \code{incidence} object.
-#' @param N_sim Number of draws from a homogeneous Poisson process.
-#' @param level The desired confidence interval width.
-#' @param samples_per_bin Number of samples per bin.
-#' @param max_bins Maximum number of bins.
-#' @return An object of class \code{ggplot}.
-#' @examples
-#' data(prevsim)
-#'
-#' \dontrun{
-#' inc <- incidence(prevsim$entrydate, 1e6, start = "2004-01-30",
-#'                  num_reg_years = 9)
-#'
-#' plot_incidence_fit(inc)
-#' }
-#'
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 geom_vline
-#' @importFrom ggplot2 geom_ribbon
-#' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 aes_string
-.plot_incidence_fit <- function(object, N_sim=1000, level=0.95, samples_per_bin=10, max_bins=200){
-    diags <- object$ordered_diagnoses
-    N <- length(diags)
-
-    boot_out <- lapply(seq(N_sim), function(i) {
-        x <- sort(runif(N, 0, max(diags)))
-        smo <- smooth.spline(x, 1:N, df=object$dof)
-        data.frame(y=seq(N) - predict(smo, x)$y, x=x)
-    })
-
-    bootstraps = do.call(rbind, boot_out)
-
-    num_bins_init <- floor(N / samples_per_bin)
-    num_bins <- if (num_bins_init > max_bins) max_bins else num_bins_init
-    bin_segments <- seq(0, max(diags), by=max(diags) / num_bins)
-    bin_segments[length(bin_segments)] <- bin_segments[length(bin_segments)] + 1  # Expand last bin to allow for max data point
-
-    bin_cis = lapply(seq(num_bins-1), function(i) {
-        vals <- lapply(boot_out, function(bootstrap) {
-            bootstrap[bootstrap$x >= bin_segments[i] & bootstrap$x < bin_segments[i+1], 'y']
-        })
-        avgs <- sapply(vals, mean)
-        data.frame(x=(sum(bin_segments[c(i, i+1)])) / 2, upper=quantile(avgs, (1+level)/2, na.rm=T),
-                   lower=quantile(avgs, 1-(1+level)/2, na.rm=T))
-    })
-    bin_cis_df <- do.call(rbind, bin_cis)
-
-    p <- ggplot2::ggplot() +
-        ggplot2::geom_vline(data=bin_cis_df, ggplot2::aes_string(xintercept='x'), alpha=0.2, linetype='dotted') +
-        ggplot2::geom_ribbon(data=bin_cis_df, ggplot2::aes_string(x='x', ymin='lower', ymax='upper'), alpha=0.1) +
-        ggplot2::theme_bw() +
-        ggplot2::geom_line(data=data.frame(x=diags, y=seq(N)-predict(object$smooth, diags)$y),
-                           ggplot2::aes_string(x='x', y='y'),
-                           colour='orange', size=1) +
-        ggplot2::labs(x="Days", y="Deviation from smooth")
-    p
-}
-
 #' @export
-print.incidence <- function(x, ...) {
-    cat("Cumulative incidence object with", length(x$raw_incidence), "years of data.\n")
+print.incdiag <- function(x, ...) {
+    cat("Cumulative incidence object with", length(x$yearly_incidence), "years of data.\n")
     cat("Smooth fitted using", x$dof, "degrees of freedom.\n")
 
 }
 
 #' @export
-summary.incidence <- function(object, ...) {
-    cat("Number of years of registry data:", length(object$raw_incidence), "\n")
+summary.incdiag <- function(object, ...) {
+    cat("Number of years of registry data:", length(object$yearly_incidence), "\n")
 
     cat("\nIncidence\n~~~~~~~~~\n")
-    cat("Known incidence by year:", object$raw_incidence, "\n")
+    cat("Known incidence by year:", object$yearly_incidence, "\n")
     cat("Diagnoses (time since registry began):\n")
     print(summary(object$ordered_diagnoses))
     cat("p-values for over/under dispersion:", object$pvals, "\n")

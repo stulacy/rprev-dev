@@ -1,51 +1,5 @@
 DAYS_IN_YEAR <- 365.25
 
-#' DEPRECATED: Use \code{\link{determine_yearly_endpoints}} instead.
-#'
-#' A helper function to calculate dates a year apart, starting from a given date
-#' and running for a set number of years.
-#'
-#' @inheritParams incidence
-#' @return A vector of dates delineating complete years of registry data.
-#' @export
-determine_registry_years <- function(start, num_reg_years) {
-    .Deprecated("determine_yearly_endpoints")
-    # Calculate registry years from this
-    # NB: Ugly hack to not take leap years into account. Done so that tests don't throw an error, but strictly
-    # should just use as.Date(start) + 365.25 * x to account for leap years
-    determine_yearly_endpoints(start, num_reg_years)
-}
-
-#' Determine annual event delimiters.
-#'
-#' A helper function to calculate dates a year apart, starting from a given date
-#' for a set number of years. Useful for delimiting a specified time
-#' interval into a discrete number of years.
-#'
-#' @param date Either the starting date of the time interval (when \code{direction} is 'forwards')
-#' or the ending date (\code{direction} is 'backwards').
-#' @param num_years The number of years of the time interval.
-#' @param direction A string indicating whether the parameter \code{date} represents
-#' the opening or closing interval. Must take values either 'forwards' or 'backwards'.
-#' @return A vector of dates delineating complete years of registry data.
-#' @export
-determine_yearly_endpoints <- function(date, num_years, direction='forwards') {
-
-    if (! direction %in% c('forwards', 'backwards'))
-        stop("Error: parameter 'direction' must take on a value of either 'forwards' or 'backwards'.")
-
-    # Calculate registry years from this
-    # NB: Ugly hack to not take leap years into account. Done so that tests don't throw an error, but strictly
-    # should just use as.Date(start) + 365.25 * x to account for leap years
-    if (direction == 'forwards') {
-        sapply(0:num_years, function(x) paste(as.numeric(strftime(date, '%Y'))+x,
-                                              strftime(date, '%m-%d'), sep='-'))
-    } else {
-        rev(sapply(0:num_years, function(x) paste(as.numeric(strftime(date, '%Y'))-x,
-                                              strftime(date, '%m-%d'), sep='-')))
-    }
-}
-
 # Extracts the variable names from a formula
 # expr (language): Expression in the form entry(diagdate), where
 # 'entry' is the known function name while the name inside brackets
@@ -54,8 +8,62 @@ determine_yearly_endpoints <- function(date, num_years, direction='forwards') {
     as.character(expr)[[2]]
 }
 
-.calculate_survival_probability <- function(coef, data, times) {
-    scale <- exp(coef[-length(coef)] %*% data) + 0.000001  # Hack to ensure scale != 0
-    shape <- 1 / coef[length(coef)]
-    1 - pweibull(times, scale=scale, shape=shape)
+# Checks that all the factors to stratify population survival by are in the registry data set.
+validate_population_survival <- function(population_data, registry_data=NULL, population_covariates=NULL) {
+
+    if (!'surv' %in% colnames(population_data))
+        stop("Error: no 'surv' column found in population survival rates 'daily_survival'.")
+
+    if (min(population_data$surv) < 0 | max(population_data$surv) > 1)
+        stop("Error: population survival probabilities found in 'surv' are out of the range [0,1].")
+
+    if (!'age' %in% colnames(population_data))
+        stop("Error: no 'age' column found in population survival rates 'daily_survival'.")
+
+    # Remove age from population covariates as must be there anyway
+    population_covariates <- setdiff(population_covariates, 'age')
+
+    pop_covariates_in_pop <- sapply(population_covariates, function(x) x %in% colnames(population_data))
+
+    if (!all(pop_covariates_in_pop))
+        stop(paste0("Error: not all values in population_covariates are in 'daily_survival'. Missing ",
+                   paste(population_covariates[!pop_covariates_in_pop], collapse=","), "."))
+
+
+    # Registry data doesn't need to be provided, for example if fitting cure model that just reverts to
+    # population survival
+    if (!is.null(registry_data)) {
+        # Always need age
+        if (!'age' %in% colnames(registry_data))
+            stop("Error: no 'age' column found in registry data frame 'data'.")
+
+        # Check have all population covariates
+        pop_covariates_in_reg <- sapply(population_covariates, function(x) x %in% colnames(registry_data))
+        if (!all(pop_covariates_in_reg))
+            stop(paste0("Error: not all values in population_covariates are in 'data'. Missing ",
+                       paste(population_covariates[!pop_covariates_in_reg], collapse=","), "."))
+
+        # Check have all levels of population factors in registry data
+        missing_covar_factors <- sapply(population_covariates, function(covar) {
+            all(unique(registry_data[[covar]]) %in% population_data[[covar]])
+        })
+
+        if (!all(missing_covar_factors))
+            stop(paste("Error: not all values of",
+                       paste(population_covariates[!missing_covar_factors], collapse=','),
+                       "are present in population survival."))
+    }
+
+
+}
+
+# Calculates labels to use for the denominator of rates
+proportion_label <- function(prop) {
+    unit <- if (prop / 1e6 >= 1) 'M' else {
+                              if (prop / 1e3 >= 1) 'K' else ''
+                          }
+    val <- if (prop / 1e6 >= 1) prop / 1e6 else {
+                              if (prop / 1e3 >= 1) prop / 1e3 else prop
+    }
+    paste0(val, unit)
 }

@@ -9,7 +9,7 @@
  \item{time}{time between date of diagnosis and death or censorship in days}
  \item{status}{event marker; 1 if patient is deceased and 0 if alive or censored}
  \item{age}{age in years at point of entry into the registry}
- \item{sex}{boolean variable; 0 for males and 1 for females}
+ \item{sex}{string with values 'M' and 'F'}
  \item{entrydate}{date of entry into the registry in YYYY-MM-DD format}
  \item{eventdate}{date of death or censorship in YYYY-MM-DD format}
 }}

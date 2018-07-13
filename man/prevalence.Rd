@@ -4,30 +4,17 @@
 \alias{prevalence}
 \title{Estimate point prevalence at an index date.}
 \usage{
-prevalence(form, data, num_years_to_estimate, index_date = NULL,
-  num_reg_years = NULL, cure = 10, N_boot = 1000,
-  population_size = NULL, proportion = 1e+05, level = 0.95,
-  population_data = NULL, precision = 2, n_cores = 1, start = NULL)
+prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
+  inc_model = NULL, surv_formula = NULL, surv_model = NULL,
+  registry_start_date = NULL, death_column = NULL, incident_column = NULL,
+  age_column = "age", age_dead = 100, status_column = "status",
+  N_boot = 1000, population_size = NULL, proportion = 1e+05,
+  level = 0.95, dist = c("exponential", "weibull", "lognormal"),
+  precision = 2, n_cores = 1)
 }
 \arguments{
-\item{form}{Formula where the LHS is represented by a standard \code{Surv}
-  object, and the RHS has three special function arguments: \code{age}, the
-  column where age is located; \code{sex}, the column where sex is located;
-  \code{entry}, the column where dates of entry to the registry are located;
-  and \code{event}, the column where event dates are located.
-
-  This formula is used in the following way:
-
-  \code{Surv(time, status) ~ age(age_column_name) + sex(sex_column_name) +
-  entry(entry_column_name) + event(event_column_name)}
-
-  Using the supplied \code{prevsim} dataset, it is therefore called with:
-
-  \code{Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) +
-  event(eventdate)}}
-
-\item{data}{A data frame with the corresponding column names provided in
-\code{form}.}
+\item{index}{The date at which to estimate point prevalence as a string in the format
+YYYY-MM-DD.}
 
 \item{num_years_to_estimate}{Number of years of data to consider when
 estimating point prevalence; multiple values can be specified in a vector.
@@ -35,18 +22,47 @@ If any values are greater than the number of years of registry data
 available before \code{index_date}, incident cases
 for the difference will be simulated.}
 
-\item{index_date}{The date at which to estimate point prevalence. Defaults to the
-latest registry entry date.}
+\item{data}{A data frame with the corresponding column names provided in
+\code{form}.}
 
-\item{num_reg_years}{The number of years of the registry for which incidence
-is to be calculated. Defaults to using all available complete years. Note
-that if more registry years are supplied than the number of years to
-estimate prevalence for, the survival data from the surplus registry years
-are still involved in the survival model fitting.}
+\item{inc_formula}{A formula specifying the columns used in the incidence process.
+    The LHS should be the name of the column holding the incident dates,
+    with the RHS specifying any variables that should be stratified by, or 1 if no
+    stratification. For example, with the supplied \code{prevsim} data set, it could
+    be used as follows:
 
-\item{cure}{Integer defining cure model assumption for the calculation (in
-years). A patient who has survived beyond the cure time has a probability
-of surviving derived from the mortality rate of the general population.}
+    \code{entrydate ~ 1} for a non-stratified process.
+    \code{entrydate ~ sex} for a process that will stratify incidence by sex.}
+
+\item{inc_model}{An object that has a \code{draw_incident_population}
+method. See the vignette for further guidance.}
+
+\item{surv_formula}{A formula used to specify a survival model, where the
+LHS a Surv object, as used by \code{flexsurvreg}.}
+
+\item{surv_model}{An object that has a \code{predict_survival_probability}
+method. See the vignette for further guidance.}
+
+\item{registry_start_date}{The starting date of the registry. If not supplied
+then defaults to the earliest incidence date in the supplied data set.}
+
+\item{death_column}{A string providing the name of the column which holds the death
+date information. If not provided then prevalence cannot be counted and estimates
+will be solely derived from simulation.}
+
+\item{incident_column}{A string providing the name of the column which holds the diagnosis
+date. If not provided either in this argument or in \code{inc_formula},
+then prevalence cannot be counted and estimates will be solely derived from simulation.}
+
+\item{age_column}{A string providing the name of the column that holds patient age. If provided
+then patients alive at \code{age_dead} are set to die. This helps combat 'immortal' patients.}
+
+\item{age_dead}{The age at which patients are set to be dead if they are still alive, to prevent
+'immortal' patients. Used in conjunction with \code{age_column}.}
+
+\item{status_column}{A string providing the name of the column that holds patient event status at
+the event time. If not provided in \code{surv_formula} or in this argument then prevalence
+cannot be counted.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 
@@ -57,42 +73,41 @@ risk.}
 
 \item{level}{Double representing the desired confidence interval width.}
 
-\item{population_data}{A dataframe that must contain the columns \code{age},
-\code{rate}, and \code{sex}, where each row is the mortality rate for a
-person of that age and sex. Ideally, age ranges from [0, 100]. Defaults to
-the supplied data; see \code{\link{UKmortality}} for the format required
-for custom datasets.}
+\item{dist}{The distribution used by the default parametric survival model.}
 
 \item{precision}{Integer representing the number of decimal places required.}
 
 \item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
 survival models. Defaults to 1; multi-core functionality is provided by the
 \code{doParallel} package.}
-
-\item{start}{\strong{Deprecated: Use \code{index_date} instead and specify the
-number of years of registry data to use with \code{num_reg_years}.}
-Date from which incident cases are included in the format YYYY-MM-DD. Defaults
-to the earliest entry date. This value is now inferred by counting back
-\code{num_reg_years} years of registry data from the \code{index_date}. and}
 }
 \value{
-An S3 object of class \code{prevalence} with the following
-  attributes: \item{estimates}{Estimated prevalence at the index date for
-  each of the years in \code{num_years_to_estimate}.} \item{simulated}{A list
-  containing items related to the simulation of prevalence contributions, see
-  \code{\link{prevalence_simulated}}}. \item{counted}{Contributions to
-  prevalence from each of the supplied registry years, see
-  \code{\link{prevalence_counted}}.} \item{start_date}{The starting date of
-  the registry data included in the estimation.} \item{index_date}{The index
-  date at which the point prevalence was calculated for.}
-  \item{known_inc_rate}{The known incidence rate for years included in the
-  registry.} \item{nregyears}{Number of years of registry data that were
-  used.} \item{nbootstraps}{The number of bootstrapped survival models fitted
-  during the calculation.} \item{pval}{The p-value resulting from the
-  chi-square test between the simulated and counted prevalent cases for the
-  years of registry data available.} \item{y}{The Surv object used as the
-  response in the survival modeling.} \item{means}{The covariate means from
-  the data.}
+A \code{prevalence} object containing the following attributes:
+  \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
+  \item{simulated}{A \code{data.table} containing simulated incident cases from each bootstrap iteration
+    Each row corresponds to a simulated incident case with their simulated attributes and survival status.
+    Binary flags are provided beginning \code{prev_}, which indicate whether that person contributed
+    to the prevalence for the specified time-period. The \code{prev_registry} flag indicates whether that
+    person was incident during the registry time-span and alive at the index. These cases are used to
+    assess the model fit, as the numbers can be simply compared to the known registry prevalence.}
+  \item{counted}{The number of incident cases present in the registry data set.}
+  \item{full_surv_model}{The survival model built on the complete registry data set.}
+  \item{full_inc_model}{The incidence model built on the complete registry data set.}
+  \item{surv_models}{A list of the survival models fitted to each bootstrap iteration.}
+  \item{inc_models}{A list of the incidence models fitted to each bootstrap iteration.}
+  \item{index_date}{The index date.}
+  \item{est_years}{The years at which prevalence is estimated at.}
+  \item{counted_incidence_rate}{The overall incidence rate in the registry data set.}
+  \item{registry_start}{The date the registry was identified at starting at.}
+  \item{proportion}{The denominator to use for estimating prevalence rates.}
+  \item{status_col}{The column in the registry data containing the survival status.}
+  \item{N_boot}{The number of bootstrap iterations that were run.}
+  \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
+  \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
+    \code{survfit} to scale the time-axis.}
+  \item{pval}{The p-value resulting from a hypothesis test on the difference between the
+  simulated and counted prevalence on the time-span covered by the registry. Tests the
+  prevalence fit; if a significant result is found then further diagnostics are required.}
 }
 \description{
 Point prevalence at a specific index date is estimated using contributions to
@@ -114,25 +129,38 @@ estimate will be, provided an adequate survival model can be fitted to the
 registry data. It is therefore important to provide as much clean registry
 data as possible.
 
-Simulated cases are marked with age and sex to enable agreement with
-population survival data where a cure model is used, and calculation of the
-posterior distributions of each.
+Prevalence arises from two stochastic processes: incidence and survival.
+This is reflected in the function arguments by multiple options for
+each of these processes.
+
+The incidence process is specified by an object
+that has an associated \code{draw_incident_population} method, which produces the new
+incident population. The default implementation is a homogeneous Poisson process,
+whereby interarrival times are distributed according to an exponential distribution.
+The \code{inc_formula} argument specifies the nature of this process, see the
+description for more details. See the vignette for guidance on providing a custom incidence
+object.
+
+The survival process is characterised by a method \code{predict_survival_probability},
+that estimates the probability of a given individual being alive at the index date.
+The default object is a parametric distribution with the functional form being specified
+in \code{surv_formula} and distribution given in \code{dist}. See the vignette for guidance
+on providing a custom survival model.
 }
 \examples{
 data(prevsim)
 
 \dontrun{
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-           data=prevsim, num_years_to_estimate = c(5, 10), population_size=1e6,
-           index_date = '2013-09-01', num_reg_years = 8,
-           cure = 5)
+data(prevsim)
 
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-           data=prevsim, num_years_to_estimate = 5, population_size=1e6)
-
-# Run on multiple cores
-prevalence(Surv(time, status) ~ age(age) + sex(sex) + entry(entrydate) + event(eventdate),
-           data=prevsim, num_years_to_estimate = c(3,5,7), population_size=1e6, n_cores=4)
+prevalence(index='2013-01-30',
+           num_years_to_estimate=c(3, 5, 10, 20),
+           data=prevsim,
+           inc_formula = entrydate ~ sex,
+           surv_formula = Surv(time, status) ~ age + sex,
+           dist='weibull',
+           population_size = 1e6,
+           death_column = 'eventdate')
 }
 
 }
@@ -142,7 +170,5 @@ Crouch, Simon, et al. "Determining disease prevalence from
   38.2 (2014): 193-199.
 }
 \seealso{
-Other prevalence functions: \code{\link{prevalence_counted}},
-  \code{\link{prevalence_simulated}},
-  \code{\link{test_prevalence_fit}}
+Other prevalence functions: \code{\link{test_prevalence_fit}}
 }

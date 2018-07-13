@@ -1,6 +1,11 @@
-# rprev 0.2.4
+# rprev 1.0.0
 
-Fixed an issue caused by the latest version of `tidyr::gather()` in `r-devel`.
+Major overhaul to the API with non-backwards compatible changes. The primary change is that both the incidence and survival models are now specifiable, in contrast to the previous version which forced a homogeneous Poisson process incidence model and a Weibull survival model that uses age and sex as covariates. These models are retained as defaults, but the user can provide custom objects for both these processes, as documented in the User Guide.
+
+A number of small basic functions mostly relating to diagnostics have been removed to condense the API.
+
+See the User Guide vignette for examples of the new parameterisation of `prevalence` and general documentation.
+
 # rprev 0.2.3
 
 ## Renamed `raw_incidence` to `yearly_incidence` 

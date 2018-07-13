@@ -1,30 +1,35 @@
 Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
-Version: 0.2.4
-Date: 2017-09-22
+Version: 1.0.0
+Date: 2018-06-07
 Authors@R: c(
+        person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut')),
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
-        person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut'),
-        person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut'))
+        person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut')
         )
 Description: Estimates disease prevalence for a given index date, using existing
     registry data extended with Monte Carlo simulations.
 License: GPL-2
 Depends:
+    R (>= 2.10),
     survival
 Imports:
+    data.table,
     doParallel,
     dplyr,
     foreach,
     ggplot2,
     lazyeval,
+    lubridate,
     magrittr,
-    rms,
-    tidyr,
-    tidyselect (>= 0.2.0)
+    tidyr
 RoxygenNote: 6.0.1
-Suggests: testthat,
-    knitr
-URL: https://cran.r-project.org/package=rprev
+Suggests: 
+    flexsurv,
+    flexsurvcure,
+    knitr,
+    rms,
+    testthat
+URL: https://github.com/stulacy/rprev-dev
 VignetteBuilder: knitr
