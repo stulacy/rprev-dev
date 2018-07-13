@@ -8,3 +8,4 @@ R/old_diagnostics.R
 scripts/
 newversion_test/
 ^\.travis\.yml$
+^codecov\.yml$
