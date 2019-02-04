@@ -1,8 +1,8 @@
 Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
-Version: 1.0.0
-Date: 2018-06-07
+Version: 1.0.1
+Date: 2019-01-21
 Authors@R: c(
         person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut')),
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
@@ -16,15 +16,13 @@ Depends:
     survival
 Imports:
     data.table,
-    doParallel,
     dplyr,
-    foreach,
     ggplot2,
     lazyeval,
     lubridate,
     magrittr,
     tidyr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 Suggests:
     flexsurv,
     flexsurvcure,
