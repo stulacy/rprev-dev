@@ -5,7 +5,8 @@
 \title{Tests that a custom survival object has the required attributes
 for use in the \code{prevalence} function.}
 \usage{
-validate_survival_model(object, data, timeframe = 3652, sample_size = 10)
+validate_survival_model(object, data, timeframe = 3652,
+  sample_size = 10)
 }
 \arguments{
 \item{object}{The custom survival object.}

@@ -1,3 +1,7 @@
+# rprev 1.0.1
+
+Minor documentation fixes, with the main one being correcting the name of the Diagnostics vignette.
+
 # rprev 1.0.0
 
 Major overhaul to the API with non-backwards compatible changes. The primary change is that both the incidence and survival models are now specifiable, in contrast to the previous version which forced a homogeneous Poisson process incidence model and a Weibull survival model that uses age and sex as covariates. These models are retained as defaults, but the user can provide custom objects for both these processes, as documented in the User Guide.

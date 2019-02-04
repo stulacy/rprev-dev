@@ -6,11 +6,11 @@
 \usage{
 prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
   inc_model = NULL, surv_formula = NULL, surv_model = NULL,
-  registry_start_date = NULL, death_column = NULL, incident_column = NULL,
-  age_column = "age", age_dead = 100, status_column = "status",
-  N_boot = 1000, population_size = NULL, proportion = 1e+05,
-  level = 0.95, dist = c("exponential", "weibull", "lognormal"),
-  precision = 2, n_cores = 1)
+  registry_start_date = NULL, death_column = NULL,
+  incident_column = NULL, age_column = "age", age_dead = 100,
+  status_column = "status", N_boot = 1000, population_size = NULL,
+  proportion = 1e+05, level = 0.95, dist = c("exponential",
+  "weibull", "lognormal"), precision = 2)
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
@@ -76,10 +76,6 @@ risk.}
 \item{dist}{The distribution used by the default parametric survival model.}
 
 \item{precision}{Integer representing the number of decimal places required.}
-
-\item{n_cores}{Number of CPU cores to run the fitting of the bootstrapped
-survival models. Defaults to 1; multi-core functionality is provided by the
-\code{doParallel} package.}
 }
 \value{
 A \code{prevalence} object containing the following attributes:
@@ -172,3 +168,4 @@ Crouch, Simon, et al. "Determining disease prevalence from
 \seealso{
 Other prevalence functions: \code{\link{test_prevalence_fit}}
 }
+\concept{prevalence functions}

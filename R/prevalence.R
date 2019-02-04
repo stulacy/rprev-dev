@@ -85,9 +85,6 @@ MIN_INCIDENCE <- 10
 #' @param proportion The population ratio to estimate prevalence for.
 #' @param level Double representing the desired confidence interval width.
 #' @param precision Integer representing the number of decimal places required.
-#' @param n_cores Number of CPU cores to run the fitting of the bootstrapped
-#'   survival models. Defaults to 1; multi-core functionality is provided by the
-#'   \code{doParallel} package.
 #'
 #' @return A \code{prevalence} object containing the following attributes:
 #'   \item{estimates}{Prevalence estimates at the specified years as both absolute and rates.}
@@ -154,7 +151,7 @@ prevalence <- function(index, num_years_to_estimate,
                        population_size=NULL, proportion=1e5,
                        level=0.95,
                        dist=c('exponential', 'weibull', 'lognormal'),
-                       precision=2, n_cores=1) {
+                       precision=2) {
 
     # Needed for CRAN check
     alive_at_index <- NULL
@@ -251,8 +248,7 @@ prevalence <- function(index, num_years_to_estimate,
                                    inc_model, surv_model,
                                    age_column=age_column,
                                    age_dead=age_dead,
-                                   N_boot=N_boot,
-                                   n_cores=n_cores)
+                                   N_boot=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
         for (year in num_years_to_estimate) {
@@ -404,8 +400,8 @@ sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
                            N_boot=1000,
-                           age_dead=100,
-                           n_cores=1) {
+                           age_dead=100)
+                           {
 
     # Needed for CRAN check
     alive_at_index <- NULL
@@ -443,12 +439,10 @@ sim_prevalence <- function(data, index, starting_date,
              inc=bs_inc)
     }
 
+    # TODO Implement this and turn into user facing argument
+    n_cores <- 1
     if (n_cores > 1) {
         message("Multi-core functionality not currently implemented, defaulting to single-core.")
-        #doParallel::registerDoParallel(n_cores)
-        #parobj <- foreach::foreach(i=1:N_boot, .options.snow=list(preschedule=T), .packages=c('survival'), #.combine='rbind',
-        #        .inorder=F, .export=c('fit_exponential_incidence', 'predict_survival_probability'))
-        #all_results <- foreach::"%dopar%"(parobj, run_sample())
     }
     all_results <- replicate(N_boot, run_sample(), simplify=FALSE)
 

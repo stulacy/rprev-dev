@@ -34,3 +34,4 @@ test_prevalence_fit(obj)
 \seealso{
 Other prevalence functions: \code{\link{prevalence}}
 }
+\concept{prevalence functions}
