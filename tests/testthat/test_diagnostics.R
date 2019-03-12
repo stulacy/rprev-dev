@@ -33,6 +33,7 @@ test_that("test_dispersion returns the correct number of values", {
 })
 
 test_that("test_prevalence_fit returns same values as before without error and isn't significant", {
+    suppressWarnings(RNGversion("3.5.0"))
     set.seed(17)
     prevalence_object <- prevalence("2013-01-01",
                                     num_years_to_estimate=10,
