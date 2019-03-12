@@ -14,44 +14,39 @@
 #'   probabilities, where the rows represent a different bootstrapped Weibull
 #'   model, and the columns are each timepoint.} \item{fullsurv}{A vector of
 #'   survival probabilities for the predictors provided in newdata.}
-#' @examples
-#' data(prevsim)
 #'
-#' \dontrun{
-#' prev_obj <- prevalence(Surv(time, status) ~ age(age) + sex(sex) +
-#'                        entry(entrydate) + event(eventdate),
-#'                        data=prevsim, num_years_to_estimate = c(5, 10),
-#'                        population_size=1e6, start = "2005-09-01",
-#'                        num_reg_years = 8, cure = 5)
-#'
-#' survobj <- survfit(prev_obj)
-#'
-#' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
-#' }
-#'
-#' @importFrom survival survfit
+#' @import stats
 #' @export
 survfit.prevalence <- function(formula, newdata=NULL, ...) {
     if (is.null(newdata)) {
-        use_df <- formula$means
+        newdata <- formula$means
     } else {
         # Check names have same names as those in original data
         if (!all(sort(names(newdata)) == sort(names(formula$means))))
             stop("Error: Please provide a list with the same column names as in the original dataset.")
 
-        # Reorder new data to be in same order as original data
-        use_df <- unlist(newdata)[names(formula$means)]
+        # Set levels of newdata to the levels in the original data (which have been previously saved in 'means')
+        orig_levels <- lapply(formula$means, levels)
+        cat_vars <- orig_levels[!sapply(orig_levels, is.null)]
+        for (var in names(cat_vars)) {
+            levels(newdata[[var]]) <- cat_vars[[var]]
+        }
+
+    }
+    if (is.null(formula$max_event_time)) {
+        stop("Error: Cannot fit survfit model as event times have not been saved in the prevalence ",
+             "object. Please provide incident and event dates in the prevalence call.")
     }
 
-    # Add intercept
-    use_df <- c(1, use_df)
+    times <- seq(formula$max_event_time)
+    ndata <- newdata[rep(seq(nrow(newdata)), length(times)), ]
 
-    times <- seq(max(formula$y[, 1]))
-    survprobs <- apply(formula$simulated$coefs, 1, .calculate_survival_probability, use_df, times)
+    survprobs <- lapply(formula$surv_models, predict_survival_probability, ndata, times)
+    survprobs_mat <- t(simplify2array(survprobs))
 
-    full_survprobs <- .calculate_survival_probability(formula$simulated$full_coefs, use_df, times)
+    full_survprobs <- predict_survival_probability(formula$full_surv_model, ndata, times)
 
-    result <- list(time=times, surv=t(survprobs), fullsurv=full_survprobs)
+    result <- list(time=times, surv=survprobs_mat, fullsurv=full_survprobs)
     attr(result, 'class') <- 'survfit.prev'
     result
 }
@@ -124,13 +119,9 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #'
 #' The survival curve for a model formed on all the data is displayed in orange,
 #' while the 95% confidence interval for the bootstrapped models are displayed
-#' as a grey ribbon. Outlying survival curves are displayed in full, where the
-#' \code{pct_show} argument details the proportion of points outside of the
-#' confidence interval for a survival curve to be deemed as an outlier.
+#' as a grey ribbon.
 #'
 #' @param x A \code{survfit.prev} object.
-#' @param pct_show A list or dataframe with the covariate values to calculate
-#'   survival probabilities.
 #' @param ... Arguments passed to \code{plot}.
 #' @return An S3 object of class \code{ggplot}.
 #' @examples
@@ -146,26 +137,11 @@ summary.survfit.prev <- function(object, years=c(1, 3, 5), ...) {
 #' survobj <- survfit(prev_obj, newdata=list(age=65, sex=0))
 #'
 #' plot(survobj)
-#'
-#' plot(survobj, pct_show=0)  # Display curves with any outlying points
-#' plot(survobj, pct_show=0.5)  # Display curves with half outlying points
-#' plot(survobj, pct_show=0.99)  # Display curves with nearly all outlying points
 #' }
 #'
 #' @export
 #' @importFrom magrittr "%>%"
-#' @importFrom dplyr select_vars
-#' @importFrom dplyr group_by
-#' @importFrom dplyr summarise
-#' @importFrom dplyr mutate
-#' @importFrom dplyr arrange
-#' @importFrom ggplot2 geom_line
-#' @importFrom ggplot2 geom_ribbon
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 aes_string
-#' @importFrom tidyr gather_
-plot.survfit.prev <- function(x, pct_show=0.9, ...) {
+plot.survfit.prev <- function(x, ...) {
     num_boot <- dim(x$surv)[1]
     num_days <- dim(x$surv)[2]
     if (num_days != length(x$time))
@@ -175,8 +151,7 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
     colnames(df) <- seq(num_days)
     df[, 'bootstrap'] <- seq(num_boot)
 
-    gathered <- df %>% tidyr::gather_('time', 'survprob',
-                                      dplyr::select_vars_(names(df), '-bootstrap'))
+    gathered <- tidyr::gather(df, 'time', 'survprob', -'bootstrap')
 
     smooth <- gathered %>%
         dplyr::group_by_('time') %>%
@@ -185,24 +160,13 @@ plot.survfit.prev <- function(x, pct_show=0.9, ...) {
         dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time'))) %>%
         dplyr::arrange_('time')
 
-    row_inds <- apply(df[, -ncol(df)], 1,
-                      function(row) mean(row > smooth$mx | row < smooth$mn) > pct_show)
-
-    outliers <- df[row_inds, ] %>%
-                    tidyr::gather_('time', 'survprob',
-                                   dplyr::select_vars_(names(df), '-bootstrap')) %>%
-                    dplyr::mutate_(time=lazyeval::interp(~as.numeric(v), v=as.name('time')),
-                                   bootstrap=lazyeval::interp(~as.factor(v), v=as.name('bootstrap')))
-
     p <- ggplot2::ggplot() +
-            ggplot2::geom_line(data=outliers,
-                               ggplot2::aes_string(x='time', y='survprob', group='bootstrap'),
-                               colour='grey', linetype="dotted") +
             ggplot2::geom_ribbon(data=smooth,
-                                 ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.3) +
+                                 ggplot2::aes_string(x='time', ymin='mn', ymax='mx'), alpha=0.15) +
             ggplot2::geom_line(data=data.frame(time=as.numeric(seq(num_days)), survprob=x$fullsurv),
                                ggplot2::aes_string(x='time', y='survprob'), colour='orange', size=1) +
             ggplot2::theme_bw() +
-            ggplot2::labs(x="Days", y="Survival probability")
+            ggplot2::ylim(0, 1) +
+            ggplot2::labs(x="Time", y="Survival probability")
     p
 }

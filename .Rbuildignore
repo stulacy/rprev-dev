@@ -1,3 +1,4 @@
+^CRAN-RELEASE$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^cran-comments\.md$
@@ -5,3 +6,7 @@
 ^TODO$
 vignettes/diagram.pdf
 R/old_diagnostics.R
+scripts/
+newversion_test/
+^\.travis\.yml$
+^codecov\.yml$

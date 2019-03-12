@@ -1,3 +1,15 @@
+# rprev 1.0.1
+
+Minor documentation fixes, with the main one being correcting the name of the Diagnostics vignette.
+
+# rprev 1.0.0
+
+Major overhaul to the API with non-backwards compatible changes. The primary change is that both the incidence and survival models are now specifiable, in contrast to the previous version which forced a homogeneous Poisson process incidence model and a Weibull survival model that uses age and sex as covariates. These models are retained as defaults, but the user can provide custom objects for both these processes, as documented in the User Guide.
+
+A number of small basic functions mostly relating to diagnostics have been removed to condense the API.
+
+See the User Guide vignette for examples of the new parameterisation of `prevalence` and general documentation.
+
 # rprev 0.2.3
 
 ## Renamed `raw_incidence` to `yearly_incidence` 
@@ -10,6 +22,7 @@ The original function name isn't very descriptive for what it does (provides the
 
   - Plot methods now return ggplot objects, allowing for easier manual tweaking
   - `prevalence` no longer runs the simulation when there is more registry data available than needed to estimate N-year prevalence
+  - `prevalence` no longer requires a population size as an argument. Absolute prevalence is always calculated, with relative rates provided if population size is specified
   - `user_manual`: Updated to include a link to the specific webpage where the ONS data set is obtained from and improved formatting
   - `summary.prevalence` correctly displays posterior age distributions of simulated cases and now displays the prevalence estimates themselves
   - unit tests updated to reflect the above changes

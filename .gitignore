@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
+*.html
+tests/*.html
+newversion_test/*
+vignettes/*_cache/*
+vignettes/*_files/*
+vignettes/*.R
