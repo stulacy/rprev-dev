@@ -7,6 +7,7 @@ test_that("prevalence outputs the same values as before", {
     # It's useful when large changes have been added that could affect how the prevalence estimates are produced.
 
     # Build models
+    suppressWarnings(RNGversion("3.5.0"))
     set.seed(17)
     counted_nonstrat <- prevalence(index="2013-01-01",
                                    num_years_to_estimate = c(5, 8),
