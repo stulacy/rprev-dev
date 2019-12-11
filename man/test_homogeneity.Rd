@@ -4,9 +4,17 @@
 \alias{test_homogeneity}
 \title{Inspects disease incidence for its compatibility with a homogeneous Poisson process.}
 \usage{
-test_homogeneity(entry, year_start = "01-01", truncate_start = FALSE,
-  truncate_end = FALSE, population_size = NULL, df = 4,
-  proportion = 1e+05, level = 0.95, precision = 2)
+test_homogeneity(
+  entry,
+  year_start = "01-01",
+  truncate_start = FALSE,
+  truncate_end = FALSE,
+  population_size = NULL,
+  df = 4,
+  proportion = 1e+05,
+  level = 0.95,
+  precision = 2
+)
 }
 \arguments{
 \item{entry}{Vector of diagnosis dates for each patient in the registry in

@@ -3,7 +3,6 @@
 \docType{package}
 \name{rprev}
 \alias{rprev}
-\alias{rprev-package}
 \title{rprev: Estimate disease point prevalence using a combination of registry data and
 Monte Carlo simulations.}
 \description{
