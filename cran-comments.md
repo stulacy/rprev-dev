@@ -1,12 +1,11 @@
 ## Release summary
 
-Fixed a bug present in r-devel (detailed in NEWS.md).
+Added a tolerance to a unit test to fix an Additional Issue seen in this output: https://www.stats.ox.ac.uk/pub/bdr/noLD/rprev.out
 
 ## Test environments
 
-* local Windows 10 Enterprise install, R 3.4.1
-* local Debian 7 install, R 3.4.1
-* r-devel on Debian 7, R 3.5.0
+* local Windows 10 Enterprise install, R 3.6.1
+* local Xubuntu install, R 3.6.1
 
 ## R CMD check results
 
