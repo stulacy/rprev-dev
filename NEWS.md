@@ -1,6 +1,6 @@
 # rprev 1.0.3
 
-Change to unit test to allow for a tolerance when comparing floating points.
+Change to unit test to allow for a tolerance when comparing floating points and a fix for a warning thrown from r-devel.
 
 # rprev 1.0.2
 
