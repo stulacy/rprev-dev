@@ -86,7 +86,7 @@ test_that("predict_survival_probability produces correct survival estimates", {
         flexsurv_raw <- summary(flexmod, newdata=ndataflex, t=time)
         flexsurv_pred <- as.numeric(unlist(lapply(1:length(time), function(t) flexsurv_raw[[t]][t, ][2])))
 
-        expect_equal(survregmin_pred, flexsurv_pred)
+        expect_equal(survregmin_pred, flexsurv_pred, tolerance=0.0001, scale=1)
     }
 
     # build models on all combinations of covars and dists

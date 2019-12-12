@@ -4,9 +4,14 @@
 \alias{fixed_cure}
 \title{Builds survival models for diseases with cured fractions using population mortality tables}
 \usage{
-fixed_cure(formula = NULL, data = NULL, cure_time = 10 * 365.25,
-  daily_survival = NULL, population_covariates = NULL,
-  dist = c("exponential", "weibull", "lognormal"))
+fixed_cure(
+  formula = NULL,
+  data = NULL,
+  cure_time = 10 * 365.25,
+  daily_survival = NULL,
+  population_covariates = NULL,
+  dist = c("exponential", "weibull", "lognormal")
+)
 }
 \arguments{
 \item{formula}{Formula specifying survival function, as used in

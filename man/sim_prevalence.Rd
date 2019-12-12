@@ -4,8 +4,16 @@
 \alias{sim_prevalence}
 \title{Estimate prevalence using Monte Carlo simulation.}
 \usage{
-sim_prevalence(data, index, starting_date, inc_model, surv_model,
-  age_column = "age", N_boot = 1000, age_dead = 100)
+sim_prevalence(
+  data,
+  index,
+  starting_date,
+  inc_model,
+  surv_model,
+  age_column = "age",
+  N_boot = 1000,
+  age_dead = 100
+)
 }
 \arguments{
 \item{data}{A data frame with the corresponding column names provided in

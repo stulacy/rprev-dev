@@ -4,13 +4,27 @@
 \alias{prevalence}
 \title{Estimate point prevalence at an index date.}
 \usage{
-prevalence(index, num_years_to_estimate, data, inc_formula = NULL,
-  inc_model = NULL, surv_formula = NULL, surv_model = NULL,
-  registry_start_date = NULL, death_column = NULL,
-  incident_column = NULL, age_column = "age", age_dead = 100,
-  status_column = "status", N_boot = 1000, population_size = NULL,
-  proportion = 1e+05, level = 0.95, dist = c("exponential",
-  "weibull", "lognormal"), precision = 2)
+prevalence(
+  index,
+  num_years_to_estimate,
+  data,
+  inc_formula = NULL,
+  inc_model = NULL,
+  surv_formula = NULL,
+  surv_model = NULL,
+  registry_start_date = NULL,
+  death_column = NULL,
+  incident_column = NULL,
+  age_column = "age",
+  age_dead = 100,
+  status_column = "status",
+  N_boot = 1000,
+  population_size = NULL,
+  proportion = 1e+05,
+  level = 0.95,
+  dist = c("exponential", "weibull", "lognormal"),
+  precision = 2
+)
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
@@ -166,6 +180,7 @@ Crouch, Simon, et al. "Determining disease prevalence from
   38.2 (2014): 193-199.
 }
 \seealso{
-Other prevalence functions: \code{\link{test_prevalence_fit}}
+Other prevalence functions: 
+\code{\link{test_prevalence_fit}()}
 }
 \concept{prevalence functions}
