@@ -1,3 +1,7 @@
+# rprev 1.0.3
+
+Change to unit test to allow for a tolerance when comparing floating points and a fix for a warning thrown from r-devel.
+
 # rprev 1.0.2
 
 Hotfix to address new `sample` implementation forthcoming in R 3.6.0. Currently the warning is being suppressed, but the unit tests will be updated once these changes have been implemented in stable R.
