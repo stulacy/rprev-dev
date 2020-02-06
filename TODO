@@ -1,2 +1,3 @@
   - Parallelise main simulation loop
   - Speed up predict_survival_probability.fixedcure
+  - Profile code and see where can optimise memory usage when using multiple index dates

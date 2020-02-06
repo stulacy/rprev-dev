@@ -10,9 +10,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
     incident_date <- NULL
     sim <- NULL
     
-    # See if need simulation if have less registry data than required
     initial_date <- index - lubridate::years(year)
-    need_simulation <- initial_date < registry_start_date
 
     # Only count prevalence if formula isn't null
     if (!is.null(prev_formula)) {
