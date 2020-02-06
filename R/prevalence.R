@@ -209,11 +209,11 @@ prevalence <- function(index, num_years_to_estimate,
     }
 
     index <- suppressWarnings(lubridate::ymd(index))
-    if (is.na(index)) {
+    if (any(is.na(index))) {
         stop("Error: Index date '", index, "' cannot be parsed as a date. Please enter it as a string in %Y%m%d or %Y-%m-%d format.")
     }
     registry_start_date <- lubridate::ymd(registry_start_date)
-    sim_start_date <- index - lubridate::years(max(num_years_to_estimate))
+    sim_start_date <- min(index) - lubridate::years(max(num_years_to_estimate))
 
     # NEED SIMULATION:
     #   - have N years > R registry years available
@@ -251,15 +251,18 @@ prevalence <- function(index, num_years_to_estimate,
                                    N_boot=N_boot)
 
         # Create column indicating whether contributed to prevalence for each year of interest
-        for (year in num_years_to_estimate) {
-            # Determine starting incident date
-            starting_incident_date <- index - lubridate::years(year)
+        for (i in seq_along(index)) {
+            idate <- index[i]
+            for (year in num_years_to_estimate) {
+                # Determine starting incident date
+                starting_incident_date <- idate - lubridate::years(year)
 
-            # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
-            col_name <- paste0("prev_", year, "yr")
+                # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
+                col_name <- paste0("prev_", year, "yr_", idate)
 
-            # Determine prevalence as incident date is in range and alive at index date
-            prev_sim$results[, (col_name) := as.numeric((incident_date > starting_incident_date & incident_date < index) & alive_at_index)]
+                # Determine prevalence as incident date is in range and alive at index date
+                prev_sim$results[, (col_name) := as.numeric((incident_date > starting_incident_date & incident_date < idate) & get(paste0("alive_at_", idate)))]
+            }
         }
 
     } else {
@@ -411,7 +414,7 @@ sim_prevalence <- function(data, index, starting_date,
     full_data <- data
 
     covars <- extract_covars(surv_model)
-    number_incident_days <- as.numeric(difftime(index, starting_date, units='days'))
+    number_incident_days <- as.numeric(difftime(max(index), starting_date, units='days'))
 
     run_sample <- function() {
         # bootstrap dataset
@@ -427,13 +430,17 @@ sim_prevalence <- function(data, index, starting_date,
 
         # For each individual determine the time between incidence and the index
         incident_date <- as.Date(starting_date + incident_population[[1]])
-        time_to_index <- as.numeric(difftime(index, incident_date, units='days'))
-
-        # Estimate whether alive as Bernouilli trial with p = S(t)
-        surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
         incident_population[, 'incident_date' := incident_date]
-        incident_population[, 'time_to_index' := time_to_index]
-        incident_population[, 'alive_at_index' := rbinom(length(surv_prob), size=1, prob=surv_prob)]
+
+        for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
+            idate <- index[i]
+            time_to_index <- as.numeric(difftime(idate, incident_date, units='days'))
+            # Estimate whether alive as Bernouilli trial with p = S(t)
+            surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
+            incident_population[, paste0('time_to_', idate) := time_to_index]
+            incident_population[, paste0('alive_at_', idate) := rbinom(length(surv_prob), size=1, prob=surv_prob)]
+        }
+
         list(pop=incident_population,
              surv=bs_surv,
              inc=bs_inc)
@@ -451,13 +458,20 @@ sim_prevalence <- function(data, index, starting_date,
 
     # Force death at 100 if possible
     if (!is.null(age_column) & age_column %in% colnames(results)) {
-        results[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, alive_at_index := 0]
+        for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
+            idate <- index[i]
+            results[(get(age_column)*DAYS_IN_YEAR + get(paste0('time_to_', idate))) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
+        }
     } else {
         message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
     # These intermediary columns aren't useful for the user and would just clutter up the output
-    results[, c('time_to_index', 'time_to_entry') := NULL]
+    results[, 'time_to_entry' := NULL]
+    for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
+        idate <- index[i]
+        results[, paste0('time_to_', idate) := NULL]
+    }
 
     list(results=results,
          full_surv_model=surv_model,
