@@ -44,7 +44,7 @@ test_that("test_prevalence_fit returns same values as before without error and i
                                     death_column='eventdate',
                                     N_boot=20)
     fn <- 'cache/diagnostics/prev_pval.rds'
-    expect_equal_to_reference(test_prevalence_fit(prevalence_object), file=fn)
+    expect_equal_to_reference(test_prevalence_fit(prevalence_object)[[1]], file=fn)
     expect_gt(prevalence_object$pval, 0.05)
     expect_match(typeof(test_prevalence_fit(prevalence_object)), 'double')
     expect_equal(any(is.na(test_prevalence_fit(prevalence_object))), FALSE)

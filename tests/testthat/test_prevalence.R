@@ -94,13 +94,13 @@ test_that("prevalence outputs the same values as before", {
     expect_equal(nrow(exp_sex$simulated), 19333)
 
     # Compare p-vals
-    expect_equal(round(wei_nonstrat$pval, 3), 0.431)
-    expect_equal(round(wei_strat$pval, 3), 0.282)
-    expect_equal(round(wei_agesex$pval, 3), 0.312)
-    expect_equal(round(lnorm_age$pval, 3), 0.594)
-    expect_equal(round(lnorm_sex$pval, 3), 0.216)
-    expect_equal(round(exp_full$pval, 3), 0.469)
-    expect_equal(round(exp_sex$pval, 3), 0.254)
+    expect_equal(round(wei_nonstrat$pval, 3)[[1]], 0.431)
+    expect_equal(round(wei_strat$pval, 3)[[1]], 0.282)
+    expect_equal(round(wei_agesex$pval, 3)[[1]], 0.312)
+    expect_equal(round(lnorm_age$pval, 3)[[1]], 0.594)
+    expect_equal(round(lnorm_sex$pval, 3)[[1]], 0.216)
+    expect_equal(round(exp_full$pval, 3)[[1]], 0.469)
+    expect_equal(round(exp_sex$pval, 3)[[1]], 0.254)
 })
 
 test_that("prevalence function handles incorrectly specified inputs", {
