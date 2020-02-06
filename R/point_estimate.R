@@ -9,7 +9,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
     # CRAN check
     incident_date <- NULL
     sim <- NULL
-
+    
     # See if need simulation if have less registry data than required
     initial_date <- index - lubridate::years(year)
     need_simulation <- initial_date < registry_start_date
@@ -22,7 +22,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         if (initial_date < registry_start_date) {
             stopifnot(!is.null(sim_results))
 
-            col_name <- paste0("prev_", year, "yr")
+            col_name <- paste0("prev_", year, "yr_", index)
             sim_contributions <- sim_results[incident_date < registry_start_date][, sum(get(col_name)), by=sim][[2]]  # Return results column
             the_estimate <- count_prev + mean(sim_contributions)
 
@@ -36,7 +36,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         }
     } else {
         # If don't have counted data then prevalence estimates are entirely simulated
-        col_name <- paste0("prev_", year, "yr")
+        col_name <- paste0("prev_", year, "yr_", index)
         sim_contributions <- sim_results[, sum(get(col_name)), by=sim][[2]]  # Return results column
         the_estimate <- mean(sim_contributions)
 

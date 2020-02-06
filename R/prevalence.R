@@ -40,7 +40,7 @@ MIN_INCIDENCE <- 10
 #' on providing a custom survival model.
 #'
 #' @param index The date at which to estimate point prevalence as a string in the format
-#' YYYY-MM-DD.
+#' YYYY-MM-DD. Can be a vector of multiple dates.
 #' @param num_years_to_estimate Number of years of data to consider when
 #'   estimating point prevalence; multiple values can be specified in a vector.
 #'   If any values are greater than the number of years of registry data
@@ -271,13 +271,17 @@ prevalence <- function(index, num_years_to_estimate,
 
     # Determine point estimates of prevalence by combining simulated and counted values
     names <- sapply(num_years_to_estimate, function(x) paste('y', x, sep=''))
-    estimates <- lapply(setNames(num_years_to_estimate, names),
-                        new_point_estimate,  # Function
-                        prev_sim$results, index, data,
-                        counted_formula,
-                        registry_start_date,
-                        status_column,
-                        population_size, proportion, level, precision)
+    estimates <- lapply(setNames(seq_along(index), index), function(i) {
+        idate <- index[i]
+        lapply(setNames(num_years_to_estimate, names),
+               function(year) {
+                   new_point_estimate(year, prev_sim$results,
+                                      idate, data, counted_formula,
+                                      registry_start_date, status_column,
+                                      population_size, proportion,
+                                      level, precision)
+               })
+    })
 
     full_surv_model <- if (!is.null(prev_sim)) prev_sim$full_surv_model else NULL
     full_inc_model <- if (!is.null(prev_sim)) prev_sim$full_inc_model else NULL
@@ -292,6 +296,12 @@ prevalence <- function(index, num_years_to_estimate,
     } else {
         counted_prev <- NULL
     }
+
+    counted_incidence_rate <- nrow(data) / as.numeric(difftime(index,
+                                                              registry_start_date,
+                                                              units='days'))
+    counted_incidence_rate <- setNames(counted_incidence_rate, index)
+
     object <- list(estimates=estimates,
                    simulated=prev_sim$results,
                    counted=counted_prev,
@@ -301,9 +311,7 @@ prevalence <- function(index, num_years_to_estimate,
                    inc_models=inc_models,
                    index_date=index,
                    est_years=num_years_to_estimate,
-                   counted_incidence_rate = nrow(data) / as.numeric(difftime(index,
-                                                                             registry_start_date,
-                                                                             units='days')),
+                   counted_incidence_rate = counted_incidence_rate,
                    registry_start=registry_start_date,
                    proportion=proportion,
                    status_col=status_column,
@@ -342,7 +350,7 @@ prevalence <- function(index, num_years_to_estimate,
 
 
     if (!is.null(prev_sim)) {
-        object$pval <- test_prevalence_fit(object)
+        object$pvals <- test_prevalence_fit(object)
     }
 
     attr(object, 'class') <- 'prevalence'
@@ -435,6 +443,7 @@ sim_prevalence <- function(data, index, starting_date,
         for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
             idate <- index[i]
             time_to_index <- as.numeric(difftime(idate, incident_date, units='days'))
+            time_to_index[time_to_index < 0] <- 0
             # Estimate whether alive as Bernouilli trial with p = S(t)
             surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
             incident_population[, paste0('time_to_', idate) := time_to_index]
@@ -482,18 +491,21 @@ sim_prevalence <- function(data, index, starting_date,
 
 #' @export
 print.prevalence <- function(x, ...) {
-    cat(paste0("Estimated prevalence at ", x$index_date, ":\n"))
-    lapply(names(x$estimates), function(item) {
-        year <- strsplit(item, 'y')[[1]][2]
-        abs_prev_est <- x$estimates[[item]][1]
-        if (length(x$estimates[[item]]) > 1) {
-            rel_prev <- x$estimates[[item]][2]
-            rel_prev_est <- paste0("(", rel_prev, " per ", x$proportion, ")")
-        } else {
-            rel_prev_est <- NULL
-        }
-        cat(paste(year, "years:", abs_prev_est, rel_prev_est, '\n'))
-    })
+    for (index in names(x$estimates)) {
+        cat(paste0("Estimated prevalence at ", index, ":\n"))
+        lapply(names(x$estimates[[index]]), function(item) {
+            year <- strsplit(item, 'y')[[1]][2]
+            abs_prev_est <- x$estimates[[index]][[item]][1]
+            if (length(x$estimates[[index]][[item]]) > 1) {
+                rel_prev <- x$estimates[[index]][[item]][2]
+                rel_prev_est <- paste0("(", rel_prev, " per ", x$proportion, ")")
+            } else {
+                rel_prev_est <- NULL
+            }
+            cat(paste(year, "years:", abs_prev_est, rel_prev_est, '\n'))
+        })
+        
+    }
 }
 
 #' @export
