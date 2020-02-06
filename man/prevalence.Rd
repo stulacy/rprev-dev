@@ -28,7 +28,7 @@ prevalence(
 }
 \arguments{
 \item{index}{The date at which to estimate point prevalence as a string in the format
-YYYY-MM-DD.}
+YYYY-MM-DD. Can be a vector of multiple dates.}
 
 \item{num_years_to_estimate}{Number of years of data to consider when
 estimating point prevalence; multiple values can be specified in a vector.

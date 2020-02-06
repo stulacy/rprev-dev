@@ -10,7 +10,7 @@ counted_prevalence(formula, index, data, start_date, status_col)
 \item{formula}{A formula of the form <event date column> ~ <entry date column>.}
 
 \item{index}{The date at which to estimate point prevalence as a string in the format
-YYYY-MM-DD.}
+YYYY-MM-DD. Can be a vector of multiple dates.}
 
 \item{data}{A data frame with the corresponding column names provided in
 \code{form}.}

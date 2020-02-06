@@ -20,7 +20,7 @@ sim_prevalence(
 \code{form}.}
 
 \item{index}{The date at which to estimate point prevalence as a string in the format
-YYYY-MM-DD.}
+YYYY-MM-DD. Can be a vector of multiple dates.}
 
 \item{starting_date}{The initial date to start simulating prevalence from as a \code{Date} object.
 Typically the index date - (Nyears * 365.25). Allows for non-whole year prevalence estimations.}
