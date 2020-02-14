@@ -432,8 +432,11 @@ sim_prevalence <- function(data, index, starting_date,
             time_to_index[time_to_index < 0] <- 0
             # Estimate whether alive as Bernouilli trial with p = S(t)
             surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
-            incident_population[, paste0('time_to_', idate) := time_to_index]
             incident_population[, paste0('alive_at_', idate) := as.logical(rbinom(length(surv_prob), size=1, prob=surv_prob))]
+            # Force death at 100 if possible
+            if (!is.null(age_column) & age_column %in% colnames(incident_population)) {
+                incident_population[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
+            }
         }
 
         list(pop=incident_population,
@@ -452,21 +455,12 @@ sim_prevalence <- function(data, index, starting_date,
     results <- data.table::rbindlist(lapply(all_results, function(x) x$pop), idcol='sim')
 
     # Force death at 100 if possible
-    if (!is.null(age_column) & age_column %in% colnames(results)) {
-        for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
-            idate <- index[i]
-            results[(get(age_column)*DAYS_IN_YEAR + get(paste0('time_to_', idate))) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
-        }
-    } else {
+    if (!(!is.null(age_column) & age_column %in% colnames(results))) {
         message("No column found for age in ", age_column, ", so cannot assume death at 100 years of age. Be careful of 'infinite' survival times.")
     }
 
-    # These intermediary columns aren't useful for the user and would just clutter up the output
+    # This intermediary column isn't useful for the user and would just clutter up the output
     results[, 'time_to_entry' := NULL]
-    for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
-        idate <- index[i]
-        results[, paste0('time_to_', idate) := NULL]
-    }
 
     list(results=results,
          full_surv_model=surv_model,
