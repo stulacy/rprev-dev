@@ -250,21 +250,6 @@ prevalence <- function(index, num_years_to_estimate,
                                    age_dead=age_dead,
                                    N_boot=N_boot)
 
-        # Create column indicating whether contributed to prevalence for each year of interest
-        for (i in seq_along(index)) {
-            idate <- index[i]
-            for (year in num_years_to_estimate) {
-                # Determine starting incident date
-                starting_incident_date <- idate - lubridate::years(year)
-
-                # We'll create a new column to hold a binary indicator of whether that observation contributes to prevalence
-                col_name <- paste0("prev_", year, "yr_", idate)
-
-                # Determine prevalence as incident date is in range and alive at index date
-                prev_sim$results[, (col_name) := as.numeric((incident_date > starting_incident_date & incident_date < idate) & get(paste0("alive_at_", idate)))]
-            }
-        }
-
     } else {
         prev_sim <- NULL
     }
@@ -440,6 +425,7 @@ sim_prevalence <- function(data, index, starting_date,
         incident_date <- as.Date(starting_date + incident_population[[1]])
         incident_population[, 'incident_date' := incident_date]
 
+        # Predict individual survival probability at each index date
         for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
             idate <- index[i]
             time_to_index <- as.numeric(difftime(idate, incident_date, units='days'))
@@ -447,7 +433,7 @@ sim_prevalence <- function(data, index, starting_date,
             # Estimate whether alive as Bernouilli trial with p = S(t)
             surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
             incident_population[, paste0('time_to_', idate) := time_to_index]
-            incident_population[, paste0('alive_at_', idate) := rbinom(length(surv_prob), size=1, prob=surv_prob)]
+            incident_population[, paste0('alive_at_', idate) := as.logical(rbinom(length(surv_prob), size=1, prob=surv_prob))]
         }
 
         list(pop=incident_population,
@@ -504,7 +490,7 @@ print.prevalence <- function(x, ...) {
             }
             cat(paste(year, "years:", abs_prev_est, rel_prev_est, '\n'))
         })
-        
+
     }
 }
 
