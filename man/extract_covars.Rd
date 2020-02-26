@@ -11,12 +11,12 @@ extract_covars(object)
 \item{object}{The survival object itself}
 }
 \value{
-A character vector holding the column names. Can be NULL if no 
-  covariates are used i.e. the survival model is built based on population 
+A character vector holding the column names. Can be NULL if no
+  covariates are used i.e. the survival model is built based on population
   level data rather than individual level data.
 }
 \description{
-Used in \code{prevalence} to determine which covariates should be sampled when 
+Used in \code{prevalence} to determine which covariates should be sampled when
 simulating an incident population. This should provide a character vector containing
 column names of the original registry data set input to \code{prevalence} that
 are used by the survival model.

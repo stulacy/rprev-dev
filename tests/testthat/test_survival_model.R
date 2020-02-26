@@ -67,6 +67,28 @@ test_that("predict_survival_probability handles incorrectly specified arguments"
 
 })
 
+test_that("predict_event_time handles incorrectly specified arguments", {
+    mod <- build_survreg(Surv(time, status) ~ sex + age, prevsim, 'weibull')
+    newdata_clean <- prevsim[sample(1:nrow(prevsim), replace=T), ]
+
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('age'))],
+                                 )) # Should get error if pass data frame without required covariates
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('sex'))],
+                                 )) # Should get error if pass data frame without required covariates
+    expect_error(predict_survival_probability(mod,
+                                 newdata_clean[1:5, !(names(newdata_clean) %in% c('sex', 'age'))],
+                                 )) # Should get error if pass data frame without required covariates
+})
+
+test_that("predict_event_time handles empty newdata", {
+    mod <- build_survreg(Surv(time, status) ~ 1, prevsim, 'weibull')
+
+    # Should get error if pass in data frame with no rows
+    expect_error(predict_survival_probability(mod, data.frame()))
+})
+
 test_that("predict_survival_probability produces correct survival estimates", {
 
     # For this test, a "correct" survival estimate is provided by the flexsurv
@@ -113,4 +135,64 @@ test_that("predict_survival_probability produces correct survival estimates", {
               data.frame(age=rnorm(23, 80, 10),
                          sex=factor(sample(c('M', 'F'), 23, replace=T), levels=levels(prevsim$sex))),
               time=runif(23, 0, 4000))
+})
+
+test_that("predict_event_time produces correct estimates", {
+
+    # For this test, a "correct" survival estimate is provided by the flexsurv
+    # package which is a wrapper around survreg. Since survreg doesn't provide a
+    # function for calculating S(t) from a model, I'd have to write my own implementation
+    # which is essentially what I've done for predict_survival_probability.survregmin
+    # so I'd be comparing two of my own implementations against each other. It makes more
+    # sense to test against flexsurv
+    test_surv <- function(form, dist, newdata, N_replicates=1e3, tolerance=0.85) {
+        mod <- build_survreg(form, prevsim, dist)
+        flexmod <- flexsurv::flexsurvreg(form, data=prevsim, dist=dist)
+
+        survregmin_pred <- replicate(N_replicates, as.numeric(predict_event_time(mod, newdata)))
+        if (nrow(newdata) == 1) {
+            survregmin_pred <- t(survregmin_pred)
+        }
+
+        # Need ugly lapply here as by default flexsurv creates estimate for each individual for each t
+        flexsurv_raw <- summary(flexmod, newdata=newdata, type='quantile', quantiles = c(0.025, 0.975))
+
+        # Test proportion of each individual's estimates that are within 95% CIs.
+        # I'll allow some tolerance down to 90% as I'm keeping sample size down to reduce computational load
+        cis <- sapply(1:nrow(newdata), function(i) {
+            mean(survregmin_pred[i, ] >= flexsurv_raw[[i]][1,2] & survregmin_pred[i, ] <= flexsurv_raw[[i]][2,2])
+        })
+
+        expect_equal(all(cis >= tolerance), TRUE)
+    }
+
+    # build models on all combinations of covars and dists
+    test_surv(Surv(time, status) ~ 1, 'weibull', data.frame(c(1)))
+    test_surv(Surv(time, status) ~ 1, 'lognormal', data.frame(c(1)))
+    test_surv(Surv(time, status) ~ 1, 'exponential', data.frame(c(1)))
+
+    test_surv(Surv(time, status) ~ age, 'weibull', data.frame(age=30))
+    test_surv(Surv(time, status) ~ age, 'weibull', data.frame(age=c(30, 50)))
+    test_surv(Surv(time, status) ~ age, 'lognormal', data.frame(age=50))
+    test_surv(Surv(time, status) ~ age, 'exponential', data.frame(age=30))
+    test_surv(Surv(time, status) ~ age, 'exponential', data.frame(age=c(70, 84)))
+
+    test_surv(Surv(time, status) ~ sex, 'weibull', data.frame(sex=factor(c('F'), levels=levels(prevsim$sex))))
+    test_surv(Surv(time, status) ~ sex, 'exponential', data.frame(sex=factor(c('F'), levels=levels(prevsim$sex))))
+
+    test_surv(Surv(time, status) ~ sex, 'weibull', data.frame(sex=factor(c('F', 'M'), levels=levels(prevsim$sex))))
+    test_surv(Surv(time, status) ~ sex, 'lognormal', data.frame(sex=factor('M', levels=levels(prevsim$sex))))
+    test_surv(Surv(time, status) ~ sex, 'exponential', data.frame(sex=factor(c('M', 'F'), levels=levels(prevsim$sex))))
+
+    test_surv(Surv(time, status) ~ sex + age, 'weibull', data.frame(age=50, sex=factor('M', levels=levels(prevsim$sex))))
+    test_surv(Surv(time, status) ~ sex + age,
+              'lognormal',
+              data.frame(age=rnorm(3, 60, 20),
+                         sex=factor(c('F', 'M', 'M'), levels=levels(prevsim$sex)))
+              )
+    test_surv(Surv(time, status) ~ sex + age, # Test on 23 patients
+              'exponential',
+              data.frame(age=rnorm(23, 80, 10),
+                         sex=factor(sample(c('M', 'F'), 23, replace=T), levels=levels(prevsim$sex)))
+              )
 })

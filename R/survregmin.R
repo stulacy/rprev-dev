@@ -117,3 +117,63 @@ predict_survival_probability.survregmin <- function(object, newdata, times) {
     1- dists[[object$dist]]$prob(times, lps, scale)
 }
 
+
+#' @export
+predict_event_time.survregmin <- function(object, newdata) {
+
+    # TODO Make a 'draw' function in this list and combine with equivalent in
+    # predict_survival_probability and place in global location (hidden to users)
+    dists <- list('weibull' = list('prob' = function(n, lps, scale=NULL) {
+                                    rweibull(n, 1 / exp(scale), exp(lps))
+                                   },
+                                   'npars' = 2),
+                  'lognormal' = list('prob' = function(n, lps, scale=NULL) {
+                                     rlnorm(n, lps, exp(scale))
+                                 },
+                                 'npars' = 2),
+                  'exponential' = list('prob' = function(n, lps, scale=NULL) {
+                                     rexp(n, 1/exp(lps))
+                                 },
+                                 'npars' = 1)
+                 )
+
+    if (nrow(newdata) == 0) {
+        stop("Error: must provide data frame to newdata with non-zero rows.
+             Even if the model doesn't use any covariates, just pass in an empty data frame.")
+    }
+
+    for (c in object$covars) {
+        if (!c %in% colnames(newdata)) {
+            stop("Error: column '", c, "' not found in newdata.")
+        }
+    }
+
+    # Expand data into dummy categorical and include intercept
+    if (!is.null(object$covars)) {
+        formula <- as.formula(paste("~", paste(object$terms, collapse='+')))
+        wide_df <- model.matrix(formula, newdata)
+    } else {
+        wide_df <- cbind(rep(1, nrow(newdata)))
+    }
+
+    # Obtain coefficient for location parameter
+    num_params <- dists[[object$dist]]$npars
+    if (num_params == 2) {
+        lps <- wide_df %*% object$coefs[-length(object$coefs)]
+    } else if (num_params == 1) {
+        lps <- wide_df %*% object$coefs
+    } else {
+        stop("Error: Unknown number of parameters ", num_params)
+    }
+
+    # Can't see any other way to do this without making subclasses for each distribution
+    if (num_params == 2) {
+        scale <- object$coefs[length(object$coefs)]
+    } else if (num_params == 1) {
+        scale <- NULL
+    } else {
+        stop("Error: Unknown number of parameters ", num_params)
+    }
+
+    dists[[object$dist]]$prob(nrow(newdata), lps, scale)
+}
