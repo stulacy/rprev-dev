@@ -91,7 +91,7 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
     if (is.null(object$call)) {
         stop("Error: object does not have a call attribute.")
     }
-    if (is.null(class(object)) | class(object) == 'list') {
+    if (is.null(class(object)) | (length(class(object)) == 1 && class(object) == 'list')) {
         stop("Error: object does not have a unique class")
     }
 
@@ -113,8 +113,8 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
             if (typeof(covars) != 'character') {
                 stop("Error: extract_covars is returning a non-character vector: ", covars)
             }
-            if (!covars %in% colnames(data)) {
-                stop("Error: cannot find results of extract_covars (", covars, ") as columns
+            if (!all(covars %in% colnames(data))) {
+                stop("Error: result of extract_covars (", covars, ") are not columns
                      in registry data.")
             }
         }},
@@ -124,7 +124,7 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
 
     # Test has method "predict_survival_probability"
     if (!any(sapply(paste("predict_survival_probability", class(object), sep='.'), exists))) {
-        stop("Error: cannot find predict_survival_probabilit method for object of class ", class(object))
+        stop("Error: cannot find predict_survival_probability method for object of class ", class(object))
     }
 
     tryCatch({
@@ -155,6 +155,29 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
         error=function(e) {
             stop("Error encountered: ", e)
         })
+    
+    # Test has method "predict_event_time"
+    if (any(sapply(paste("predict_event_time", class(object), sep='.'), exists))) {
+        tryCatch({
+            # Run predict_event_time with a small subset of the
+            # data
+            sub_data <- data[sample(1:nrow(data), sample_size), ]
+            preds <- predict_event_time(object, newdata=sub_data)
+            if (is.null(preds)) {
+                stop("Error: no event time predictions were output from predict_event_time.")
+            }
+            if (length(preds) != sample_size) {
+                stop("Error: Do not have as many event time estimates as number of individuals in newdata and times.")
+            }
+            if (any(preds < 0)) {
+                stop("Error: Found negative event times.")
+            }
+            },
+            error=function(e) {
+                stop("Error encountered: ", e)
+            })
+    }
+    
     message("Survival model passed all tests.")
     preds
 }
