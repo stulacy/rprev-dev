@@ -47,6 +47,53 @@ predict_survival_probability.flexsurvreg <- function(object, newdata=NULL,
     do.call(fn, fnlist)
 }
 
+#' @export
+predict_event_time.flexsurvreg <- function(object, newdata=NULL)
+{
+    
+    if (nrow(newdata) == 0) {
+        stop("Error: must provide data frame to newdata with non-zero rows.
+             Even if the model doesn't use any covariates, just pass in an empty data frame.")
+    }
+
+    x <- object
+    dat <- x$data
+    # in directly
+    Xraw <- model.frame(x)[,unique(attr(model.frame(x),"covnames.orig")),drop=FALSE]
+    isfac <- sapply(Xraw, function(x){is.factor(x) || is.character(x)})
+
+    X <- form.model.matrix(object, as.data.frame(newdata))
+
+    fn <- build_draw_func(x)
+    fn <- expand.summfn.args(fn)
+    beta <- if (x$ncovs==0) 0 else x$res[x$covpars,"est"]
+
+    if (ncol(X) != length(beta) & ncol(X) > 0){
+        ## don't think we should ever reach here - error should be caught in newdata or X
+        isare <- if(length(beta)==1) "is" else "are"
+        plural <- if(ncol(X)==1) "" else "s"
+        pluralc <- if(length(beta)==1) "" else "s"
+        stop("Supplied X has ", ncol(X), " column",plural," but there ",isare," ",
+             length(beta), " covariate effect", pluralc)
+    }
+
+    dlist <- x$dlist
+
+    # Obtain distribution parameters for each individual
+    all_pars <- lapply(1:nrow(X), function(i) {
+        basepars.mat <- add.covs(x, x$res.t[dlist$pars,"est"], beta, X[i,,drop=FALSE], transform=FALSE)
+        as.list(as.data.frame(basepars.mat))
+    })
+
+    # Now convert this to a list of parameters rather than a list of patients
+    fnlist <- list(n=nrow(X))
+    for (par in dlist$pars) {
+        fnlist[[par]] <- sapply(all_pars, function(x) x[[par]])
+    }
+
+    do.call(fn, fnlist)
+}
+
 form.model.matrix <- function(object, newdata){
     mfo <- model.frame(object)
 
@@ -93,6 +140,14 @@ compress.model.matrices <- function(mml){
 summary.fns <- function(x){
    function(t, ...) {
        1 - x$dfns$p(t,...)
+   }
+}
+
+# Adaptation of summary.fns to get the 'r' draw
+# function, rather than 'p' cdf.
+build_draw_func <- function(x){
+   function(...) {
+       x$dfns$r(...)
    }
 }
 
