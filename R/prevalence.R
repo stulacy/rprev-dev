@@ -466,7 +466,7 @@ sim_prevalence <- function(data, index, starting_date,
                 incident_population[, paste0('alive_at_', idate) := as.logical(rbinom(length(surv_prob), size=1, prob=surv_prob))]
                 # Force death at 100 if possible
                 if (!is.null(age_column) & age_column %in% colnames(incident_population)) {
-                    incident_population[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
+                    incident_population[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := FALSE]
                 }
             }
         }
