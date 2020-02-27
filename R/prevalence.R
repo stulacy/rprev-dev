@@ -147,6 +147,7 @@ prevalence <- function(index, num_years_to_estimate,
                        age_column='age',
                        age_dead=100,
                        status_column='status',
+                       predict_event_times=FALSE,
                        N_boot=1000,
                        population_size=NULL, proportion=1e5,
                        level=0.95,
@@ -244,10 +245,18 @@ prevalence <- function(index, num_years_to_estimate,
             surv_model <- build_survreg(surv_formula, data, dist)
         }
 
+        # Check if have method
+        if (predict_event_times) {
+            if (!any(sapply(paste("predict_event_time", class(surv_model), sep='.'), exists))) {
+                stop("Error: cannot find `predict_event_time` method for survival object. Please set `predict_event_times` argument to FALSE.")
+            }
+        }
+
         prev_sim <- sim_prevalence(data, index, sim_start_date,
                                    inc_model, surv_model,
                                    age_column=age_column,
                                    age_dead=age_dead,
+                                   predict_event_times=predict_event_times,
                                    N_boot=N_boot)
 
     } else {
@@ -263,6 +272,7 @@ prevalence <- function(index, num_years_to_estimate,
                    new_point_estimate(year, prev_sim$results,
                                       idate, data, counted_formula,
                                       registry_start_date, status_column,
+                                      predict_event_times,
                                       population_size, proportion,
                                       level, precision)
                })
@@ -300,6 +310,7 @@ prevalence <- function(index, num_years_to_estimate,
                    registry_start=registry_start_date,
                    proportion=proportion,
                    status_col=status_column,
+                   predict_event_times=predict_event_times,
                    N_boot=N_boot)
 
     # Calculate covariate averages for survfit later on
@@ -395,6 +406,7 @@ counted_prevalence <- function(formula, index, data, start_date, status_col) {
 sim_prevalence <- function(data, index, starting_date,
                            inc_model, surv_model,
                            age_column='age',
+                           predict_event_times=FALSE,
                            N_boot=1000,
                            age_dead=100)
                            {
@@ -425,19 +437,33 @@ sim_prevalence <- function(data, index, starting_date,
         incident_date <- as.Date(starting_date + incident_population[[1]])
         incident_population[, 'incident_date' := incident_date]
 
-        # Predict individual survival probability at each index date
-        for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
-            idate <- index[i]
-            time_to_index <- as.numeric(difftime(idate, incident_date, units='days'))
-            time_to_index[time_to_index < 0] <- 0
-            # Estimate whether alive as Bernouilli trial with p = S(t)
-            surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
-            incident_population[, paste0('alive_at_', idate) := as.logical(rbinom(length(surv_prob), size=1, prob=surv_prob))]
+        # If can predict event times then just run this once and can be used to generate prevalence estimates for index dates
+        # Otherwise have to calculate survival probabilities at each index date independently
+        if (predict_event_times) {
+            event_times <- predict_event_time(bs_surv, incident_population[, -1])
+            incident_population[, event_time := event_times]
             # Force death at 100 if possible
             if (!is.null(age_column) & age_column %in% colnames(incident_population)) {
-                incident_population[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
+                time_to_max_age <- (age_dead * DAYS_IN_YEAR) - incident_population[, get(age_column) * DAYS_IN_YEAR]
+                die_past_max_age <- event_times > time_to_max_age
+                incident_population[die_past_max_age, event_time := time_to_max_age[die_past_max_age]]
+            }
+        } else {
+            # Predict individual survival probability at each index date
+            for (i in seq_along(index)) {  # Using for (i in index) fails as i isn't a date, but numeric
+                idate <- index[i]
+                time_to_index <- as.numeric(difftime(idate, incident_date, units='days'))
+                time_to_index[time_to_index < 0] <- 0
+                # Estimate whether alive as Bernouilli trial with p = S(t)
+                surv_prob <- predict_survival_probability(bs_surv, incident_population[, -1], time_to_index)
+                incident_population[, paste0('alive_at_', idate) := as.logical(rbinom(length(surv_prob), size=1, prob=surv_prob))]
+                # Force death at 100 if possible
+                if (!is.null(age_column) & age_column %in% colnames(incident_population)) {
+                    incident_population[(get(age_column)*DAYS_IN_YEAR + time_to_index) > age_dead * DAYS_IN_YEAR, paste0('alive_at_', idate) := 0]
+                }
             }
         }
+
 
         list(pop=incident_population,
              surv=bs_surv,

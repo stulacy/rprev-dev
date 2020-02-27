@@ -44,7 +44,11 @@ test_prevalence_fit <- function(object) {
 
     p_vals <- sapply(seq_along(object$index_date), function(i) {
         idate <- object$index_date[i]
-        object$simulated[, prev_registry := incident_date >= object$registry_start & get(paste0("alive_at_", idate))]
+        if (object$predict_event_times) {
+            object$simulated[, prev_registry := incident_date >= object$registry_start & (incident_date + event_time) < idate]
+        } else {
+            object$simulated[, prev_registry := incident_date >= object$registry_start & get(paste0("alive_at_", idate))]
+        }
         predicted <- round(mean(object$simulated[, sum(prev_registry), by=sim][[2]]))
         poisson.test(c(object$counted, predicted))$p.value
     })

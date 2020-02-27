@@ -1,4 +1,4 @@
-new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col,
+new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col, predict_event_times,
                                population_size=NULL, proportion=1e5,
                                level=0.95, precision=2) {
     if (year <= 0) {
@@ -20,10 +20,22 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         if (initial_date < registry_start_date) {
             stopifnot(!is.null(sim_results))
 
-            alive_col <- paste0("alive_at_", index)
-            sim_contributions <- sim_results[incident_date > initial_date & incident_date < index & incident_date < registry_start_date & get(alive_col),
-                                             .N,
-                                             by=sim][[2]]
+
+            # If predicted event times directly then need to calculate whether alive at index
+            if (predict_event_times) {
+                sim_contributions <- sim_results[incident_date > initial_date &
+                                                     incident_date < index &
+                                                     incident_date < registry_start_date &
+                                                     (incident_date + event_time) < index,
+                                                 .N,
+                                                 by=sim][[2]]
+            } else {
+                # If instead calculated survival probability directly then can use this
+                alive_col <- paste0("alive_at_", index)
+                sim_contributions <- sim_results[incident_date > initial_date & incident_date < index & incident_date < registry_start_date & get(alive_col),
+                                                 .N,
+                                                 by=sim][[2]]
+            }
             the_estimate <- count_prev + mean(sim_contributions)
 
             # Closure to calculate combined standard error
@@ -36,8 +48,18 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         }
     } else {
         # If don't have counted data then prevalence estimates are entirely simulated
-        alive_col <- paste0("alive_at_", index)
-        sim_contributions <- sim_results[incident_date > initial_date & incident_date < index & get(alive_col), .N, by=sim][[2]]
+        # If predicted event times directly then need to calculate whether alive at index
+        if (predict_event_times) {
+            sim_contributions <- sim_results[incident_date > initial_date &
+                                                 incident_date < index &
+                                                 (incident_date + event_time) < index,
+                                             .N,
+                                             by=sim][[2]]
+        } else {
+            # If instead calculated survival probability directly then can use this
+            alive_col <- paste0("alive_at_", index)
+            sim_contributions <- sim_results[incident_date > initial_date & incident_date < index & get(alive_col), .N, by=sim][[2]]
+        }
         the_estimate <- mean(sim_contributions)
 
         # Closure to calculate standard error of simulated data
