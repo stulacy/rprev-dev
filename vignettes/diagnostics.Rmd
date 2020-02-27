@@ -199,7 +199,7 @@ We do not provide any functions for diagnosing the bootstrapped incidence models
 To inspect the distribution of the bootstrapped survival models [see @crouch2014determining for details], a `survfit.prev` object can be constructed using the usual `survfit` call, accepting a data frame of new data, defaulting to the average covariate values in the registry data. In the example below, survival probability is estimated for a 60 year old male:
 
 ```{r}
-prevsurv <- survfit(prevalence_total, newdata=data.frame(age=60, sex='M'))
+prevsurv <- survfit(prevalence_total, newdata=data.frame(age=60, sex='M', stringsAsFactors = TRUE))
 prevsurv
 ```
 

@@ -16,7 +16,7 @@ generate_df <- function(startdate, rates, n_inds=10000) {
         this_group <- rates[i, ]
         for (r in seq_along(this_group)) {
             entrydates <- as.Date(startdate) + cumsum(rexp(n_inds, this_group[r]))
-            this_row <- data.frame(entrydates, LETTERS[r])
+            this_row <- data.frame(entrydates, LETTERS[r], stringsAsFactors = TRUE)
             if (ngroups == 2) {
                this_row <- cbind(this_row, LETTERS[i])
             }
