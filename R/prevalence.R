@@ -79,6 +79,11 @@ MIN_INCIDENCE <- 10
 #' @param status_column A string providing the name of the column that holds patient event status at
 #'     the event time. If not provided in \code{surv_formula} or in this argument then prevalence
 #'     cannot be counted.
+#' @param predict_event_times If TRUE, then the survival object must have a \code{predict_event_times} method available,
+#'   which is used to generate the simulated prevalance estimates. The default is to use the \code{predict_survival_probability}
+#'   method to independently estimate survival at each index date. Using \code{predict_event_times} is more computationally
+#'   efficient, but requires a \code{predict_event_times} method to be available, and there is one available by default but it may not
+#'   be so simple to implement for custom survival models. See the Vignette for more information.
 #' @param N_boot Number of bootstrapped calculations to perform.
 #' @param population_size Integer corresponding to the size of the population at
 #'   risk.
@@ -105,6 +110,7 @@ MIN_INCIDENCE <- 10
 #'   \item{registry_start}{The date the registry was identified at starting at.}
 #'   \item{proportion}{The denominator to use for estimating prevalence rates.}
 #'   \item{status_col}{The column in the registry data containing the survival status.}
+#'   \item{predict_event_times}{The value of the input argument \code{predict_event_times}.}
 #'   \item{N_boot}{The number of bootstrap iterations that were run.}
 #'   \item{means}{Covariate means, used when plotting Kaplan-Meier estimators using \code{survfit}.}
 #'   \item{max_event_time}{The maximum time-to-event in the registry data. Again, used in
@@ -414,6 +420,7 @@ sim_prevalence <- function(data, index, starting_date,
     # Needed for CRAN check
     alive_at_index <- NULL
     time_to_index <- NULL
+    event_time <- NULL
 
     data <- data[complete.cases(data), ]
     full_data <- data

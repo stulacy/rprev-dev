@@ -11,6 +11,7 @@ sim_prevalence(
   inc_model,
   surv_model,
   age_column = "age",
+  predict_event_times = FALSE,
   N_boot = 1000,
   age_dead = 100
 )
@@ -33,6 +34,12 @@ method. See the vignette for further guidance.}
 
 \item{age_column}{A string providing the name of the column that holds patient age. If provided
 then patients alive at \code{age_dead} are set to die. This helps combat 'immortal' patients.}
+
+\item{predict_event_times}{If TRUE, then the survival object must have a \code{predict_event_times} method available,
+which is used to generate the simulated prevalance estimates. The default is to use the \code{predict_survival_probability}
+method to independently estimate survival at each index date. Using \code{predict_event_times} is more computationally
+efficient, but requires a \code{predict_event_times} method to be available, and there is one available by default but it may not
+be so simple to implement for custom survival models. See the Vignette for more information.}
 
 \item{N_boot}{Number of bootstrapped calculations to perform.}
 

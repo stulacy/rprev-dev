@@ -40,6 +40,7 @@ test_prevalence_fit <- function(object) {
     # Needed for CRAN
     prev_registry <- NULL
     incident_date <- NULL
+    event_time <- NULL
     sim <- NULL
 
     p_vals <- sapply(seq_along(object$index_date), function(i) {

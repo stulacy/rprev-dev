@@ -10,7 +10,9 @@ predict_event_time(object, newdata)
 \item{object}{The survival object itself}
 
 \item{newdata}{Simulated incident individuals, with the same attributes specified in
-\code{extract_covars} and found in the supplied registry data to \code{prevalence}.}
+\code{extract_covars} and found in the supplied registry data to \code{prevalence}.
+Must be provided even if the survival model doesn't use any covariates, in this instance
+simply a data frame with the required number of rows must be provided.}
 }
 \value{
 A vector with the length \code{nrow(newdata)} providing the estimated

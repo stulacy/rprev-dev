@@ -9,6 +9,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
     # CRAN check
     incident_date <- NULL
     sim <- NULL
+    event_time <- NULL
 
     initial_date <- index - lubridate::years(year)
 
