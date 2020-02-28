@@ -253,7 +253,7 @@ prevalence <- function(index, num_years_to_estimate,
 
         # Check if have method
         if (predict_event_times) {
-            if (!any(sapply(paste("predict_event_time", class(surv_model), sep='.'), exists))) {
+            if (all(sapply(class(surv_model), function(x) is.null(utils::getS3method("predict_event_time", x, optional = TRUE))))) {
                 stop("Error: cannot find `predict_event_time` method for survival object. Please set `predict_event_times` argument to FALSE.")
             }
         }

@@ -123,7 +123,7 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
         })
 
     # Test has method "predict_survival_probability"
-    if (!any(sapply(paste("predict_survival_probability", class(object), sep='.'), exists))) {
+    if (all(sapply(class(object), function(x) is.null(utils::getS3method("predict_survival_probability", x, optional = TRUE))))) {
         stop("Error: cannot find predict_survival_probability method for object of class ", class(object))
     }
 
@@ -155,9 +155,9 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
         error=function(e) {
             stop("Error encountered: ", e)
         })
-    
+
     # Test has method "predict_event_time"
-    if (any(sapply(paste("predict_event_time", class(object), sep='.'), exists))) {
+    if (!all(sapply(class(object), function(x) is.null(utils::getS3method("predict_event_time", x, optional = TRUE))))) {
         tryCatch({
             # Run predict_event_time with a small subset of the
             # data
@@ -174,10 +174,12 @@ validate_survival_model <- function(object, data, timeframe=3652, sample_size=10
             }
             },
             error=function(e) {
-                stop("Error encountered: ", e)
+                warning("Error encountered: ", e)
             })
+    } else {
+        warning("No 'predict_event_time' method available, prevalence estimates will use 'predict_survival_probability' instead.\n")
     }
-    
+
     message("Survival model passed all tests.")
     preds
 }
