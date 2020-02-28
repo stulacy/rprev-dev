@@ -27,7 +27,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
                 sim_contributions <- sim_results[incident_date > initial_date &
                                                      incident_date < index &
                                                      incident_date < registry_start_date &
-                                                     (incident_date + event_time) < index,
+                                                     (incident_date + event_time) > index,
                                                  .N,
                                                  by=sim][[2]]
             } else {
@@ -53,7 +53,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
         if (predict_event_times) {
             sim_contributions <- sim_results[incident_date > initial_date &
                                                  incident_date < index &
-                                                 (incident_date + event_time) < index,
+                                                 (incident_date + event_time) > index,
                                              .N,
                                              by=sim][[2]]
         } else {
