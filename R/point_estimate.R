@@ -1,3 +1,4 @@
+#' @importFrom lubridate "%m-%"
 new_point_estimate <- function(year, sim_results, index, registry_data, prev_formula, registry_start_date, status_col, predict_event_times,
                                population_size=NULL, proportion=1e5,
                                level=0.95, precision=2) {
@@ -11,7 +12,7 @@ new_point_estimate <- function(year, sim_results, index, registry_data, prev_for
     sim <- NULL
     event_time <- NULL
 
-    initial_date <- index - lubridate::years(year)
+    initial_date <- index %m-% lubridate::years(year)
 
     # Only count prevalence if formula isn't null
     if (!is.null(prev_formula)) {

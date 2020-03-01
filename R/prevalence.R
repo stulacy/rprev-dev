@@ -220,7 +220,7 @@ prevalence <- function(index, num_years_to_estimate,
         stop("Error: Index date '", index, "' cannot be parsed as a date. Please enter it as a string in %Y%m%d or %Y-%m-%d format.")
     }
     registry_start_date <- lubridate::ymd(registry_start_date)
-    sim_start_date <- min(index) - lubridate::years(max(num_years_to_estimate))
+    sim_start_date <- min(index) %m-% lubridate::years(max(num_years_to_estimate))
 
     # NEED SIMULATION:
     #   - have N years > R registry years available
