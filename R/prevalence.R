@@ -293,7 +293,8 @@ prevalence <- function(index, num_years_to_estimate,
         if (!status_column %in% colnames(data)) {
             stop("Error: cannot find status column '", status_column, "' in data frame.")
         }
-        counted_prev <- counted_prevalence(counted_formula, index, data, registry_start_date, status_column)
+        counted_prev <- lapply(setNames(index, index), 
+                               function(idate) counted_prevalence(counted_formula, idate, data, registry_start_date, status_column))
     } else {
         counted_prev <- NULL
     }
@@ -537,7 +538,7 @@ summary.prevalence <- function(object, ...) {
     cat("Index date:", as.character(object$index_date), "\n")
     cat("Start date:", as.character(object$registry_start), "\n")
     cat("Overall incidence rate:", round(object$counted_incidence_rate, 3), "\n")
-    cat("Counted prevalent cases:", object$counted, "\n")
+    cat("Counted prevalent cases:", paste(object$counted, collapse=', '), "\n")
 
     if (!all(is.na(object$simulated))) {
         cat("\nSimulation\n~~~~~~~~~~\n")
