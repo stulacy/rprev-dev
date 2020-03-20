@@ -1,12 +1,11 @@
 ## Release summary
 
-Added a tolerance to a unit test to fix an Additional Issue seen in this output: https://www.stats.ox.ac.uk/pub/bdr/noLD/rprev.out,
-and have added LazyData: true in DESCRIPTION to resolve r-devel warnings.
+Made changes to account for the upcoming stringsAsFactors = FALSE default argument to data.frame() in R 4.0 so that the package is backwards compatible.
 
 ## Test environments
 
-* local Windows 10 Enterprise install, R 3.6.1
-* local Xubuntu install, R 3.6.1
+* local Manjaro Linux install, R 3.6.3
+* Win-builder R 3.6.3
 * Win-builder r-devel
 
 ## R CMD check results
