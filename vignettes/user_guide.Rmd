@@ -42,7 +42,8 @@ The following Kaplan-Meier plot shows that survival in *prevsim* is typical of m
 
 ```{r basicsurvival, fig.height=4, fig.width=7, echo=F}
 survf <- survfit(Surv(time, status) ~ sex, data=prevsim)
-survf_df <- data.frame(t=survf$time, s=survf$surv, sex=rep(c('M', 'F'), survf$strata))
+survf_df <- data.frame(t=survf$time, s=survf$surv, sex=rep(c('M', 'F'), survf$strata), 
+                       stringsAsFactors = TRUE)
 ggplot2::ggplot(survf_df, ggplot2::aes(x=t, y=s, colour=sex)) +
     ggplot2::geom_line() +
     ggplot2::theme_bw() +

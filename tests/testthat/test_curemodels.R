@@ -54,7 +54,7 @@ test_that("validate_population_survival checks the existence of other stratifica
 
 test_that("validate_population_survival verifies all linkage covariate values in registry data are in the population data set", {
     data("UKmortality")
-    no_female_pop <- data.frame(age=1:36525, surv=runif(36525), sex='M')
+    no_female_pop <- data.frame(age=1:36525, surv=runif(36525), sex='M', stringsAsFactors = TRUE)
     sex_as_int <- data.frame(time=runif(50, 0, 3000),
                              sex=sample(c(0, 1), 50, replace=T),
                              age= rnorm(50, 60, 10),
