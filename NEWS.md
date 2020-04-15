@@ -1,3 +1,7 @@
+# rprev 1.0.4
+
+Made changes to account for the upcoming stringsAsFactors = FALSE default argument to data.frame() in R 4.0 so that the package is backwards compatible.
+
 # rprev 1.0.3
 
 Change to unit test to allow for a tolerance when comparing floating points and a fix for a warning thrown from r-devel.
