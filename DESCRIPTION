@@ -28,6 +28,7 @@ Suggests:
     flexsurv,
     flexsurvcure,
     knitr,
+    rmarkdown,
     rms,
     testthat,
     covr
