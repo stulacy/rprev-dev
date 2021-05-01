@@ -4,7 +4,8 @@
 \name{prevsim}
 \alias{prevsim}
 \title{Simulated patient dataset.}
-\format{A data frame with 1000 rows and 6 columns:
+\format{
+A data frame with 1000 rows and 6 columns:
 \describe{
  \item{time}{time between date of diagnosis and death or censorship in days}
  \item{status}{event marker; 1 if patient is deceased and 0 if alive or censored}
@@ -12,7 +13,8 @@
  \item{sex}{string with values 'M' and 'F'}
  \item{entrydate}{date of entry into the registry in YYYY-MM-DD format}
  \item{eventdate}{date of death or censorship in YYYY-MM-DD format}
-}}
+}
+}
 \usage{
 prevsim
 }
