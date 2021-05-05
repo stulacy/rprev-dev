@@ -11,7 +11,7 @@ Monte Carlo simulation techniques are used to simulate incident cases in years f
 
 Prevalence arises from two independent stochastic processes: disease incidence and survival.
 Default models are provided that model incidence as a homogeneous Poisson process and survival as a standard parameteric distribution, although both of these models can be user specified for further control.
-See the *user_guide* vignette for more details about the implementation, and the original publication for details of the algorithm, available at [http://www.ncbi.nlm.nih.gov/pubmed/24656754](http://www.ncbi.nlm.nih.gov/pubmed/24656754).
+See the *user_guide* vignette for more details about the implementation, and the original publication for details of the algorithm, available at [https://pubmed.ncbi.nlm.nih.gov/24656754/](https://pubmed.ncbi.nlm.nih.gov/24656754/).
 
 ## Installation
 

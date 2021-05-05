@@ -2,7 +2,7 @@
 #'
 #' A dataset containing daily population survival rates for individuals up to 100 years old,
 #' from the UK population, derived from the 2009 mortality rates found at:
-#' \url{http://www.ons.gov.uk/ons/taxonomy/index.html?nscl=Life+Tables#tab-data-tables},
+#' \url{https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies/datasets/nationallifetablesunitedkingdomreferencetables},
 #' Adapted from public sector information licensed under the Open Government Licence v3.0.
 #' Data were relabelled according to the mean year of the three-year birth window.
 #' It is stored as a \code{data.table} for efficient access.

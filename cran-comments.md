@@ -1,16 +1,24 @@
+## Resubmission 2
+
+Updated URL with https that had missed out in previous submission.
+
+## Resubmission
+
+Updated URLs with https and corrected out-of-date links. 
+Added DOI to package description.
+
 ## Release summary
 
-Made changes to account for the upcoming stringsAsFactors = FALSE default argument to data.frame() in R 4.0 so that the package is backwards compatible.
+Explicitly declared `rmarkdown` dependency in SUGGESTS for building the vignette.
 
 ## Test environments
 
-* local Manjaro Linux install, R 3.6.3
-* Win-builder R 3.6.3
+* local Manjaro Linux install, R 4.0.5
 * Win-builder r-devel
 
 ## R CMD check results
 
-There were no ERRORS, WARNINGS, or NOTES.
+There were no ERRORS or WARNINGS, and the only NOTE refers to possible mis-spelling of the words 'et' and 'al' in the DESCRIPTION.
 
 ## Downstream dependencies
 

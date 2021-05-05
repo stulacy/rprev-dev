@@ -1,15 +1,15 @@
 Package: rprev
 Type: Package
 Title: Estimating Disease Prevalence from Registry Data
-Version: 1.0.4
-Date: 2020-03-19
+Version: 1.0.5
+Date: 2021-04-30
 Authors@R: c(
         person("Stuart", "Lacy", email="stuart.lacy@york.ac.uk", role=c('cre', 'aut')),
         person("Simon", "Crouch", email="simon.crouch@york.ac.uk", role='aut'),
         person("Stephanie", "Lax", email="stephanie.lax@york.ac.uk", role='aut')
         )
-Description: Estimates disease prevalence for a given index date, using existing
-    registry data extended with Monte Carlo simulations.
+Description: Estimates disease prevalence for a given index date using existing
+    registry data extended with Monte Carlo simulations following the method of Crouch et al (2014) <doi: 10.1016/j.canep.2014.02.005>.
 LazyData: true
 License: GPL-2
 Depends:
@@ -23,11 +23,12 @@ Imports:
     lubridate,
     magrittr,
     tidyr
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests:
     flexsurv,
     flexsurvcure,
     knitr,
+    rmarkdown,
     rms,
     testthat,
     covr
